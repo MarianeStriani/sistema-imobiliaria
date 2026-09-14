@@ -10,23 +10,10 @@ export default function Financeiro() {
   const [ano, setAno] = useState(hoje.getFullYear())
 
   const [recebimentos, setRecebimentos] = useState([])
-  const [contratos, setContratos] = useState([])
-  const [carregando, setCarregando] = useState(true)
+  const [lancamentos, setLancamentos] = useState([])
 
-  const nomesMeses = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro"
-  ]
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState("")
 
   useEffect(() => {
     carregarDados()
@@ -34,107 +21,89 @@ export default function Financeiro() {
 
   async function carregarDados() {
     setCarregando(true)
+    setErro("")
 
-    const [
-      recebimentosResult,
-      contratosResult
-    ] = await Promise.all([
-      supabase
-        .from("recebimentos")
-        .select(`
-          *,
-          clientes (
-            nome
-          ),
-          contratos (
-            numero,
-            imovel,
-            cliente,
-            tipo,
-            termino
-          )
-        `)
-        .order("data_recebimento", {
-          ascending: false
-        }),
+    try {
+      const { data: recebimentosData, error: recebimentosError } =
+        await supabase
+          .from("recebimentos")
+          .select(`
+            *,
+            clientes (
+              nome
+            ),
+            contratos (
+              numero,
+              cliente,
+              imovel,
+              tipo
+            )
+          `)
+          .order("data_recebimento", {
+            ascending: true,
+          })
 
-      supabase
-        .from("contratos")
-        .select("*")
-        .order("termino", {
-          ascending: true
-        })
-    ])
+      if (recebimentosError) {
+        throw recebimentosError
+      }
 
-    if (recebimentosResult.error) {
-      console.error(
-        "Erro ao buscar recebimentos:",
-        recebimentosResult.error
+      const { data: lancamentosData, error: lancamentosError } =
+        await supabase
+          .from("lancamentos_financeiros")
+          .select(`
+            *,
+            clientes (
+              nome
+            ),
+            contratos (
+              numero,
+              cliente,
+              imovel,
+              tipo
+            )
+          `)
+          .order("data_lancamento", {
+            ascending: true,
+          })
+
+      if (lancamentosError) {
+        console.warn(
+          "Não foi possível carregar lançamentos:",
+          lancamentosError.message
+        )
+
+        setLancamentos([])
+      } else {
+        setLancamentos(lancamentosData || [])
+      }
+
+      setRecebimentos(recebimentosData || [])
+    } catch (error) {
+      console.error(error)
+
+      setErro(
+        "Não foi possível carregar os dados financeiros."
       )
-
-      alert(
-        "Erro ao carregar os recebimentos: " +
-        recebimentosResult.error.message
-      )
+    } finally {
+      setCarregando(false)
     }
-
-    if (contratosResult.error) {
-      console.error(
-        "Erro ao buscar contratos:",
-        contratosResult.error
-      )
-
-      alert(
-        "Erro ao carregar os contratos: " +
-        contratosResult.error.message
-      )
-    }
-
-    setRecebimentos(
-      recebimentosResult.data || []
-    )
-
-    setContratos(
-      contratosResult.data || []
-    )
-
-    setCarregando(false)
   }
 
   /*
-   * RECEBIMENTOS DO MÊS SELECIONADO
+   * ==========================================================
+   * EXTRATO MENSAL
+   * ==========================================================
    */
 
-  const recebimentosDoMes = useMemo(() => {
-    return recebimentos.filter((item) => {
-      if (!item.data_recebimento) {
-        return false
-      }
-
-      const data = new Date(
-        item.data_recebimento + "T00:00:00"
-      )
-
-      return (
-        data.getMonth() + 1 === Number(mes) &&
-        data.getFullYear() === Number(ano)
-      )
-    })
-  }, [recebimentos, mes, ano])
-
-  /*
-   * CONTRATOS QUE TERMINAM NO MÊS
-   */
-
-  const contratosVencendo = useMemo(() => {
-    return contratos
-      .filter((contrato) => {
-        if (!contrato.termino) {
+  const extratoMensal = useMemo(() => {
+    const entradas = recebimentos
+      .filter((item) => {
+        if (!item.data_recebimento) {
           return false
         }
 
         const data = new Date(
-          contrato.termino + "T00:00:00"
+          item.data_recebimento + "T00:00:00"
         )
 
         return (
@@ -142,123 +111,152 @@ export default function Financeiro() {
           data.getFullYear() === Number(ano)
         )
       })
-      .sort((a, b) => {
-        return (
-          new Date(a.termino) -
-          new Date(b.termino)
-        )
-      })
-  }, [contratos, mes, ano])
+      .map((item) => ({
+        id: `recebimento-${item.id}`,
+        data: item.data_recebimento,
+        tipo: "Entrada",
+        descricao:
+          item.observacoes || "Recebimento",
+        contrato:
+          item.contratos?.numero || "-",
+        cliente:
+          item.clientes?.nome ||
+          item.contratos?.cliente ||
+          "-",
+        categoria:
+          item.categoria ||
+          item.contratos?.tipo ||
+          "Outros",
+        valor: Number(item.valor || 0),
+        status: item.status || "Pago",
+        origem: "recebimento",
+      }))
 
-  /*
-    * PRÓXIMOS RECEBIMENTOS - 10 DIAS
-   */
-
-  const proximosRecebimentos = useMemo(() => {
-    return recebimentos10Dias || []
-  }, [recebimentos10Dias])
-
-  */
-   * PAGOS E PENDENTES
-   */
-
-  const pagos = recebimentosDoMes.filter(
-    (item) => item.status === "Pago"
-  )
-
-  const pendentes = recebimentosDoMes.filter(
-    (item) => item.status === "Pendente"
-  )
-
-  /*
-   * SOMAS
-   */
-
-  function somar(lista) {
-    return lista.reduce(
-      (total, item) =>
-        total + Number(item.valor || 0),
-      0
-    )
-  }
-
-  const totalPago = somar(pagos)
-
-  const totalPendente = somar(pendentes)
-
-  const totalMes =
-    totalPago + totalPendente
-
-  /*
-   * CATEGORIAS
-   */
-
-  function valorCategoria(
-    categoria,
-    status = "Pago"
-  ) {
-    return recebimentosDoMes
+    const outrosLancamentos = lancamentos
       .filter((item) => {
+        if (!item.data_lancamento) {
+          return false
+        }
+
+        const data = new Date(
+          item.data_lancamento + "T00:00:00"
+        )
+
         return (
-          item.categoria === categoria &&
-          item.status === status
+          data.getMonth() + 1 === Number(mes) &&
+          data.getFullYear() === Number(ano)
         )
       })
+      .map((item) => ({
+        id: `lancamento-${item.id}`,
+        data: item.data_lancamento,
+        tipo: item.tipo,
+        descricao:
+          item.descricao || "Lançamento",
+        contrato:
+          item.contratos?.numero || "-",
+        cliente:
+          item.clientes?.nome ||
+          item.contratos?.cliente ||
+          "-",
+        categoria:
+          item.categoria || "Outros",
+        valor: Number(item.valor || 0),
+        status: item.status || "Pago",
+        origem: "lancamento",
+        original: item,
+      }))
+
+    return [
+      ...entradas,
+      ...outrosLancamentos,
+    ].sort((a, b) => {
+      return (
+        new Date(a.data + "T00:00:00") -
+        new Date(b.data + "T00:00:00")
+      )
+    })
+  }, [recebimentos, lancamentos, mes, ano])
+
+  /*
+   * ==========================================================
+   * TOTAIS
+   * ==========================================================
+   */
+
+  const totalEntradas = useMemo(() => {
+    return extratoMensal
+      .filter(
+        (item) =>
+          item.tipo === "Entrada" &&
+          item.status !== "Pendente"
+      )
       .reduce(
         (total, item) =>
           total + Number(item.valor || 0),
         0
       )
-  }
+  }, [extratoMensal])
 
-  const aluguelPago =
-    valorCategoria("Locação", "Pago")
+  const totalSaidas = useMemo(() => {
+    return extratoMensal
+      .filter(
+        (item) =>
+          item.tipo === "Saída" &&
+          item.status !== "Pendente"
+      )
+      .reduce(
+        (total, item) =>
+          total + Number(item.valor || 0),
+        0
+      )
+  }, [extratoMensal])
 
-  const vendasPago =
-    valorCategoria(
-      "Compra e Venda",
-      "Pago"
-    )
-
-  const temporadaPago =
-    valorCategoria(
-      "Temporada",
-      "Pago"
-    )
-
-  const administracaoPago =
-    valorCategoria(
-      "Administração",
-      "Pago"
-    )
+  const totalDisponivel =
+    totalEntradas - totalSaidas
 
   /*
-   * FORMATAÇÕES
+   * ==========================================================
+   * FORMATAÇÃO
+   * ==========================================================
    */
 
-  function moeda(valor) {
+  function formatarMoeda(valor) {
     return Number(valor || 0).toLocaleString(
       "pt-BR",
       {
         style: "currency",
-        currency: "BRL"
+        currency: "BRL",
       }
     )
   }
 
   function formatarData(data) {
-    if (!data) {
-      return "-"
-    }
+    if (!data) return "-"
 
     return new Date(
       data + "T00:00:00"
     ).toLocaleDateString("pt-BR")
   }
 
-  /*
-   * NAVEGAÇÃO DOS MESES
-   */
+  function nomeMes(numero) {
+    const meses = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ]
+
+    return meses[Number(numero) - 1]
+  }
 
   function mesAnterior() {
     if (Number(mes) === 1) {
@@ -269,7 +267,7 @@ export default function Financeiro() {
     }
   }
 
-  function proximoMes() {
+  function mesSeguinte() {
     if (Number(mes) === 12) {
       setMes(1)
       setAno(Number(ano) + 1)
@@ -278,40 +276,41 @@ export default function Financeiro() {
     }
   }
 
-  function irParaMesAtual() {
-    setMes(hoje.getMonth() + 1)
-    setAno(hoje.getFullYear())
+  function mesAtual() {
+    const data = new Date()
+
+    setMes(data.getMonth() + 1)
+    setAno(data.getFullYear())
   }
 
+  /*
+   * ==========================================================
+   * TELA
+   * ==========================================================
+   */
+
   return (
-    <main className="container-fluid py-4">
+    <div className="container-fluid py-4">
 
-      {/* CABEÇALHO */}
+      {/* ======================================================
+          CABEÇALHO
+      ====================================================== */}
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="mb-4">
+        <h1 className="fw-bold mb-1">
+          Financeiro
+        </h1>
 
-        <div>
-          <h1 className="fw-bold mb-1">
-            Financeiro
-          </h1>
-
-          <p className="text-muted mb-0">
-            Controle financeiro mensal
-          </p>
-        </div>
-
-        <button
-          className="btn btn-outline-primary"
-          onClick={carregarDados}
-        >
-          Atualizar
-        </button>
-
+        <p className="text-muted mb-0">
+          Extrato mensal de entradas e saídas
+        </p>
       </div>
 
-      {/* ACESSO RÁPIDO */}
+      {/* ======================================================
+          ACESSO RÁPIDO
+      ====================================================== */}
 
-      <div className="card shadow-sm mb-4">
+      <div className="card shadow-sm border-0 mb-4">
 
         <div className="card-body">
 
@@ -319,43 +318,42 @@ export default function Financeiro() {
             Acesso rápido
           </h5>
 
-          <div className="row g-2">
+          <div className="d-flex flex-wrap gap-2">
 
-            <div className="col-6 col-md-3">
-              <a
-                href="/recebimentos"
-                className="btn btn-success w-100 py-2"
-              >
-                + Recebimento
-              </a>
-            </div>
+            <a
+              href="/"
+              className="btn btn-outline-primary"
+            >
+              📊 Dashboard
+            </a>
 
-            <div className="col-6 col-md-3">
-              <a
-                href="/contratos"
-                className="btn btn-primary w-100 py-2"
-              >
-                Contratos
-              </a>
-            </div>
+            <a
+              href="/recebimentos"
+              className="btn btn-outline-success"
+            >
+              💰 Recebimentos
+            </a>
 
-            <div className="col-6 col-md-3">
-              <a
-                href="/clientes"
-                className="btn btn-outline-primary w-100 py-2"
-              >
-                Clientes
-              </a>
-            </div>
+            <a
+              href="/contratos"
+              className="btn btn-outline-dark"
+            >
+              📄 Contratos
+            </a>
 
-            <div className="col-6 col-md-3">
-              <a
-                href="/"
-                className="btn btn-outline-secondary w-100 py-2"
-              >
-                Dashboard
-              </a>
-            </div>
+            <a
+              href="/clientes"
+              className="btn btn-outline-secondary"
+            >
+              👥 Clientes
+            </a>
+
+            <a
+              href="/imoveis"
+              className="btn btn-outline-info"
+            >
+              🏠 Imóveis
+            </a>
 
           </div>
 
@@ -363,118 +361,83 @@ export default function Financeiro() {
 
       </div>
 
-      {/* SELEÇÃO DO MÊS */}
+      {/* ======================================================
+          FILTRO POR MÊS
+      ====================================================== */}
 
-      <div className="card shadow-sm mb-4">
+      <div className="card shadow-sm border-0 mb-4">
 
         <div className="card-body">
 
-          <div className="row align-items-end g-3">
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
 
-            <div className="col-md-4">
+            <div>
+              <h5 className="fw-bold mb-1">
+                Filtrar por mês
+              </h5>
 
-              <label className="form-label fw-bold">
-                Mês
-              </label>
+              <span className="text-muted">
+                {nomeMes(mes)} de {ano}
+              </span>
+            </div>
+
+            <div className="d-flex flex-wrap gap-2">
+
+              <button
+                className="btn btn-outline-secondary"
+                onClick={mesAnterior}
+              >
+                ◀
+              </button>
 
               <select
                 className="form-select"
+                style={{ width: "150px" }}
                 value={mes}
                 onChange={(e) =>
-                  setMes(
-                    Number(e.target.value)
-                  )
+                  setMes(Number(e.target.value))
                 }
               >
 
-                {nomesMeses.map(
-                  (nome, index) => (
+                {Array.from(
+                  { length: 12 },
+                  (_, index) => (
                     <option
                       key={index + 1}
                       value={index + 1}
                     >
-                      {nome}
+                      {nomeMes(index + 1)}
                     </option>
                   )
                 )}
 
               </select>
 
-            </div>
-
-            <div className="col-md-3">
-
-              <label className="form-label fw-bold">
-                Ano
-              </label>
-
-              <select
-                className="form-select"
+              <input
+                type="number"
+                className="form-control"
+                style={{ width: "100px" }}
                 value={ano}
                 onChange={(e) =>
-                  setAno(
-                    Number(e.target.value)
-                  )
+                  setAno(Number(e.target.value))
                 }
+              />
+
+              <button
+                className="btn btn-outline-secondary"
+                onClick={mesSeguinte}
               >
+                ▶
+              </button>
 
-                {Array.from(
-                  { length: 11 },
-                  (_, index) =>
-                    hoje.getFullYear() -
-                    5 +
-                    index
-                ).map((valorAno) => (
-
-                  <option
-                    key={valorAno}
-                    value={valorAno}
-                  >
-                    {valorAno}
-                  </option>
-
-                ))}
-
-              </select>
+              <button
+                className="btn btn-outline-primary"
+                onClick={mesAtual}
+              >
+                Mês atual
+              </button>
 
             </div>
-
-            <div className="col-md-5">
-
-              <div className="d-flex gap-2">
-
-                <button
-                  className="btn btn-outline-secondary flex-fill"
-                  onClick={mesAnterior}
-                >
-                  ← Anterior
-                </button>
-
-                <button
-                  className="btn btn-outline-primary"
-                  onClick={irParaMesAtual}
-                >
-                  Mês atual
-                </button>
-
-                <button
-                  className="btn btn-outline-secondary flex-fill"
-                  onClick={proximoMes}
-                >
-                  Próximo →
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div className="text-center mt-4">
-
-            <h2 className="fw-bold mb-0">
-              {nomesMeses[Number(mes) - 1]} / {ano}
-            </h2>
 
           </div>
 
@@ -482,590 +445,306 @@ export default function Financeiro() {
 
       </div>
 
-      {carregando ? (
+      {/* ======================================================
+          RESUMO
+      ====================================================== */}
 
-        <div className="text-center py-5">
+      <div className="row g-3 mb-4">
 
-          <div
-            className="spinner-border text-primary"
-            role="status"
-          ></div>
+        {/* ENTRADAS */}
 
-          <p className="text-muted mt-3">
-            Carregando informações financeiras...
-          </p>
+        <div className="col-md-4">
+
+          <div className="card border-0 shadow-sm h-100">
+
+            <div className="card-body">
+
+              <div className="text-muted">
+                Total de entradas
+              </div>
+
+              <div className="fs-3 fw-bold text-success mt-2">
+                {formatarMoeda(
+                  totalEntradas
+                )}
+              </div>
+
+            </div>
+
+          </div>
 
         </div>
 
-      ) : (
+        {/* SAÍDAS */}
 
-        <>
+        <div className="col-md-4">
 
-          {/* CARDS PRINCIPAIS */}
-
-          <div className="row g-3 mb-5">
-
-            <div className="col-md-4">
-
-              <div className="card shadow-sm border-success border-3 h-100">
-
-                <div className="card-body">
-
-                  <p className="text-muted mb-1">
-                    Total recebido
-                  </p>
-
-                  <h2 className="fw-bold text-success">
-                    {moeda(totalPago)}
-                  </h2>
-
-                  <small className="text-muted">
-                    {pagos.length} recebimento(s) pago(s)
-                  </small>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="col-md-4">
-
-              <div className="card shadow-sm border-warning border-3 h-100">
-
-                <div className="card-body">
-
-                  <p className="text-muted mb-1">
-                    Total pendente
-                  </p>
-
-                  <h2 className="fw-bold text-warning">
-                    {moeda(totalPendente)}
-                  </h2>
-
-                  <small className="text-muted">
-                    {pendentes.length} pendência(s)
-                  </small>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="col-md-4">
-
-              <div className="card shadow-sm border-primary border-3 h-100">
-
-                <div className="card-body">
-
-                  <p className="text-muted mb-1">
-                    Total do mês
-                  </p>
-
-                  <h2 className="fw-bold text-primary">
-                    {moeda(totalMes)}
-                  </h2>
-
-                  <small className="text-muted">
-                    Recebido + pendente
-                  </small>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* RECEBIDOS POR CATEGORIA */}
-
-          <h4 className="fw-bold mb-3">
-            Valores recebidos por categoria
-          </h4>
-
-          <div className="row g-3 mb-5">
-
-            <div className="col-md-3">
-
-              <div className="card shadow-sm h-100">
-
-                <div className="card-body">
-
-                  <h5 className="fw-bold">
-                    Aluguéis
-                  </h5>
-
-                  <p className="text-muted mb-1">
-                    Locação
-                  </p>
-
-                  <h3 className="fw-bold text-success">
-                    {moeda(aluguelPago)}
-                  </h3>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="col-md-3">
-
-              <div className="card shadow-sm h-100">
-
-                <div className="card-body">
-
-                  <h5 className="fw-bold">
-                    Vendas
-                  </h5>
-
-                  <p className="text-muted mb-1">
-                    Compra e Venda
-                  </p>
-
-                  <h3 className="fw-bold text-success">
-                    {moeda(vendasPago)}
-                  </h3>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="col-md-3">
-
-              <div className="card shadow-sm h-100">
-
-                <div className="card-body">
-
-                  <h5 className="fw-bold">
-                    Temporadas
-                  </h5>
-
-                  <p className="text-muted mb-1">
-                    Temporada
-                  </p>
-
-                  <h3 className="fw-bold text-success">
-                    {moeda(temporadaPago)}
-                  </h3>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="col-md-3">
-
-              <div className="card shadow-sm h-100">
-
-                <div className="card-body">
-
-                  <h5 className="fw-bold">
-                    Administração
-                  </h5>
-
-                  <p className="text-muted mb-1">
-                    Administração
-                  </p>
-
-                  <h3 className="fw-bold text-success">
-                    {moeda(administracaoPago)}
-                  </h3>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* ÚLTIMOS RECEBIMENTOS */}
-
-          <div className="card shadow-sm mb-5">
-
-            <div className="card-header d-flex justify-content-between align-items-center">
-
-              <h5 className="mb-0 fw-bold">
-                Últimos recebimentos
-              </h5>
-
-              <span className="badge bg-success">
-                {pagos.length} pago(s)
-              </span>
-
-            </div>
+          <div className="card border-0 shadow-sm h-100">
 
             <div className="card-body">
 
-              <div className="table-responsive">
+              <div className="text-muted">
+                Total de saídas
+              </div>
 
-                <table className="table table-hover align-middle">
+              <div className="fs-3 fw-bold text-danger mt-2">
+                {formatarMoeda(
+                  totalSaidas
+                )}
+              </div>
 
-                  <thead>
+            </div>
 
-                    <tr>
-                      <th>Data</th>
-                      <th>Cliente</th>
-                      <th>Contrato</th>
-                      <th>Categoria</th>
-                      <th>Forma</th>
-                      <th>Valor</th>
-                    </tr>
+          </div>
 
-                  </thead>
+        </div>
 
-                  <tbody>
+        {/* DISPONÍVEL */}
 
-                    {pagos.length === 0 ? (
+        <div className="col-md-4">
 
-                      <tr>
+          <div className="card border-0 shadow-sm h-100">
+
+            <div className="card-body">
+
+              <div className="text-muted">
+                Total disponível
+              </div>
+
+              <div
+                className={`fs-3 fw-bold mt-2 ${
+                  totalDisponivel >= 0
+                    ? "text-primary"
+                    : "text-danger"
+                }`}
+              >
+                {formatarMoeda(
+                  totalDisponivel
+                )}
+              </div>
+
+              <small className="text-muted">
+                Entradas − Saídas
+              </small>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ======================================================
+          EXTRATO MENSAL
+      ====================================================== */}
+
+      <div className="card shadow-sm border-0">
+
+        <div className="card-body">
+
+          <div className="d-flex justify-content-between align-items-center mb-3">
+
+            <div>
+
+              <h5 className="fw-bold mb-1">
+                Extrato mensal
+              </h5>
+
+              <small className="text-muted">
+                {nomeMes(mes)} de {ano}
+              </small>
+
+            </div>
+
+            <span className="badge text-bg-primary">
+              {extratoMensal.length} lançamentos
+            </span>
+
+          </div>
+
+          {extratoMensal.length === 0 ? (
+
+            <div className="alert alert-light border mb-0">
+              Nenhum lançamento encontrado neste mês.
+            </div>
+
+          ) : (
+
+            <div className="table-responsive">
+
+              <table className="table table-hover align-middle">
+
+                <thead className="table-light">
+
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Descrição</th>
+                    <th>Contrato</th>
+                    <th>Cliente / Inquilino</th>
+                    <th>Categoria</th>
+                    <th>Status</th>
+                    <th className="text-end">
+                      Valor
+                    </th>
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {extratoMensal.map(
+                    (item) => (
+                      <tr key={item.id}>
+
+                        <td>
+                          {formatarData(
+                            item.data
+                          )}
+                        </td>
+
+                        <td>
+
+                          {item.tipo ===
+                          "Entrada" ? (
+
+                            <span className="badge text-bg-success">
+                              Entrada
+                            </span>
+
+                          ) : (
+
+                            <span className="badge text-bg-danger">
+                              Saída
+                            </span>
+
+                          )}
+
+                        </td>
+
+                        <td>
+                          {item.descricao}
+                        </td>
+
+                        <td>
+                          {item.contrato}
+                        </td>
+
+                        <td>
+                          {item.cliente}
+                        </td>
+
+                        <td>
+                          {item.categoria}
+                        </td>
+
+                        <td>
+
+                          {item.status ===
+                          "Pendente" ? (
+
+                            <span className="badge text-bg-warning">
+                              Pendente
+                            </span>
+
+                          ) : (
+
+                            <span className="badge text-bg-success">
+                              Pago
+                            </span>
+
+                          )}
+
+                        </td>
 
                         <td
-                          colSpan="6"
-                          className="text-center text-muted py-4"
+                          className={`text-end fw-bold ${
+                            item.tipo ===
+                            "Entrada"
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
                         >
-                          Nenhum recebimento pago neste mês.
+
+                          {item.tipo ===
+                          "Entrada"
+                            ? "+"
+                            : "-"}
+
+                          {formatarMoeda(
+                            item.valor
+                          )}
+
                         </td>
 
                       </tr>
+                    )
+                  )}
 
-                    ) : (
+                </tbody>
 
-                      pagos
-                        .slice(0, 10)
-                        .map((item) => (
+                <tfoot className="table-light">
 
-                          <tr key={item.id}>
+                  <tr>
 
-                            <td>
-                              {formatarData(
-                                item.data_recebimento
-                              )}
-                            </td>
+                    <th
+                      colSpan="7"
+                      className="text-end"
+                    >
+                      Total disponível:
+                    </th>
 
-                            <td>
-                              {item.clientes?.nome ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {item.contratos?.numero ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {item.categoria}
-                            </td>
-
-                            <td>
-                              {item.forma_pagamento ||
-                                "-"}
-                            </td>
-
-                            <td className="fw-bold text-success">
-                              {moeda(item.valor)}
-                            </td>
-
-                          </tr>
-
-                        ))
-
-                    )}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-
-              {pagos.length > 0 && (
-
-                <a
-                  href="/recebimentos"
-                  className="btn btn-outline-success"
-                >
-                  Ver todos os recebimentos
-                </a>
-
-              )}
-
-            </div>
-
-          </div>
-
-          {/* CONTRATOS VENCENDO */}
-
-          <div className="card shadow-sm mb-5">
-
-            <div className="card-header">
-
-              <div className="d-flex justify-content-between align-items-center">
-
-                <div>
-
-                  <h5 className="mb-1 fw-bold">
-                    Contratos que vencem no mês
-                  </h5>
-
-                  <small className="text-muted">
-                    {nomesMeses[Number(mes) - 1]} / {ano}
-                  </small>
-
-                </div>
-
-                <span className="badge bg-danger">
-                  {contratosVencendo.length} contrato(s)
-                </span>
-
-              </div>
-
-            </div>
-
-            <div className="card-body">
-
-              {contratosVencendo.length === 0 ? (
-
-                <div className="text-center text-muted py-4">
-
-                  <h5>
-                    Nenhum contrato vence neste mês.
-                  </h5>
-
-                  <p className="mb-0">
-                    Não existem contratos com data de término em{" "}
-                    {nomesMeses[Number(mes) - 1]} / {ano}.
-                  </p>
-
-                </div>
-
-              ) : (
-
-                <div className="table-responsive">
-
-                  <table className="table table-hover align-middle">
-
-                    <thead>
-
-                      <tr>
-                        <th>Vencimento</th>
-                        <th>Nº contrato</th>
-                        <th>Imóvel</th>
-                        <th>Cliente</th>
-                        <th>Tipo</th>
-                        <th>Valor</th>
-                        <th>Status</th>
-                      </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                      {contratosVencendo.map(
-                        (contrato) => (
-
-                          <tr key={contrato.id}>
-
-                            <td className="fw-bold text-danger">
-                              {formatarData(
-                                contrato.termino
-                              )}
-                            </td>
-
-                            <td>
-                              {contrato.numero ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {contrato.imovel ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {contrato.cliente ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {contrato.tipo ||
-                                "-"}
-                            </td>
-
-                            <td className="fw-bold">
-                              {moeda(
-                                contrato.valor
-                              )}
-                            </td>
-
-                            <td>
-
-                              <span
-                                className={
-                                  contrato.status ===
-                                  "Ativo"
-                                    ? "badge bg-success"
-             : "badge bg-secondary"
-                                }
-                              >
-                                {contrato.status ||
-                                  "-"}
-                              </span>
-
-                            </td>
-
-                          </tr>
-
-                        )
+                    <th
+                      className={`text-end fs-5 ${
+                        totalDisponivel >= 0
+                          ? "text-primary"
+                          : "text-danger"
+                      }`}
+                    >
+                      {formatarMoeda(
+                        totalDisponivel
                       )}
+                    </th>
 
-                    </tbody>
+                  </tr>
 
-                  </table>
+                </tfoot>
 
-                </div>
-
-              )}
-
-              <div className="mt-3">
-
-                <a
-                  href="/contratos"
-                  className="btn btn-outline-primary"
-                >
-                  Ver contratos
-                </a>
-
-              </div>
+              </table>
 
             </div>
 
+          )}
+
+        </div>
+
+      </div>
+
+      {/* ======================================================
+          CARREGANDO
+      ====================================================== */}
+
+      {carregando && (
+        <div className="position-fixed bottom-0 end-0 p-3">
+
+          <div className="alert alert-info shadow">
+            Carregando financeiro...
           </div>
 
-          {/* TODOS OS LANÇAMENTOS DO MÊS */}
-
-          <div className="card shadow-sm">
-
-            <div className="card-header">
-
-              <h5 className="mb-0 fw-bold">
-                Todos os lançamentos do mês
-              </h5>
-
-            </div>
-
-            <div className="card-body">
-
-              <div className="table-responsive">
-
-                <table className="table table-hover align-middle">
-
-                  <thead>
-
-                    <tr>
-                      <th>Data</th>
-                      <th>Cliente</th>
-                      <th>Contrato</th>
-                      <th>Categoria</th>
-                      <th>Forma</th>
-                      <th>Valor</th>
-                      <th>Status</th>
-                    </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    {recebimentosDoMes.length === 0 ? (
-
-                      <tr>
-
-                        <td
-                          colSpan="7"
-                          className="text-center text-muted py-5"
-                        >
-                          Nenhum lançamento encontrado neste mês.
-                        </td>
-
-                      </tr>
-
-                    ) : (
-
-                      recebimentosDoMes.map(
-                        (item) => (
-
-                          <tr key={item.id}>
-
-                            <td>
-                              {formatarData(
-                                item.data_recebimento
-                              )}
-                            </td>
-
-                            <td>
-                              {item.clientes?.nome ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {item.contratos?.numero ||
-                                "-"}
-                            </td>
-
-                            <td>
-                              {item.categoria}
-                            </td>
-
-                            <td>
-                              {item.forma_pagamento ||
-                                "-"}
-                            </td>
-
-                            <td className="fw-bold">
-                              {moeda(item.valor)}
-                            </td>
-
-                            <td>
-
-                              <span
-                                className={
-                                  item.status ===
-                                  "Pago"
-                                    ? "badge bg-success"
-                                    : "badge bg-warning text-dark"
-                                }
-                              >
-                                {item.status}
-                              </span>
-
-                            </td>
-
-                          </tr>
-
-                        )
-                      )
-
-                    )}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </>
-
+        </div>
       )}
 
-    </main>
+      {/* ======================================================
+          ERRO
+      ====================================================== */}
+
+      {erro && (
+        <div className="alert alert-danger mt-3">
+          {erro}
+        </div>
+      )}
+
+    </div>
   )
 }
