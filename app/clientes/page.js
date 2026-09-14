@@ -1,287 +1,582 @@
-"use client";
+"use client"
 
-import "bootstrap/dist/css/bootstrap.min.css";
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react"
+import { supabase } from "../../lib/supabase"
 
-export default function Clientes() {
-const [clientes, setClientes] = useState([]);
-
-const [form, setForm] = useState({
-nome: "",
-tipo: "Proprietário",
-documento: "",
-telefone: "",
-email: "",
-endereco: "",
-cidade: "",
-});
-
-function handleChange(e) {
-setForm({
-...form,
-[e.target.name]: e.target.value,
-});
-}
-
-function cadastrarCliente(e) {
-e.preventDefault();
-
-if (!form.nome || !form.telefone) {
-  alert("Preencha pelo menos o nome e o telefone.");
-  return;
-}
-
-setClientes([...clientes, form]);
-
-setForm({
+const formularioInicial = {
   nome: "",
-  tipo: "Proprietário",
+  tipo: "Pessoa Física",
   documento: "",
   telefone: "",
   email: "",
   endereco: "",
-  cidade: "",
-});
-
+  cidade: ""
 }
 
-function excluirCliente(index) {
-const novaLista = clientes.filter((_, i) => i !== index);
-setClientes(novaLista);
-}
+export default function ClientesPage() {
+  const [clientes, setClientes] = useState([])
+  const [form, setForm] = useState(formularioInicial)
+  const [editandoId, setEditandoId] = useState(null)
+  const [carregando, setCarregando] = useState(true)
+  const [salvando, setSalvando] = useState(false)
+  const [visualizando, setVisualizando] = useState(null)
 
-return (
-<main className="container py-4">
+  useEffect(() => {
+    carregarClientes()
+  }, [])
 
-  <div className="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h1 className="fw-bold">Cadastro de Clientes</h1>
-      <p className="text-muted">
-        Gerencie proprietários, compradores e inquilinos.
-      </p>
-    </div>
+  async function carregarClientes() {
+    setCarregando(true)
 
-    <Link href="/" className="btn btn-outline-secondary">
-      ← Dashboard
-    </Link>
-  </div>
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("*")
+      .order("id", { ascending: false })
 
-  {/* FORMULÁRIO */}
-  <div className="card shadow-sm border-0 mb-5">
-    <div className="card-body p-4">
+    if (error) {
+      console.error(error)
+      alert("Erro ao carregar clientes.")
+    } else {
+      setClientes(data || [])
+    }
 
-      <h3 className="mb-4">Novo cliente</h3>
+    setCarregando(false)
+  }
 
-      <form onSubmit={cadastrarCliente}>
+  function alterarCampo(e) {
+    const { name, value } = e.target
 
-        <div className="row g-3">
+    setForm((anterior) => ({
+      ...anterior,
+      [name]: value
+    }))
+  }
 
-          <div className="col-md-6">
-            <label className="form-label">
-              Nome completo
-            </label>
+  function prepararEdicao(cliente) {
+    setEditandoId(cliente.id)
 
-            <input
-              type="text"
-              name="nome"
-              className="form-control"
-              value={form.nome}
-              onChange={handleChange}
-              placeholder="Digite o nome"
-            />
+    setForm({
+      nome: cliente.nome || "",
+      tipo: cliente.tipo || "Pessoa Física",
+      documento: cliente.documento || "",
+      telefone: cliente.telefone || "",
+      email: cliente.email || "",
+      endereco: cliente.endereco || "",
+      cidade: cliente.cidade || ""
+    })
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    })
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null)
+    setForm(formularioInicial)
+  }
+
+  async function salvarCliente(e) {
+    e.preventDefault()
+
+    if (!form.nome || !form.telefone) {
+      alert("Preencha nome e telefone.")
+      return
+    }
+
+    setSalvando(true)
+
+    const dados = {
+      nome: form.nome,
+      tipo: form.tipo,
+      documento: form.documento,
+      telefone: form.telefone,
+      email: form.email,
+      endereco: form.endereco,
+      cidade: form.cidade
+    }
+
+    if (editandoId) {
+      const { data, error } = await supabase
+        .from("clientes")
+        .update(dados)
+        .eq("id", editandoId)
+        .select()
+
+      if (error) {
+        console.error(error)
+        alert("Erro ao atualizar cliente.")
+      } else {
+        setClientes((anterior) =>
+          anterior.map((item) =>
+            item.id === editandoId ? data[0] : item
+          )
+        )
+
+        alert("Cliente atualizado com sucesso!")
+        cancelarEdicao()
+      }
+    } else {
+      const { data, error } = await supabase
+        .from("clientes")
+        .insert([dados])
+        .select()
+
+      if (error) {
+        console.error(error)
+        alert("Erro ao cadastrar cliente.")
+      } else {
+        setClientes((anterior) => [data[0], ...anterior])
+        setForm(formularioInicial)
+
+        alert("Cliente cadastrado com sucesso!")
+      }
+    }
+
+    setSalvando(false)
+  }
+
+  async function excluirCliente(id) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir este cliente?"
+    )
+
+    if (!confirmar) return
+
+    const { error } = await supabase
+      .from("clientes")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      console.error(error)
+      alert("Erro ao excluir cliente.")
+      return
+    }
+
+    setClientes((anterior) =>
+      anterior.filter((item) => item.id !== id)
+    )
+
+    if (visualizando?.id === id) {
+      setVisualizando(null)
+    }
+
+    alert("Cliente excluído com sucesso!")
+  }
+
+  return (
+    <main className="container py-4">
+
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 className="fw-bold mb-1">Clientes</h1>
+          <p className="text-muted mb-0">
+            Administração de clientes
+          </p>
+        </div>
+
+        <a href="/" className="btn btn-outline-secondary">
+          Voltar
+        </a>
+      </div>
+
+      <div className="card shadow-sm mb-4">
+        <div className="card-body">
+
+          <h4 className="mb-4">
+            {editandoId ? "Editar cliente" : "Cadastrar cliente"}
+          </h4>
+
+          <form onSubmit={salvarCliente}>
+
+            <div className="row g-3">
+
+              <div className="col-md-6">
+                <label className="form-label">
+                  Nome *
+                </label>
+
+                <input
+                  type="text"
+                  name="nome"
+                  value={form.nome}
+                  onChange={alterarCampo}
+                  className="form-control"
+                  placeholder="Nome completo"
+                />
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label">
+                  Tipo *
+                </label>
+
+                <select
+                  name="tipo"
+                  value={form.tipo}
+                  onChange={alterarCampo}
+                  className="form-select"
+                >
+                  <option>Pessoa Física</option>
+                  <option>Pessoa Jurídica</option>
+                </select>
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label">
+                  CPF / CNPJ
+                </label>
+
+                <input
+                  type="text"
+                  name="documento"
+                  value={form.documento}
+                  onChange={alterarCampo}
+                  className="form-control"
+                  placeholder="CPF ou CNPJ"
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label">
+                  Telefone *
+                </label>
+
+                <input
+                  type="text"
+                  name="telefone"
+                  value={form.telefone}
+                  onChange={alterarCampo}
+                  className="form-control"
+                  placeholder="(13) 99999-9999"
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label">
+                  E-mail
+                </label>
+
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={alterarCampo}
+                  className="form-control"
+                  placeholder="cliente@email.com"
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label">
+                  Cidade
+                </label>
+
+                <input
+                  type="text"
+                  name="cidade"
+                  value={form.cidade}
+                  onChange={alterarCampo}
+                  className="form-control"
+                  placeholder="Cidade"
+                />
+              </div>
+
+              <div className="col-12">
+                <label className="form-label">
+                  Endereço
+                </label>
+
+                <input
+                  type="text"
+                  name="endereco"
+                  value={form.endereco}
+                  onChange={alterarCampo}
+                  className="form-control"
+                  placeholder="Rua, número, bairro..."
+                />
+              </div>
+
+            </div>
+
+            <div className="mt-4 d-flex gap-2">
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={salvando}
+              >
+                {salvando
+                  ? "Salvando..."
+                  : editandoId
+                    ? "Salvar alterações"
+                    : "Cadastrar cliente"}
+              </button>
+
+              {editandoId && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={cancelarEdicao}
+                >
+                  Cancelar
+                </button>
+              )}
+
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+
+      <div className="card shadow-sm">
+
+        <div className="card-body">
+
+          <div className="d-flex justify-content-between align-items-center mb-3">
+
+            <h4 className="mb-0">
+              Clientes cadastrados
+            </h4>
+
+            <span className="badge bg-primary">
+              {clientes.length}
+            </span>
+
           </div>
 
-          <div className="col-md-3">
-            <label className="form-label">
-              Tipo de cliente
-            </label>
+          {carregando ? (
+            <div className="text-center py-4">
+              Carregando clientes...
+            </div>
+          ) : clientes.length === 0 ? (
+            <div className="alert alert-info">
+              Nenhum cliente cadastrado.
+            </div>
+          ) : (
 
-            <select
-              name="tipo"
-              className="form-select"
-              value={form.tipo}
-              onChange={handleChange}
-            >
-              <option>Proprietário</option>
-              <option>Comprador</option>
-              <option>Inquilino</option>
-              <option>Fiador</option>
-            </select>
-          </div>
+            <div className="table-responsive">
 
-          <div className="col-md-3">
-            <label className="form-label">
-              CPF/CNPJ
-            </label>
+              <table className="table table-hover align-middle">
 
-            <input
-              type="text"
-              name="documento"
-              className="form-control"
-              value={form.documento}
-              onChange={handleChange}
-              placeholder="CPF ou CNPJ"
-            />
-          </div>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Tipo</th>
+                    <th>Documento</th>
+                    <th>Telefone</th>
+                    <th>E-mail</th>
+                    <th>Cidade</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
 
-          <div className="col-md-4">
-            <label className="form-label">
-              Telefone
-            </label>
+                <tbody>
 
-            <input
-              type="tel"
-              name="telefone"
-              className="form-control"
-              value={form.telefone}
-              onChange={handleChange}
-              placeholder="(00) 00000-0000"
-            />
-          </div>
+                  {clientes.map((cliente) => (
 
-          <div className="col-md-4">
-            <label className="form-label">
-              E-mail
-            </label>
+                    <tr key={cliente.id}>
 
-            <input
-              type="email"
-              name="email"
-              className="form-control"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="cliente@email.com"
-            />
-          </div>
+                      <td>
+                        <strong>{cliente.nome}</strong>
+                      </td>
 
-          <div className="col-md-4">
-            <label className="form-label">
-              Cidade
-            </label>
+                      <td>
+                        {cliente.tipo}
+                      </td>
 
-            <input
-              type="text"
-              name="cidade"
-              className="form-control"
-              value={form.cidade}
-              onChange={handleChange}
-              placeholder="Cidade"
-            />
-          </div>
+                      <td>
+                        {cliente.documento || "-"}
+                      </td>
 
-          <div className="col-12">
-            <label className="form-label">
-              Endereço
-            </label>
+                      <td>
+                        {cliente.telefone}
+                      </td>
 
-            <input
-              type="text"
-              name="endereco"
-              className="form-control"
-              value={form.endereco}
-              onChange={handleChange}
-              placeholder="Endereço completo"
-            />
-          </div>
+                      <td>
+                        {cliente.email || "-"}
+                      </td>
 
-          <div className="col-12">
-            <button
-              type="submit"
-              className="btn btn-success"
-            >
-              + Cadastrar cliente
-            </button>
-          </div>
+                      <td>
+                        {cliente.cidade || "-"}
+                      </td>
+
+                      <td>
+
+                        <div className="d-flex gap-2 flex-wrap">
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-info text-white"
+                            onClick={() =>
+                              setVisualizando(cliente)
+                            }
+                          >
+                            Visualizar
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-warning"
+                            onClick={() =>
+                              prepararEdicao(cliente)
+                            }
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-danger"
+                            onClick={() =>
+                              excluirCliente(cliente.id)
+                            }
+                          >
+                            Excluir
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
 
         </div>
 
-      </form>
+      </div>
 
-    </div>
-  </div>
+      {visualizando && (
 
-  {/* LISTAGEM */}
-  <div className="card shadow-sm border-0">
+        <div
+          className="modal d-block"
+          tabIndex="-1"
+          style={{
+            backgroundColor: "rgba(0,0,0,0.5)"
+          }}
+        >
 
-    <div className="card-body p-4">
+          <div className="modal-dialog modal-lg modal-dialog-centered">
 
-      <h3 className="mb-4">
-        Clientes cadastrados ({clientes.length})
-      </h3>
+            <div className="modal-content">
 
-      {clientes.length === 0 ? (
-        <div className="alert alert-info">
-          Nenhum cliente cadastrado ainda.
-        </div>
-      ) : (
+              <div className="modal-header">
 
-        <div className="table-responsive">
+                <h5 className="modal-title">
+                  Dados do cliente
+                </h5>
 
-          <table className="table table-hover align-middle">
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() =>
+                    setVisualizando(null)
+                  }
+                />
 
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th>CPF/CNPJ</th>
-                <th>Telefone</th>
-                <th>E-mail</th>
-                <th>Cidade</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
+              </div>
 
-            <tbody>
+              <div className="modal-body">
 
-              {clientes.map((cliente, index) => (
+                <div className="row g-3">
 
-                <tr key={index}>
+                  <div className="col-md-6">
+                    <strong>Nome:</strong>
+                    <div>
+                      {visualizando.nome}
+                    </div>
+                  </div>
 
-                  <td>
-                    <strong>{cliente.nome}</strong>
-                  </td>
+                  <div className="col-md-6">
+                    <strong>Tipo:</strong>
+                    <div>
+                      {visualizando.tipo}
+                    </div>
+                  </div>
 
-                  <td>
-                    <span className="badge bg-primary">
-                      {cliente.tipo}
-                    </span>
-                  </td>
+                  <div className="col-md-6">
+                    <strong>CPF / CNPJ:</strong>
+                    <div>
+                      {visualizando.documento || "-"}
+                    </div>
+                  </div>
 
-                  <td>{cliente.documento}</td>
+                  <div className="col-md-6">
+                    <strong>Telefone:</strong>
+                    <div>
+                      {visualizando.telefone}
+                    </div>
+                  </div>
 
-                  <td>{cliente.telefone}</td>
+                  <div className="col-md-6">
+                    <strong>E-mail:</strong>
+                    <div>
+                      {visualizando.email || "-"}
+                    </div>
+                  </div>
 
-                  <td>{cliente.email}</td>
+                  <div className="col-md-6">
+                    <strong>Cidade:</strong>
+                    <div>
+                      {visualizando.cidade || "-"}
+                    </div>
+                  </div>
 
-                  <td>{cliente.cidade}</td>
+                  <div className="col-12">
+                    <strong>Endereço:</strong>
+                    <div>
+                      {visualizando.endereco || "-"}
+                    </div>
+                  </div>
 
-                  <td>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => excluirCliente(index)}
-                    >
-                      Excluir
-                    </button>
-                  </td>
+                </div>
 
-                </tr>
+              </div>
 
-              ))}
+              <div className="modal-footer">
 
-            </tbody>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() =>
+                    setVisualizando(null)
+                  }
+                >
+                  Fechar
+                </button>
 
-          </table>
+                <button
+                  type="button"
+                  className="btn btn-warning"
+                  onClick={() => {
+                    prepararEdicao(visualizando)
+                    setVisualizando(null)
+                  }}
+                >
+                  Editar cliente
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
 
         </div>
 
       )}
 
-    </div>
-
-  </div>
-
-</main>
-
-);
-}
+    </main>
+  )
+      }
