@@ -3,21 +3,22 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
+const formularioInicial = {
+  categoria: "",
+  descricao: "",
+  valor: "",
+  data_despesa: "",
+  forma_pagamento: "",
+  status: "Pendente",
+  observacoes: "",
+}
+
 export default function Despesas() {
   const [despesas, setDespesas] = useState([])
+  const [formulario, setFormulario] = useState(formularioInicial)
+  const [editando, setEditando] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
-  const [editandoId, setEditandoId] = useState(null)
-
-  const [form, setForm] = useState({
-    categoria: "",
-    descricao: "",
-    valor: "",
-    data_despesa: "",
-    forma_pagamento: "",
-    status: "Pendente",
-    observacoes: "",
-  })
 
   useEffect(() => {
     carregarDespesas()
@@ -28,15 +29,12 @@ export default function Despesas() {
 
     const { data, error } = await supabase
       .from("despesas")
-      .select(
-        "id, categoria, descricao, valor, data_despesa, forma_pagamento, status, observacoes, created_at"
-      )
+      .select("*")
       .order("data_despesa", { ascending: false })
 
     if (error) {
-      console.error("Erro ao carregar despesas:", error)
+      console.error(error)
       alert("Erro ao carregar despesas: " + error.message)
-      setDespesas([])
     } else {
       setDespesas(data || [])
     }
@@ -45,77 +43,58 @@ export default function Despesas() {
   }
 
   function alterarCampo(campo, valor) {
-    setForm((anterior) => ({
-      ...anterior,
+    setFormulario({
+      ...formulario,
       [campo]: valor,
-    }))
-  }
-
-  function limparFormulario() {
-    setForm({
-      categoria: "",
-      descricao: "",
-      valor: "",
-      data_despesa: "",
-      forma_pagamento: "",
-      status: "Pendente",
-      observacoes: "",
     })
-
-    setEditandoId(null)
+  }
+  function limparFormulario() {
+    setFormulario(formularioInicial)
+    setEditando(null)
   }
 
   async function salvarDespesa(event) {
     event.preventDefault()
 
-    if (!form.categoria.trim()) {
+    if (!formulario.categoria) {
       alert("Informe a categoria.")
       return
     }
 
-    if (!form.descricao.trim()) {
+    if (!formulario.descricao) {
       alert("Informe a descrição.")
       return
     }
 
-    if (!form.valor) {
+    if (!formulario.valor) {
       alert("Informe o valor.")
       return
     }
 
-    if (!form.data_despesa) {
-      alert("Informe a data da despesa.")
-      return
-    }
-
-    const valorNumerico = Number(
-      String(form.valor).replace(",", ".")
-    )
-
-    if (isNaN(valorNumerico) || valorNumerico <= 0) {
-      alert("Informe um valor válido.")
+    if (!formulario.data_despesa) {
+      alert("Informe a data.")
       return
     }
 
     setSalvando(true)
 
     const dados = {
-      categoria: form.categoria.trim(),
-      descricao: form.descricao.trim(),
-      valor: valorNumerico,
-      data_despesa: form.data_despesa,
-      forma_pagamento: form.forma_pagamento.trim() || null,
-      status: form.status,
-      observacoes: form.observacoes.trim() || null,
+      categoria: formulario.categoria,
+      descricao: formulario.descricao,
+      valor: Number(formulario.valor),
+      data_despesa: formulario.data_despesa,
+      forma_pagamento: formulario.forma_pagamento,
+      status: formulario.status,
+      observacoes: formulario.observacoes || null,
     }
 
     let resultado
 
-    if (editandoId) {
+    if (editando) {
       resultado = await supabase
         .from("despesas")
         .update(dados)
-        .eq("id", editandoId)
+        .eq("id", editando)
     } else {
       resultado = await supabase
         .from("despesas")
@@ -123,32 +102,28 @@ export default function Despesas() {
     }
 
     if (resultado.error) {
-      console.error("Erro ao salvar:", resultado.error)
-      alert("Erro ao salvar despesa: " + resultado.error.message)
+      console.error(resultado.error)
+      alert("Erro ao salvar: " + resultado.error.message)
     } else {
       alert(
-        editandoId
-          ? "Despesa atualizada com sucesso!"
-          : "Despesa cadastrada com sucesso!"
+        editando
+          ? "Despesa atualizada!"
+          : "Despesa cadastrada!"
       )
 
       limparFormulario()
-      await carregarDespesas()
+      carregarDespesas()
     }
 
     setSalvando(false)
   }
-
   function editarDespesa(despesa) {
-    setEditandoId(despesa.id)
+    setEditando(despesa.id)
 
-    setForm({
+    setFormulario({
       categoria: despesa.categoria || "",
       descricao: despesa.descricao || "",
-      valor:
-        despesa.valor !== null && despesa.valor !== undefined
-          ? String(despesa.valor)
-          : "",
+      valor: despesa.valor || "",
       data_despesa: despesa.data_despesa || "",
       forma_pagamento: despesa.forma_pagamento || "",
       status: despesa.status || "Pendente",
@@ -176,17 +151,15 @@ export default function Despesas() {
       .eq("id", id)
 
     if (error) {
-      console.error("Erro ao excluir:", error)
-      alert("Erro ao excluir despesa: " + error.message)
+      alert("Erro ao excluir: " + error.message)
       return
     }
 
-    alert("Despesa excluída com sucesso.")
-
-    await carregarDespesas()
+    alert("Despesa excluída!")
+    carregarDespesas()
   }
 
-  function formatarMoeda(valor) {
+  function formatarValor(valor) {
     return Number(valor || 0).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -194,7 +167,9 @@ export default function Despesas() {
   }
 
   function formatarData(data) {
-    if (!data) return "-"
+    if (!data) {
+      return "-"
+    }
 
     const partes = data.split("-")
 
@@ -202,206 +177,132 @@ export default function Despesas() {
       return data
     }
 
-    return `${partes[2]}/${partes[1]}/${partes[0]}`
+    return (
+      partes[2] +
+      "/" +
+      partes[1] +
+      "/" +
+      partes[0]
+    )
   }
 
-  const total = despesas.reduce(
-    (soma, despesa) => soma + Number(despesa.valor || 0),
-    0
-  )
+  const total = despesas.reduce(function (soma, despesa) {
+    return soma + Number(despesa.valor || 0)
+  }, 0)
 
-  const totalPagas = despesas
-    .filter(
-      (despesa) =>
-        String(despesa.status).toLowerCase() === "pago"
-    )
-    .reduce(
-      (soma, despesa) => soma + Number(despesa.valor || 0),
-      0
-    )
+  const pagas = despesas.reduce(function (soma, despesa) {
+    if (despesa.status === "Pago") {
+      return soma + Number(despesa.valor || 0)
+    }
 
-  const totalPendentes = despesas
-    .filter(
-      (despesa) =>
-        String(despesa.status).toLowerCase() === "pendente"
-    )
-    .reduce(
-      (soma, despesa) => soma + Number(despesa.valor || 0),
-      0
-    )
+    return soma
+  }, 0)
 
+  const pendentes = despesas.reduce(function (soma, despesa) {
+    if (despesa.status === "Pendente") {
+      return soma + Number(despesa.valor || 0)
+    }
+
+    return soma
+  }, 0)
   return (
-    <main className="container py-4">
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f5f7fa",
+        padding: "24px",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+        <h1 style={{ color: "#1f2937" }}>
+          Despesas
+        </h1>
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 className="fw-bold mb-1">Despesas</h1>
-          <p className="text-muted mb-0">
-            Controle financeiro das despesas
-          </p>
-        </div>
+        <p style={{ color: "#6b7280" }}>
+          Cadastro e controle de despesas da imobiliária.
+        </p>
 
-        <a href="/" className="btn btn-outline-secondary">
-          ← Dashboard
-        </a>
-      </div>
-
-      {/* FORMULÁRIO */}
-
-      <div className="card shadow-sm mb-4">
-        <div className="card-header">
-          <h5 className="mb-0">
-            {editandoId
-              ? "Editar despesa"
-              : "Nova despesa"}
-          </h5>
-        </div>
-
-        <div className="card-body">
+        <section style={card}>
+          <h2>
+            {editando ? "Editar despesa" : "Nova despesa"}
+          </h2>
 
           <form onSubmit={salvarDespesa}>
-
-            <div className="row g-3">
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Categoria *
-                </label>
-
+            <div style={grid}>
+              <div>
+                <label>Categoria</label>
                 <input
+                  style={input}
                   type="text"
-                  className="form-control"
-                  value={form.categoria}
+                  value={formulario.categoria}
                   onChange={(e) =>
-                    alterarCampo(
-                      "categoria",
-                      e.target.value
-                    )
+                    alterarCampo("categoria", e.target.value)
                   }
                   placeholder="Ex.: Manutenção"
-                  required
                 />
               </div>
 
-              <div className="col-md-8">
-                <label className="form-label">
-                  Descrição *
-                </label>
-
+              <div>
+                <label>Descrição</label>
                 <input
+                  style={input}
                   type="text"
-                  className="form-control"
-                  value={form.descricao}
+                  value={formulario.descricao}
                   onChange={(e) =>
-                    alterarCampo(
-                      "descricao",
-                      e.target.value
-                    )
+                    alterarCampo("descricao", e.target.value)
                   }
                   placeholder="Descrição da despesa"
-                  required
                 />
               </div>
 
-              <div className="col-md-4">
-                <label className="form-label">
-                  Valor *
-                </label>
-
+              <div>
+                <label>Valor</label>
                 <input
+                  style={input}
                   type="number"
-                  className="form-control"
-                  value={form.valor}
-                  onChange={(e) =>
-                    alterarCampo(
-                      "valor",
-                      e.target.value
-                    )
-                  }
-                  placeholder="0.00"
-                  min="0"
                   step="0.01"
-                  required
+                  min="0"
+                  value={formulario.valor}
+                  onChange={(e) =>
+                    alterarCampo("valor", e.target.value)
+                  }
+                  placeholder="0,00"
                 />
               </div>
 
-              <div className="col-md-4">
-                <label className="form-label">
-                  Data da despesa *
-                </label>
-
+              <div>
+                <label>Data da despesa</label>
                 <input
+                  style={input}
                   type="date"
-                  className="form-control"
-                  value={form.data_despesa}
+                  value={formulario.data_despesa}
                   onChange={(e) =>
-                    alterarCampo(
-                      "data_despesa",
-                      e.target.value
-                    )
+                    alterarCampo("data_despesa", e.target.value)
                   }
-                  required
                 />
               </div>
 
-              <div className="col-md-4">
-                <label className="form-label">
-                  Forma de pagamento
-                </label>
-
-                <select
-                  className="form-select"
-                  value={form.forma_pagamento}
+              <div>
+                <label>Forma de pagamento</label>
+                <input
+                  style={input}
+                  type="text"
+                  value={formulario.forma_pagamento}
                   onChange={(e) =>
-                    alterarCampo(
-                      "forma_pagamento",
-                      e.target.value
-                    )
+                    alterarCampo("forma_pagamento", e.target.value)
                   }
-                >
-                  <option value="">
-                    Selecione
-                  </option>
-
-                  <option value="Dinheiro">
-                    Dinheiro
-                  </option>
-
-                  <option value="PIX">
-                    PIX
-                  </option>
-
-                  <option value="Cartão">
-                    Cartão
-                  </option>
-
-                  <option value="Boleto">
-                    Boleto
-                  </option>
-
-                  <option value="Transferência">
-                    Transferência
-                  </option>
-
-                  <option value="Outro">
-                    Outro
-                  </option>
-                </select>
+                  placeholder="Pix, dinheiro, cartão..."
+                />
               </div>
 
-              <div className="col-md-4">
-                <label className="form-label">
-                  Status
-                </label>
-
+              <div>
+                <label>Status</label>
                 <select
-                  className="form-select"
-                  value={form.status}
+                  style={input}
+                  value={formulario.status}
                   onChange={(e) =>
-                    alterarCampo(
-                      "status",
-                      e.target.value
-                    )
+                    alterarCampo("status", e.target.value)
                   }
                 >
                   <option value="Pendente">
@@ -418,245 +319,237 @@ export default function Despesas() {
                 </select>
               </div>
 
-              <div className="col-md-8">
-                <label className="form-label">
-                  Observações
-                </label>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Observações</label>
 
                 <textarea
-                  className="form-control"
-                  rows="2"
-                  value={form.observacoes}
+                  style={input}
+                  rows="4"
+                  value={formulario.observacoes}
                   onChange={(e) =>
-                    alterarCampo(
-                      "observacoes",
-                      e.target.value
-                    )
+                    alterarCampo("observacoes", e.target.value)
                   }
-                  placeholder="Observações"
+                  placeholder="Observações..."
                 />
               </div>
-
             </div>
 
-            <div className="mt-4 d-flex gap-2">
-
+            <div style={{ marginTop: "20px" }}>
               <button
                 type="submit"
-                className="btn btn-primary"
                 disabled={salvando}
+                style={botaoSalvar}
               >
                 {salvando
                   ? "Salvando..."
-                  : editandoId
-                  ? "Atualizar"
-                  : "Cadastrar"}
+                  : editando
+                  ? "Atualizar despesa"
+                  : "Cadastrar despesa"}
               </button>
 
-              {editandoId && (
+              {editando && (
                 <button
                   type="button"
-                  className="btn btn-secondary"
                   onClick={limparFormulario}
+                  style={botaoCancelar}
                 >
                   Cancelar
                 </button>
               )}
-
             </div>
-
           </form>
+        </section>
 
-        </div>
-      </div>
+        <div style={cards}>
+          <div style={card}>
+            <strong>Total</strong>
+            <h2>{formatarValor(total)}</h2>
+          </div>
 
-      {/* RESUMO */}
+          <div style={card}>
+            <strong>Pagas</strong>
+            <h2>{formatarValor(pagas)}</h2>
+          </div>
 
-      <div className="row g-3 mb-4">
-
-        <div className="col-md-4">
-          <div className="card shadow-sm h-100">
-            <div className="card-body">
-              <h6 className="text-muted">
-                Total de despesas
-              </h6>
-
-              <h3 className="fw-bold">
-                {formatarMoeda(total)}
-              </h3>
-            </div>
+          <div style={card}>
+            <strong>Pendentes</strong>
+            <h2>{formatarValor(pendentes)}</h2>
           </div>
         </div>
 
-        <div className="col-md-4">
-          <div className="card shadow-sm h-100">
-            <div className="card-body">
-              <h6 className="text-muted">
-                Total pago
-              </h6>
-
-              <h3 className="fw-bold text-success">
-                {formatarMoeda(totalPagas)}
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-4">
-          <div className="card shadow-sm h-100">
-            <div className="card-body">
-              <h6 className="text-muted">
-                Total pendente
-              </h6>
-
-              <h3 className="fw-bold text-warning">
-                {formatarMoeda(totalPendentes)}
-              </h3>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* LISTA */}
-
-      <div className="card shadow-sm">
-
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">
-            Despesas cadastradas
-          </h5>
-
-          <span className="badge bg-secondary">
-            {despesas.length}
-          </span>
-        </div>
-
-        <div className="card-body p-0">
+        <section style={card}>
+          <h2>Lista de despesas</h2>
 
           {carregando ? (
-            <div className="p-4 text-center">
-              Carregando despesas...
-            </div>
+            <p>Carregando...</p>
           ) : despesas.length === 0 ? (
-            <div className="p-4 text-center text-muted">
-              Nenhuma despesa cadastrada.
-            </div>
+            <p>Nenhuma despesa cadastrada.</p>
           ) : (
-            <div className="table-responsive">
-
-              <table className="table table-hover align-middle mb-0">
-
-                <thead className="table-light">
-
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  minWidth: "900px",
+                }}
+              >
+                <thead>
                   <tr>
-                    <th>Data</th>
-                    <th>Categoria</th>
-                    <th>Descrição</th>
-                    <th>Valor</th>
-                    <th>Pagamento</th>
-                    <th>Status</th>
-                    <th>Observações</th>
-                    <th>Ações</th>
+                    <th style={th}>Data</th>
+                    <th style={th}>Categoria</th>
+                    <th style={th}>Descrição</th>
+                    <th style={th}>Valor</th>
+                    <th style={th}>Pagamento</th>
+                    <th style={th}>Status</th>
+                    <th style={th}>Observações</th>
+                    <th style={th}>Ações</th>
                   </tr>
-
                 </thead>
 
                 <tbody>
-
                   {despesas.map((despesa) => (
-
                     <tr key={despesa.id}>
-
-                      <td>
+                      <td style={td}>
                         {formatarData(
                           despesa.data_despesa
                         )}
                       </td>
 
-                      <td>
+                      <td style={td}>
                         {despesa.categoria || "-"}
                       </td>
 
-                      <td>
+                      <td style={td}>
                         {despesa.descricao || "-"}
                       </td>
 
-                      <td className="fw-bold">
-                        {formatarMoeda(
-                          despesa.valor
-                        )}
+                      <td style={td}>
+                        {formatarValor(despesa.valor)}
                       </td>
 
-                      <td>
+                      <td style={td}>
                         {despesa.forma_pagamento || "-"}
                       </td>
 
-                      <td>
-                        <span
-                          className={
-                            despesa.status === "Pago"
-                              ? "badge bg-success"
-                              : despesa.status === "Pendente"
-                              ? "badge bg-warning text-dark"
-                              : "badge bg-secondary"
-                          }
-                        >
-                          {despesa.status || "-"}
-                        </span>
+                      <td style={td}>
+                        {despesa.status || "-"}
                       </td>
 
-                      <td>
+                      <td style={td}>
                         {despesa.observacoes || "-"}
                       </td>
 
-                      <td>
+                      <td style={td}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            editarDespesa(despesa)
+                          }
+                          style={botaoEditar}
+                        >
+                          Editar
+                        </button>
 
-                        <div className="d-flex gap-2">
-
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() =>
-                              editarDespesa(
-                                despesa
-                              )
-                            }
-                          >
-                            Editar
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() =>
-                              excluirDespesa(
-                                despesa.id
-                              )
-                            }
-                          >
-                            Excluir
-                          </button>
-
-                        </div>
-
+                        <button
+                          type="button"
+                          onClick={() =>
+                            excluirDespesa(despesa.id)
+                          }
+                          style={botaoExcluir}
+                        >
+                          Excluir
+                        </button>
                       </td>
-
                     </tr>
-
                   ))}
-
                 </tbody>
-
               </table>
-
             </div>
           )}
-
-        </div>
-
+        </section>
       </div>
-
     </main>
   )
+}
+
+const card = {
+  background: "#ffffff",
+  borderRadius: "12px",
+  padding: "20px",
+  marginBottom: "20px",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+}
+
+const grid = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "16px",
+}
+
+const input = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "11px",
+  marginTop: "6px",
+  border: "1px solid #d1d5db",
+  borderRadius: "8px",
+  fontSize: "14px",
+}
+
+const cards = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "20px",
+}
+
+const th = {
+  textAlign: "left",
+  padding: "12px",
+  borderBottom: "2px solid #e5e7eb",
+}
+
+const td = {
+  padding: "12px",
+  borderBottom: "1px solid #e5e7eb",
+}
+
+const botaoSalvar = {
+  background: "#16a34a",
+  color: "#ffffff",
+  border: "none",
+  borderRadius: "8px",
+  padding: "12px 20px",
+  cursor: "pointer",
+  fontWeight: "bold",
+  marginRight: "10px",
+}
+
+const botaoCancelar = {
+  background: "#6b7280",
+  color: "#ffffff",
+  border: "none",
+  borderRadius: "8px",
+  padding: "12px 20px",
+  cursor: "pointer",
+}
+
+const botaoEditar = {
+  background: "#2563eb",
+  color: "#ffffff",
+  border: "none",
+  borderRadius: "6px",
+  padding: "7px 10px",
+  cursor: "pointer",
+  marginRight: "6px",
+}
+
+const botaoExcluir = {
+  background: "#dc2626",
+  color: "#ffffff",
+  border: "none",
+  borderRadius: "6px",
+  padding: "7px 10px",
+  cursor: "pointer",
 }
