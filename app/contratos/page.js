@@ -3,31 +3,33 @@
 import { useEffect, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
-const formularioInicial = {
-  numero: "",
-  imovel: "",
-  cliente: "",
-  tipo: "Locação",
-  inicio: "",
-  termino: "",
-  valor: "",
-  status: "Ativo",
-  observacoes: ""
-}
+export default function Contratos() {
+  const contratoInicial = {
+    numero: "",
+    imovel: "",
+    cliente: "",
+    tipo: "Locação",
+    inicio: "",
+    termino: "",
+    valor: "",
+    status: "Ativo",
+    periodicidade: "Mensal",
+    quantidade_dias: "",
+    observacoes: "",
+  }
 
-export default function ContratosPage() {
   const [contratos, setContratos] = useState([])
-  const [form, setForm] = useState(formularioInicial)
-  const [editandoId, setEditandoId] = useState(null)
+  const [form, setForm] = useState(contratoInicial)
+  const [editando, setEditando] = useState(null)
   const [visualizando, setVisualizando] = useState(null)
   const [carregando, setCarregando] = useState(true)
-  const [salvando, setSalvando] = useState(false)
+  const [mensagem, setMensagem] = useState("")
 
   useEffect(() => {
-    carregarContratos()
+    buscarContratos()
   }, [])
 
-  async function carregarContratos() {
+  async function buscarContratos() {
     setCarregando(true)
 
     const { data, error } = await supabase
@@ -37,7 +39,7 @@ export default function ContratosPage() {
 
     if (error) {
       console.error(error)
-      alert("Erro ao carregar contratos.")
+      setMensagem("Erro ao carregar contratos.")
     } else {
       setContratos(data || [])
     }
@@ -46,47 +48,56 @@ export default function ContratosPage() {
   }
 
   function alterarCampo(e) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+
+    setForm((anterior) => ({
+      ...anterior,
+      [name]: value,
+    }))
   }
 
-  function editarContrato(contrato) {
-    setEditandoId(contrato.id)
+  function alterarTipo(e) {
+    const tipo = e.target.value
 
-    setForm({
-      numero: contrato.numero || "",
-      imovel: contrato.imovel || "",
-      cliente: contrato.cliente || "",
-      tipo: contrato.tipo || "Locação",
-      inicio: contrato.inicio || "",
-      termino: contrato.termino || "",
-      valor: contrato.valor || "",
-      status: contrato.status || "Ativo",
-      observacoes: contrato.observacoes || ""
-    })
+    let periodicidade = "Mensal"
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    })
-  }
+    if (tipo === "Compra e Venda") {
+      periodicidade = "Única"
+    }
 
-  function cancelarEdicao() {
-    setEditandoId(null)
-    setForm(formularioInicial)
+    if (tipo === "Temporada") {
+      periodicidade = "Diária"
+    }
+
+    if (tipo === "Administração") {
+      periodicidade = "Mensal"
+    }
+
+    setForm((anterior) => ({
+      ...anterior,
+      tipo,
+      periodicidade,
+      quantidade_dias: tipo === "Temporada" ? anterior.quantidade_dias : "",
+    }))
   }
 
   async function salvarContrato(e) {
     e.preventDefault()
 
+    setMensagem("")
+
     if (!form.numero || !form.imovel || !form.cliente || !form.valor) {
-      alert("Preencha número, imóvel, cliente e valor.")
+      setMensagem("Preencha os campos obrigatórios.")
       return
     }
 
-    setSalvando(true)
+    if (
+      form.tipo === "Temporada" &&
+      (!form.quantidade_dias || Number(form.quantidade_dias) <= 0)
+    ) {
+      setMensagem("Informe a quantidade de dias da temporada.")
+      return
+    }
 
     const dados = {
       numero: form.numero,
@@ -97,58 +108,71 @@ export default function ContratosPage() {
       termino: form.termino || null,
       valor: Number(form.valor),
       status: form.status,
-      observacoes: form.observacoes
+      periodicidade: form.periodicidade,
+      quantidade_dias:
+        form.tipo === "Temporada"
+          ? Number(form.quantidade_dias)
+          : null,
+      observacoes: form.observacoes,
     }
 
-    if (editandoId) {
-      const { data, error } = await supabase
+    if (editando) {
+      const { error } = await supabase
         .from("contratos")
         .update(dados)
-        .eq("id", editandoId)
-        .select()
+        .eq("id", editando)
 
       if (error) {
         console.error(error)
-        alert("Erro ao atualizar contrato.")
-      } else {
-        setContratos(
-          contratos.map((contrato) =>
-            contrato.id === editandoId
-              ? data[0]
-              : contrato
-          )
-        )
-
-        alert("Contrato atualizado!")
-        cancelarEdicao()
+        setMensagem("Erro ao atualizar contrato.")
+        return
       }
+
+      setMensagem("Contrato atualizado com sucesso.")
     } else {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("contratos")
         .insert([dados])
-        .select()
 
       if (error) {
         console.error(error)
-        alert("Erro ao cadastrar contrato.")
-      } else {
-        setContratos([
-          data[0],
-          ...contratos
-        ])
-
-        setForm(formularioInicial)
-
-        alert("Contrato cadastrado!")
+        setMensagem("Erro ao cadastrar contrato.")
+        return
       }
+
+      setMensagem("Contrato cadastrado com sucesso.")
     }
 
-    setSalvando(false)
+    limparFormulario()
+    buscarContratos()
+  }
+
+  function editarContrato(contrato) {
+    setEditando(contrato.id)
+
+    setForm({
+      numero: contrato.numero || "",
+      imovel: contrato.imovel || "",
+      cliente: contrato.cliente || "",
+      tipo: contrato.tipo || "Locação",
+      inicio: contrato.inicio || "",
+      termino: contrato.termino || "",
+      valor: contrato.valor || "",
+      status: contrato.status || "Ativo",
+      periodicidade: contrato.periodicidade || "Mensal",
+      quantidade_dias: contrato.quantidade_dias || "",
+      observacoes: contrato.observacoes || "",
+    })
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    })
   }
 
   async function excluirContrato(id) {
     const confirmar = window.confirm(
-      "Deseja realmente excluir este contrato?"
+      "Tem certeza que deseja excluir este contrato?"
     )
 
     if (!confirmar) return
@@ -160,34 +184,48 @@ export default function ContratosPage() {
 
     if (error) {
       console.error(error)
-      alert("Erro ao excluir contrato.")
+      setMensagem("Erro ao excluir contrato.")
       return
     }
 
-    setContratos(
-      contratos.filter((contrato) => contrato.id !== id)
-    )
+    setMensagem("Contrato excluído com sucesso.")
+    buscarContratos()
+  }
 
-    setVisualizando(null)
-
-    alert("Contrato excluído!")
+  function limparFormulario() {
+    setForm(contratoInicial)
+    setEditando(null)
   }
 
   function formatarValor(valor) {
     return Number(valor || 0).toLocaleString("pt-BR", {
       style: "currency",
-      currency: "BRL"
+      currency: "BRL",
     })
   }
 
   function formatarData(data) {
     if (!data) return "-"
 
-    const partes = data.split("-")
+    const [ano, mes, dia] = data.split("-")
 
-    if (partes.length !== 3) return data
+    return `${dia}/${mes}/${ano}`
+  }
 
-    return `${partes[2]}/${partes[1]}/${partes[0]}`
+  function descricaoVencimento(contrato) {
+    if (contrato.tipo === "Locação") {
+      return "Mensal"
+    }
+
+    if (contrato.tipo === "Administração") {
+      return contrato.periodicidade || "Mensal"
+    }
+
+    if (contrato.tipo === "Temporada") {
+      return `${contrato.quantidade_dias || "-"} dias`
+    }
+
+    return "Única"
   }
 
   return (
@@ -195,31 +233,30 @@ export default function ContratosPage() {
 
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h1 className="fw-bold">
-            Contratos
-          </h1>
-
-          <p className="text-muted">
-            Administração de contratos
+          <h1 className="fw-bold">Contratos</h1>
+          <p className="text-muted mb-0">
+            Administração dos contratos imobiliários
           </p>
         </div>
 
-        <a
-          href="/"
-          className="btn btn-outline-secondary"
-        >
-          Voltar
+        <a href="/" className="btn btn-outline-secondary">
+          ← Dashboard
         </a>
       </div>
 
-      <div className="card shadow-sm mb-4">
+      {mensagem && (
+        <div className="alert alert-info">
+          {mensagem}
+        </div>
+      )}
 
+      {/* FORMULÁRIO */}
+
+      <div className="card shadow-sm mb-4">
         <div className="card-body">
 
           <h4 className="mb-4">
-            {editandoId
-              ? "Editar contrato"
-              : "Novo contrato"}
+            {editando ? "Editar contrato" : "Cadastrar contrato"}
           </h4>
 
           <form onSubmit={salvarContrato}>
@@ -228,15 +265,16 @@ export default function ContratosPage() {
 
               <div className="col-md-3">
                 <label className="form-label">
-                  Número *
+                  Nº do contrato *
                 </label>
 
                 <input
-                  className="form-control"
+                  type="text"
                   name="numero"
                   value={form.numero}
                   onChange={alterarCampo}
-                  placeholder="CTR001"
+                  className="form-control"
+                  required
                 />
               </div>
 
@@ -246,11 +284,13 @@ export default function ContratosPage() {
                 </label>
 
                 <input
-                  className="form-control"
+                  type="text"
                   name="imovel"
                   value={form.imovel}
                   onChange={alterarCampo}
-                  placeholder="IMV001"
+                  className="form-control"
+                  placeholder="Ex.: Casa 01 - Centro"
+                  required
                 />
               </div>
 
@@ -260,24 +300,26 @@ export default function ContratosPage() {
                 </label>
 
                 <input
-                  className="form-control"
+                  type="text"
                   name="cliente"
                   value={form.cliente}
                   onChange={alterarCampo}
+                  className="form-control"
                   placeholder="Nome do cliente"
+                  required
                 />
               </div>
 
-              <div className="col-md-3">
+              <div className="col-md-4">
                 <label className="form-label">
-                  Tipo
+                  Tipo de contrato *
                 </label>
 
                 <select
-                  className="form-select"
                   name="tipo"
                   value={form.tipo}
-                  onChange={alterarCampo}
+                  onChange={alterarTipo}
+                  className="form-select"
                 >
                   <option>Locação</option>
                   <option>Compra e Venda</option>
@@ -286,47 +328,102 @@ export default function ContratosPage() {
                 </select>
               </div>
 
-              <div className="col-md-3">
+              {/* PERIODICIDADE */}
+
+              <div className="col-md-4">
                 <label className="form-label">
-                  Início
+                  Periodicidade
+                </label>
+
+                <select
+                  name="periodicidade"
+                  value={form.periodicidade}
+                  onChange={alterarCampo}
+                  className="form-select"
+                  disabled={
+                    form.tipo === "Locação" ||
+                    form.tipo === "Temporada" ||
+                    form.tipo === "Compra e Venda"
+                  }
+                >
+                  {form.tipo === "Administração" ? (
+                    <>
+                      <option value="Mensal">Mensal</option>
+                      <option value="Anual">Anual</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value={form.periodicidade}>
+                        {form.periodicidade}
+                      </option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {/* DIAS DA TEMPORADA */}
+
+              {form.tipo === "Temporada" && (
+                <div className="col-md-4">
+                  <label className="form-label">
+                    Quantidade de dias *
+                  </label>
+
+                  <input
+                    type="number"
+                    name="quantidade_dias"
+                    value={form.quantidade_dias}
+                    onChange={alterarCampo}
+                    className="form-control"
+                    min="1"
+                    placeholder="Ex.: 7"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="col-md-4">
+                <label className="form-label">
+                  Data de início
                 </label>
 
                 <input
                   type="date"
-                  className="form-control"
                   name="inicio"
                   value={form.inicio}
                   onChange={alterarCampo}
+                  className="form-control"
                 />
               </div>
 
-              <div className="col-md-3">
+              <div className="col-md-4">
                 <label className="form-label">
-                  Término
+                  Data de término
                 </label>
 
                 <input
                   type="date"
-                  className="form-control"
                   name="termino"
                   value={form.termino}
                   onChange={alterarCampo}
+                  className="form-control"
                 />
               </div>
 
-              <div className="col-md-3">
+              <div className="col-md-4">
                 <label className="form-label">
                   Valor *
                 </label>
 
                 <input
                   type="number"
-                  step="0.01"
-                  className="form-control"
                   name="valor"
                   value={form.valor}
                   onChange={alterarCampo}
-                  placeholder="0.00"
+                  className="form-control"
+                  min="0"
+                  step="0.01"
+                  required
                 />
               </div>
 
@@ -336,10 +433,10 @@ export default function ContratosPage() {
                 </label>
 
                 <select
-                  className="form-select"
                   name="status"
                   value={form.status}
                   onChange={alterarCampo}
+                  className="form-select"
                 >
                   <option>Ativo</option>
                   <option>Encerrado</option>
@@ -354,35 +451,32 @@ export default function ContratosPage() {
                 </label>
 
                 <textarea
-                  className="form-control"
                   name="observacoes"
                   value={form.observacoes}
                   onChange={alterarCampo}
+                  className="form-control"
                   rows="3"
                 />
               </div>
 
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 d-flex gap-2">
 
               <button
                 type="submit"
-                className="btn btn-primary me-2"
-                disabled={salvando}
+                className="btn btn-primary"
               >
-                {salvando
-                  ? "Salvando..."
-                  : editandoId
-                    ? "Salvar alterações"
-                    : "Cadastrar contrato"}
+                {editando
+                  ? "Salvar alterações"
+                  : "Cadastrar contrato"}
               </button>
 
-              {editandoId && (
+              {editando && (
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={cancelarEdicao}
+                  onClick={limparFormulario}
                 >
                   Cancelar
                 </button>
@@ -391,38 +485,25 @@ export default function ContratosPage() {
             </div>
 
           </form>
-
         </div>
       </div>
+
+      {/* TABELA */}
 
       <div className="card shadow-sm">
 
         <div className="card-body">
 
-          <div className="d-flex justify-content-between mb-3">
-
-            <h4>
-              Contratos cadastrados
-            </h4>
-
-            <span className="badge bg-primary">
-              {contratos.length}
-            </span>
-
-          </div>
+          <h4 className="mb-3">
+            Contratos cadastrados
+          </h4>
 
           {carregando ? (
-
-            <div className="text-center p-4">
-              Carregando...
-            </div>
-
+            <p>Carregando...</p>
           ) : contratos.length === 0 ? (
-
-            <div className="alert alert-info">
+            <p className="text-muted">
               Nenhum contrato cadastrado.
-            </div>
-
+            </p>
           ) : (
 
             <div className="table-responsive">
@@ -431,10 +512,12 @@ export default function ContratosPage() {
 
                 <thead>
                   <tr>
-                    <th>Número</th>
+                    <th>Nº</th>
                     <th>Imóvel</th>
                     <th>Cliente</th>
                     <th>Tipo</th>
+                    <th>Periodicidade</th>
+                    <th>Vencimento</th>
                     <th>Valor</th>
                     <th>Status</th>
                     <th>Ações</th>
@@ -447,22 +530,20 @@ export default function ContratosPage() {
 
                     <tr key={contrato.id}>
 
+                      <td>{contrato.numero}</td>
+
+                      <td>{contrato.imovel}</td>
+
+                      <td>{contrato.cliente}</td>
+
+                      <td>{contrato.tipo}</td>
+
                       <td>
-                        <strong>
-                          {contrato.numero}
-                        </strong>
+                        {descricaoVencimento(contrato)}
                       </td>
 
                       <td>
-                        {contrato.imovel}
-                      </td>
-
-                      <td>
-                        {contrato.cliente}
-                      </td>
-
-                      <td>
-                        {contrato.tipo}
+                        {formatarData(contrato.termino)}
                       </td>
 
                       <td>
@@ -470,7 +551,15 @@ export default function ContratosPage() {
                       </td>
 
                       <td>
-                        <span className="badge bg-success">
+                        <span
+                          className={`badge ${
+                            contrato.status === "Ativo"
+                              ? "bg-success"
+                              : contrato.status === "Pendente"
+                              ? "bg-warning text-dark"
+                              : "bg-secondary"
+                          }`}
+                        >
                           {contrato.status}
                         </span>
                       </td>
@@ -480,7 +569,6 @@ export default function ContratosPage() {
                         <div className="d-flex gap-1">
 
                           <button
-                            type="button"
                             className="btn btn-sm btn-info text-white"
                             onClick={() =>
                               setVisualizando(contrato)
@@ -490,7 +578,6 @@ export default function ContratosPage() {
                           </button>
 
                           <button
-                            type="button"
                             className="btn btn-sm btn-warning"
                             onClick={() =>
                               editarContrato(contrato)
@@ -500,7 +587,6 @@ export default function ContratosPage() {
                           </button>
 
                           <button
-                            type="button"
                             className="btn btn-sm btn-danger"
                             onClick={() =>
                               excluirContrato(contrato.id)
@@ -526,18 +612,21 @@ export default function ContratosPage() {
           )}
 
         </div>
+
       </div>
+
+      {/* MODAL */}
 
       {visualizando && (
 
         <div
-          className="modal d-block"
+          className="modal fade show d-block"
           style={{
-            backgroundColor: "rgba(0,0,0,0.5)"
+            backgroundColor: "rgba(0,0,0,0.5)",
           }}
         >
 
-          <div className="modal-dialog modal-lg modal-dialog-centered">
+          <div className="modal-dialog modal-lg">
 
             <div className="modal-content">
 
@@ -548,7 +637,6 @@ export default function ContratosPage() {
                 </h5>
 
                 <button
-                  type="button"
                   className="btn-close"
                   onClick={() =>
                     setVisualizando(null)
@@ -562,56 +650,57 @@ export default function ContratosPage() {
                 <div className="row g-3">
 
                   <div className="col-md-6">
-                    <strong>Número:</strong>
-                    <p>{visualizando.numero}</p>
-                  </div>
-
-                  <div className="col-md-6">
-                    <strong>Tipo:</strong>
-                    <p>{visualizando.tipo}</p>
-                  </div>
-
-                  <div className="col-md-6">
                     <strong>Imóvel:</strong>
-                    <p>{visualizando.imovel}</p>
+                    <br />
+                    {visualizando.imovel}
                   </div>
 
                   <div className="col-md-6">
                     <strong>Cliente:</strong>
-                    <p>{visualizando.cliente}</p>
+                    <br />
+                    {visualizando.cliente}
                   </div>
 
                   <div className="col-md-4">
-                    <strong>Início:</strong>
-                    <p>
-                      {formatarData(visualizando.inicio)}
-                    </p>
+                    <strong>Tipo:</strong>
+                    <br />
+                    {visualizando.tipo}
                   </div>
 
                   <div className="col-md-4">
-                    <strong>Término:</strong>
-                    <p>
-                      {formatarData(visualizando.termino)}
-                    </p>
+                    <strong>Periodicidade:</strong>
+                    <br />
+                    {descricaoVencimento(visualizando)}
                   </div>
 
                   <div className="col-md-4">
                     <strong>Valor:</strong>
-                    <p>
-                      {formatarValor(visualizando.valor)}
-                    </p>
+                    <br />
+                    {formatarValor(visualizando.valor)}
+                  </div>
+
+                  <div className="col-md-4">
+                    <strong>Início:</strong>
+                    <br />
+                    {formatarData(visualizando.inicio)}
+                  </div>
+
+                  <div className="col-md-4">
+                    <strong>Término:</strong>
+                    <br />
+                    {formatarData(visualizando.termino)}
                   </div>
 
                   <div className="col-md-4">
                     <strong>Status:</strong>
-                    <p>{visualizando.status}</p>
+                    <br />
+                    {visualizando.status}
                   </div>
 
                   <div className="col-12">
                     <strong>Observações:</strong>
-                    <p>
-                      {visualizando.observacoes || "-"}
-                    </p>
+                    <br />
+                    {visualizando.observacoes || "-"}
                   </div>
 
                 </div>
@@ -621,24 +710,12 @@ export default function ContratosPage() {
               <div className="modal-footer">
 
                 <button
-                  type="button"
                   className="btn btn-secondary"
                   onClick={() =>
                     setVisualizando(null)
                   }
                 >
                   Fechar
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-warning"
-                  onClick={() => {
-                    editarContrato(visualizando)
-                    setVisualizando(null)
-                  }}
-                >
-                  Editar contrato
                 </button>
 
               </div>
@@ -653,4 +730,4 @@ export default function ContratosPage() {
 
     </main>
   )
-                    }
+}
