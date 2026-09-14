@@ -1,203 +1,50 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
-export default function Contratos() {
-  const contratoInicial = {
-    numero: "",
-    imovel: "",
-    cliente: "",
-    tipo: "Locação",
-    inicio: "",
-    termino: "",
-    valor: "",
-    status: "Ativo",
-    periodicidade: "Mensal",
-    quantidade_dias: "",
-    observacoes: "",
-  }
-
+export default function Recebimentos() {
   const [contratos, setContratos] = useState([])
-  const [form, setForm] = useState(contratoInicial)
-  const [editando, setEditando] = useState(null)
-  const [visualizando, setVisualizando] = useState(null)
+  const [recebimentos, setRecebimentos] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [mensagem, setMensagem] = useState("")
 
   useEffect(() => {
-    buscarContratos()
+    carregarDados()
   }, [])
 
-  async function buscarContratos() {
+  async function carregarDados() {
     setCarregando(true)
+    setMensagem("")
 
-    const { data, error } = await supabase
-      .from("contratos")
-      .select("*")
-      .order("id", { ascending: false })
+    const [contratosResponse, recebimentosResponse] = await Promise.all([
+      supabase
+        .from("contratos")
+        .select("*")
+        .order("id", { ascending: false }),
 
-    if (error) {
-      console.error(error)
-      setMensagem("Erro ao carregar contratos.")
-    } else {
-      setContratos(data || [])
+      supabase
+        .from("recebimentos")
+        .select("*")
+        .order("id", { ascending: false }),
+    ])
+
+    if (contratosResponse.error) {
+      console.error(contratosResponse.error)
+      setMensagem("Erro ao carregar os contratos.")
     }
 
+    if (recebimentosResponse.error) {
+      console.error(recebimentosResponse.error)
+      setMensagem("Erro ao carregar os recebimentos.")
+    }
+
+    setContratos(contratosResponse.data || [])
+    setRecebimentos(recebimentosResponse.data || [])
     setCarregando(false)
   }
 
-  function alterarCampo(e) {
-    const { name, value } = e.target
-
-    setForm((anterior) => ({
-      ...anterior,
-      [name]: value,
-    }))
-  }
-
-  function alterarTipo(e) {
-    const tipo = e.target.value
-
-    let periodicidade = "Mensal"
-
-    if (tipo === "Compra e Venda") {
-      periodicidade = "Única"
-    }
-
-    if (tipo === "Temporada") {
-      periodicidade = "Diária"
-    }
-
-    if (tipo === "Administração") {
-      periodicidade = "Mensal"
-    }
-
-    setForm((anterior) => ({
-      ...anterior,
-      tipo,
-      periodicidade,
-      quantidade_dias: tipo === "Temporada" ? anterior.quantidade_dias : "",
-    }))
-  }
-
-  async function salvarContrato(e) {
-    e.preventDefault()
-
-    setMensagem("")
-
-    if (!form.numero || !form.imovel || !form.cliente || !form.valor) {
-      setMensagem("Preencha os campos obrigatórios.")
-      return
-    }
-
-    if (
-      form.tipo === "Temporada" &&
-      (!form.quantidade_dias || Number(form.quantidade_dias) <= 0)
-    ) {
-      setMensagem("Informe a quantidade de dias da temporada.")
-      return
-    }
-
-    const dados = {
-      numero: form.numero,
-      imovel: form.imovel,
-      cliente: form.cliente,
-      tipo: form.tipo,
-      inicio: form.inicio || null,
-      termino: form.termino || null,
-      valor: Number(form.valor),
-      status: form.status,
-      periodicidade: form.periodicidade,
-      quantidade_dias:
-        form.tipo === "Temporada"
-          ? Number(form.quantidade_dias)
-          : null,
-      observacoes: form.observacoes,
-    }
-
-    if (editando) {
-      const { error } = await supabase
-        .from("contratos")
-        .update(dados)
-        .eq("id", editando)
-
-      if (error) {
-        console.error(error)
-        setMensagem("Erro ao atualizar contrato.")
-        return
-      }
-
-      setMensagem("Contrato atualizado com sucesso.")
-    } else {
-      const { error } = await supabase
-        .from("contratos")
-        .insert([dados])
-
-      if (error) {
-        console.error(error)
-        setMensagem("Erro ao cadastrar contrato.")
-        return
-      }
-
-      setMensagem("Contrato cadastrado com sucesso.")
-    }
-
-    limparFormulario()
-    buscarContratos()
-  }
-
-  function editarContrato(contrato) {
-    setEditando(contrato.id)
-
-    setForm({
-      numero: contrato.numero || "",
-      imovel: contrato.imovel || "",
-      cliente: contrato.cliente || "",
-      tipo: contrato.tipo || "Locação",
-      inicio: contrato.inicio || "",
-      termino: contrato.termino || "",
-      valor: contrato.valor || "",
-      status: contrato.status || "Ativo",
-      periodicidade: contrato.periodicidade || "Mensal",
-      quantidade_dias: contrato.quantidade_dias || "",
-      observacoes: contrato.observacoes || "",
-    })
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    })
-  }
-
-  async function excluirContrato(id) {
-    const confirmar = window.confirm(
-      "Tem certeza que deseja excluir este contrato?"
-    )
-
-    if (!confirmar) return
-
-    const { error } = await supabase
-      .from("contratos")
-      .delete()
-      .eq("id", id)
-
-    if (error) {
-      console.error(error)
-      setMensagem("Erro ao excluir contrato.")
-      return
-    }
-
-    setMensagem("Contrato excluído com sucesso.")
-    buscarContratos()
-  }
-
-  function limparFormulario() {
-    setForm(contratoInicial)
-    setEditando(null)
-  }
-
-  function formatarValor(valor) {
+  function formatarMoeda(valor) {
     return Number(valor || 0).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -207,587 +54,387 @@ export default function Contratos() {
   function formatarData(data) {
     if (!data) return "-"
 
-    const [ano, mes, dia] = data.split("-")
+    const partes = String(data).split("-")
 
-    return `${dia}/${mes}/${ano}`
+    if (partes.length === 3) {
+      return `${partes[2]}/${partes[1]}/${partes[0]}`
+    }
+
+    return data
   }
 
-  function descricaoVencimento(contrato) {
-    if (contrato.tipo === "Locação") {
-      return "Mensal"
+  function obterIdContrato(contrato) {
+    return contrato.id
+  }
+
+  function obterRecebimentoDoContrato(contrato) {
+    return recebimentos.find(
+      (recebimento) =>
+        String(recebimento.contrato_id) === String(obterIdContrato(contrato))
+    )
+  }
+
+  const contratosAtivos = useMemo(() => {
+    return contratos.filter(
+      (contrato) =>
+        String(contrato.status || "").toLowerCase() === "ativo"
+    )
+  }, [contratos])
+
+  const pendentes = useMemo(() => {
+    return contratosAtivos.filter((contrato) => {
+      const recebimento = obterRecebimentoDoContrato(contrato)
+
+      return !recebimento || recebimento.status !== "Recebido"
+    })
+  }, [contratosAtivos, recebimentos])
+
+  const recebidos = useMemo(() => {
+    return recebimentos.filter(
+      (recebimento) =>
+        String(recebimento.status || "").toLowerCase() ===
+        "recebido"
+    )
+  }, [recebimentos])
+
+  const totalPendente = useMemo(() => {
+    return pendentes.reduce(
+      (total, contrato) => total + Number(contrato.valor || 0),
+      0
+    )
+  }, [pendentes])
+
+  const totalRecebido = useMemo(() => {
+    return recebidos.reduce(
+      (total, recebimento) => total + Number(recebimento.valor || 0),
+      0
+    )
+  }, [recebidos])
+
+  async function salvarRecebimento(contrato) {
+    setMensagem("")
+
+    const recebimentoExistente = obterRecebimentoDoContrato(contrato)
+
+    const dados = {
+      contrato_id: contrato.id,
+      cliente: contrato.cliente,
+      imovel: contrato.imovel,
+      vencimento: contrato.termino || null,
+      valor: Number(contrato.valor || 0),
+      status: "Recebido",
+      data_recebimento: new Date().toISOString().split("T")[0],
     }
 
-    if (contrato.tipo === "Administração") {
-      return contrato.periodicidade || "Mensal"
+    let resultado
+
+    if (recebimentoExistente) {
+      resultado = await supabase
+        .from("recebimentos")
+        .update(dados)
+        .eq("id", recebimentoExistente.id)
+    } else {
+      resultado = await supabase
+        .from("recebimentos")
+        .insert([dados])
     }
 
-    if (contrato.tipo === "Temporada") {
-      return `${contrato.quantidade_dias || "-"} dias`
+    if (resultado.error) {
+      console.error(resultado.error)
+      setMensagem(
+        `Erro ao salvar o recebimento: ${resultado.error.message}`
+      )
+      return
     }
 
-    return "Única"
+    setMensagem("Pagamento registrado com sucesso.")
+    await carregarDados()
+  }
+
+  function lembrarPagamento(contrato) {
+    const telefone = contrato.telefone || contrato.whatsapp || ""
+
+    const mensagemWhatsApp =
+      `Olá, ${contrato.cliente || ""}! ` +
+      `Este é um lembrete referente ao pagamento do imóvel ` +
+      `${contrato.imovel || ""}. ` +
+      `Valor: ${formatarMoeda(contrato.valor)}. ` +
+      `Por favor, verifique o pagamento do aluguel.`
+
+    const numero = String(telefone).replace(/\D/g, "")
+
+    const url = numero
+      ? `https://wa.me/${numero}?text=${encodeURIComponent(
+          mensagemWhatsApp
+        )}`
+      : `https://wa.me/?text=${encodeURIComponent(
+          mensagemWhatsApp
+        )}`
+
+    window.open(url, "_blank")
+  }
+
+  function confirmarPagamento(recebimento) {
+    const telefone =
+      recebimento.telefone || recebimento.whatsapp || ""
+
+    const mensagemWhatsApp =
+      `Olá, ${recebimento.cliente || ""}! ` +
+      `Confirmamos o recebimento do pagamento referente ao imóvel ` +
+      `${recebimento.imovel || ""}, ` +
+      `no valor de ${formatarMoeda(recebimento.valor)}. ` +
+      `Obrigado!`
+
+    const numero = String(telefone).replace(/\D/g, "")
+
+    const url = numero
+      ? `https://wa.me/${numero}?text=${encodeURIComponent(
+          mensagemWhatsApp
+        )}`
+      : `https://wa.me/?text=${encodeURIComponent(
+          mensagemWhatsApp
+        )}`
+
+    window.open(url, "_blank")
   }
 
   return (
-    <main className="container py-4">
+    <div className="p-4 md:p-6">
 
-      {/* TÍTULO */}
+      {/* MANTER O CABEÇALHO / ACESSO PADRÃO DO SISTEMA */}
 
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-500">
+            Pagamentos pendentes
+          </p>
 
-        <div>
-          <h1 className="fw-bold mb-1">
-            Contratos
-          </h1>
-
-          <p className="text-muted mb-0">
-            Administração dos contratos imobiliários
+          <p className="text-2xl font-bold text-red-600">
+            {pendentes.length}
           </p>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-outline-primary"
-          onClick={buscarContratos}
-          disabled={carregando}
-        >
-          {carregando
-            ? "Atualizando..."
-            : "🔄 Atualizar"}
-        </button>
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-500">
+            Valor pendente
+          </p>
 
-      </div>
-
-      {/* ACESSO RÁPIDO */}
-
-      <div className="card shadow-sm mb-4">
-
-        <div className="card-body">
-
-          <h5 className="fw-bold mb-3">
-            ⚡ Acesso rápido
-          </h5>
-
-          <div className="d-flex gap-2 flex-wrap">
-
-            <a href="/" className="btn btn-primary">
-              🏠 Início
-            </a>
-
-            <a href="/clientes" className="btn btn-light border">
-              👥 Clientes
-            </a>
-
-            <a href="/imoveis" className="btn btn-light border">
-              🏢 Imóveis
-            </a>
-
-            <a href="/contratos" className="btn btn-light border">
-              📄 Contratos
-            </a>
-
-            <a href="/recebimentos" className="btn btn-light border">
-              💰 Recebimentos
-            </a>
-
-            <a href="/despesas" className="btn btn-light border">
-              💸 Despesas
-            </a>
-
-            <a href="/financeiro" className="btn btn-light border">
-              📊 Financeiro
-            </a>
-
-          </div>
-
+          <p className="text-2xl font-bold">
+            {formatarMoeda(totalPendente)}
+          </p>
         </div>
 
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-500">
+            Pagamentos recebidos
+          </p>
+
+          <p className="text-2xl font-bold text-green-600">
+            {recebidos.length}
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-500">
+            Valor recebido
+          </p>
+
+          <p className="text-2xl font-bold">
+            {formatarMoeda(totalRecebido)}
+          </p>
+        </div>
       </div>
 
       {mensagem && (
-        <div className="alert alert-info">
+        <div className="mb-5 rounded-lg border bg-white p-3 text-sm">
           {mensagem}
         </div>
       )}
 
-      {/* FORMULÁRIO */}
-
-      <div className="card shadow-sm mb-4">
-        <div className="card-body">
-
-          <h4 className="mb-4">
-            {editando ? "Editar contrato" : "Cadastrar contrato"}
-          </h4>
-
-          <form onSubmit={salvarContrato}>
-
-            <div className="row g-3">
-
-              <div className="col-md-3">
-                <label className="form-label">
-                  Nº do contrato *
-                </label>
-
-                <input
-                  type="text"
-                  name="numero"
-                  value={form.numero}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  required
-                />
-              </div>
-
-              <div className="col-md-5">
-                <label className="form-label">
-                  Imóvel *
-                </label>
-
-                <input
-                  type="text"
-                  name="imovel"
-                  value={form.imovel}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  placeholder="Ex.: Casa 01 - Centro"
-                  required
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Cliente *
-                </label>
-
-                <input
-                  type="text"
-                  name="cliente"
-                  value={form.cliente}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  placeholder="Nome do cliente"
-                  required
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Tipo de contrato *
-                </label>
-
-                <select
-                  name="tipo"
-                  value={form.tipo}
-                  onChange={alterarTipo}
-                  className="form-select"
-                >
-                  <option>Locação</option>
-                  <option>Compra e Venda</option>
-                  <option>Administração</option>
-                  <option>Temporada</option>
-                </select>
-              </div>
-
-              {/* PERIODICIDADE */}
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Periodicidade
-                </label>
-
-                <select
-                  name="periodicidade"
-                  value={form.periodicidade}
-                  onChange={alterarCampo}
-                  className="form-select"
-                  disabled={
-                    form.tipo === "Locação" ||
-                    form.tipo === "Temporada" ||
-                    form.tipo === "Compra e Venda"
-                  }
-                >
-                  {form.tipo === "Administração" ? (
-                    <>
-                      <option value="Mensal">Mensal</option>
-                      <option value="Anual">Anual</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value={form.periodicidade}>
-                        {form.periodicidade}
-                      </option>
-                    </>
-                  )}
-                </select>
-              </div>
-
-              {/* DIAS DA TEMPORADA */}
-
-              {form.tipo === "Temporada" && (
-                <div className="col-md-4">
-                  <label className="form-label">
-                    Quantidade de dias *
-                  </label>
-
-                  <input
-                    type="number"
-                    name="quantidade_dias"
-                    value={form.quantidade_dias}
-                    onChange={alterarCampo}
-                    className="form-control"
-                    min="1"
-                    placeholder="Ex.: 7"
-                    required
-                  />
-                </div>
-              )}
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Data de início
-                </label>
-
-                <input
-                  type="date"
-                  name="inicio"
-                  value={form.inicio}
-                  onChange={alterarCampo}
-                  className="form-control"
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Data de término
-                </label>
-
-                <input
-                  type="date"
-                  name="termino"
-                  value={form.termino}
-                  onChange={alterarCampo}
-                  className="form-control"
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Valor *
-                </label>
-
-                <input
-                  type="number"
-                  name="valor"
-                  value={form.valor}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Status
-                </label>
-
-                <select
-                  name="status"
-                  value={form.status}
-                  onChange={alterarCampo}
-                  className="form-select"
-                >
-                  <option>Ativo</option>
-                  <option>Encerrado</option>
-                  <option>Cancelado</option>
-                  <option>Pendente</option>
-                </select>
-              </div>
-
-              <div className="col-12">
-                <label className="form-label">
-                  Observações
-                </label>
-
-                <textarea
-                  name="observacoes"
-                  value={form.observacoes}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  rows="3"
-                />
-              </div>
-
-            </div>
-
-            <div className="mt-4 d-flex gap-2">
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-              >
-                {editando
-                  ? "Salvar alterações"
-                  : "Cadastrar contrato"}
-              </button>
-
-              {editando && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={limparFormulario}
-                >
-                  Cancelar
-                </button>
-              )}
-
-            </div>
-
-          </form>
+      {carregando ? (
+        <div className="rounded-xl border bg-white p-8 text-center">
+          Carregando recebimentos...
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-      {/* TABELA */}
+          {/* PENDENTES */}
 
-      <div className="card shadow-sm">
+          <section>
+            <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">
+                    🔴 Recebimentos Pendentes
+                  </h2>
 
-        <div className="card-body">
+                  <p className="text-sm text-gray-500">
+                    Pagamentos gerados automaticamente pelos contratos
+                    ativos.
+                  </p>
+                </div>
 
-          <h4 className="mb-3">
-            Contratos cadastrados
-          </h4>
+                <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700">
+                  {pendentes.length}
+                </span>
+              </div>
+            </div>
 
-          {carregando ? (
-            <p>Carregando...</p>
-          ) : contratos.length === 0 ? (
-            <p className="text-muted">
-              Nenhum contrato cadastrado.
-            </p>
-          ) : (
+            <div className="space-y-4">
+              {pendentes.length === 0 ? (
+                <div className="rounded-xl border bg-white p-6 text-center text-gray-500">
+                  Nenhum pagamento pendente.
+                </div>
+              ) : (
+                pendentes.map((contrato) => {
+                  const recebimento =
+                    obterRecebimentoDoContrato(contrato)
 
-            <div className="table-responsive">
-
-              <table className="table table-hover align-middle">
-
-                <thead>
-                  <tr>
-                    <th>Nº</th>
-                    <th>Imóvel</th>
-                    <th>Cliente</th>
-                    <th>Tipo</th>
-                    <th>Periodicidade</th>
-                    <th>Vencimento</th>
-                    <th>Valor</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-
-                  {contratos.map((contrato) => (
-
-                    <tr key={contrato.id}>
-
-                      <td>{contrato.numero}</td>
-
-                      <td>{contrato.imovel}</td>
-
-                      <td>{contrato.cliente}</td>
-
-                      <td>{contrato.tipo}</td>
-
-                      <td>
-                        {descricaoVencimento(contrato)}
-                      </td>
-
-                      <td>
-                        {formatarData(contrato.termino)}
-                      </td>
-
-                      <td>
-                        {formatarValor(contrato.valor)}
-                      </td>
-
-                      <td>
-                        <span
-                          className={`badge ${
-                            contrato.status === "Ativo"
-                              ? "bg-success"
-                              : contrato.status === "Pendente"
-                              ? "bg-warning text-dark"
-                              : "bg-secondary"
-                          }`}
-                        >
-                          {contrato.status}
+                  return (
+                    <div
+                      key={contrato.id}
+                      className="rounded-xl border bg-white p-5 shadow-sm"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+                          🔴 Pendente
                         </span>
-                      </td>
+                      </div>
 
-                      <td>
+                      <div className="space-y-2 text-sm">
+                        <p>
+                          <strong>Cliente:</strong>{" "}
+                          {contrato.cliente || "-"}
+                        </p>
 
-                        <div className="d-flex gap-1">
+                        <p>
+                          <strong>Imóvel:</strong>{" "}
+                          {contrato.imovel || "-"}
+                        </p>
 
-                          <button
-                            className="btn btn-sm btn-info text-white"
-                            onClick={() =>
-                              setVisualizando(contrato)
-                            }
-                          >
-                            Visualizar
-                          </button>
+                        <p>
+                          <strong>Vencimento:</strong>{" "}
+                          {formatarData(contrato.vencimento)}
+                        </p>
 
-                          <button
-                            className="btn btn-sm btn-warning"
-                            onClick={() =>
-                              editarContrato(contrato)
-                            }
-                          >
-                            Editar
-                          </button>
+                        <p>
+                          <strong>Valor:</strong>{" "}
+                          {formatarMoeda(contrato.valor)}
+                        </p>
+                      </div>
 
-                          <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() =>
-                              excluirContrato(contrato.id)
-                            }
-                          >
-                            Excluir
-                          </button>
+                      <div className="mt-5 flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            salvarRecebimento(contrato)
+                          }
+                          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+                        >
+                          💾 Marcar como recebido e salvar
+                        </button>
 
-                        </div>
-
-                      </td>
-
-                    </tr>
-
-                  ))}
-
-                </tbody>
-
-              </table>
-
+                        <button
+                          type="button"
+                          onClick={() =>
+                            lembrarPagamento(contrato)
+                          }
+                          className="rounded-lg border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
+                        >
+                          🔔 Lembrar do pagamento
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
+          </section>
 
-          )}
+          {/* RECEBIDOS */}
 
-        </div>
+          <section>
+            <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold">
+                    🟢 Recebimentos Recebidos
+                  </h2>
 
-      </div>
-
-      {/* MODAL */}
-
-      {visualizando && (
-
-        <div
-          className="modal fade show d-block"
-          style={{
-            backgroundColor: "rgba(0,0,0,0.5)",
-          }}
-        >
-
-          <div className="modal-dialog modal-lg">
-
-            <div className="modal-content">
-
-              <div className="modal-header">
-
-                <h5 className="modal-title">
-                  Contrato {visualizando.numero}
-                </h5>
-
-                <button
-                  className="btn-close"
-                  onClick={() =>
-                    setVisualizando(null)
-                  }
-                />
-
-              </div>
-
-              <div className="modal-body">
-
-                <div className="row g-3">
-
-                  <div className="col-md-6">
-                    <strong>Imóvel:</strong>
-                    <br />
-                    {visualizando.imovel}
-                  </div>
-
-                  <div className="col-md-6">
-                    <strong>Cliente:</strong>
-                    <br />
-                    {visualizando.cliente}
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Tipo:</strong>
-                    <br />
-                    {visualizando.tipo}
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Periodicidade:</strong>
-                    <br />
-                    {descricaoVencimento(visualizando)}
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Valor:</strong>
-                    <br />
-                    {formatarValor(visualizando.valor)}
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Início:</strong>
-                    <br />
-                    {formatarData(visualizando.inicio)}
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Término:</strong>
-                    <br />
-                    {formatarData(visualizando.termino)}
-                  </div>
-
-                  <div className="col-md-4">
-                    <strong>Status:</strong>
-                    <br />
-                    {visualizando.status}
-                  </div>
-
-                  <div className="col-12">
-                    <strong>Observações:</strong>
-                    <br />
-                    {visualizando.observacoes || "-"}
-                  </div>
-
+                  <p className="text-sm text-gray-500">
+                    Pagamentos já confirmados no sistema.
+                  </p>
                 </div>
 
+                <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+                  {recebidos.length}
+                </span>
               </div>
-
-              <div className="modal-footer">
-
-                <button
-                  className="btn btn-secondary"
-                  onClick={() =>
-                    setVisualizando(null)
-                  }
-                >
-                  Fechar
-                </button>
-
-              </div>
-
             </div>
 
-          </div>
+            <div className="space-y-4">
+              {recebidos.length === 0 ? (
+                <div className="rounded-xl border bg-white p-6 text-center text-gray-500">
+                  Nenhum pagamento recebido.
+                </div>
+              ) : (
+                recebidos.map((recebimento) => (
+                  <div
+                    key={recebimento.id}
+                    className="rounded-xl border bg-white p-5 shadow-sm"
+                  >
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
+                        🟢 Recebido
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        <strong>Cliente:</strong>{" "}
+                        {recebimento.cliente || "-"}
+                      </p>
+
+                      <p>
+                        <strong>Imóvel:</strong>{" "}
+                        {recebimento.imovel || "-"}
+                      </p>
+
+                      <p>
+                        <strong>Vencimento:</strong>{" "}
+                        {formatarData(recebimento.vencimento)}
+                      </p>
+
+                      <p>
+                        <strong>Valor:</strong>{" "}
+                        {formatarMoeda(recebimento.valor)}
+                      </p>
+
+                      <p>
+                        <strong>Recebido em:</strong>{" "}
+                        {formatarData(
+                          recebimento.data_recebimento
+                        )}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        confirmarPagamento(recebimento)
+                      }
+                      className="mt-5 w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+                    >
+                      📱 Confirmação de pagamento
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
 
         </div>
-
       )}
-
-    </main>
+    </div>
   )
 }
