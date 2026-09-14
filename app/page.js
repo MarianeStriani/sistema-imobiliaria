@@ -283,72 +283,68 @@ return (
 
   {/* ACESSO RÁPIDO */}
 
-  <div className="card shadow-sm mb-4">
-    <div className="card-body">
+<div className="card shadow-sm mb-4">
+  <div className="card-body">
 
-      <h5 className="fw-bold mb-3">
-        Acesso rápido
-      </h5>
+    <h5 className="fw-bold mb-3">
+      ⚡ Acesso rápido
+    </h5>
 
-      <div className="row g-2">
+    <div className="d-flex gap-2 flex-wrap">
 
-        <div className="col-6 col-md-2">
-          <a
-            href="/clientes"
-            className="btn btn-outline-primary w-100 py-2"
-          >
-            👥 Clientes
-          </a>
-        </div>
+      <a
+        href="/"
+        className="btn btn-primary"
+      >
+        🏠 Início
+      </a>
 
-        <div className="col-6 col-md-2">
-          <a
-            href="/contratos"
-            className="btn btn-primary w-100 py-2"
-          >
-            📄 Contratos
-          </a>
-        </div>
+      <a
+        href="/clientes"
+        className="btn btn-light border"
+      >
+        👥 Clientes
+      </a>
 
-        <div className="col-6 col-md-2">
-          <a
-            href="/recebimentos"
-            className="btn btn-success w-100 py-2"
-          >
-            + Recebimento
-          </a>
-        </div>
+      <a
+        href="/imoveis"
+        className="btn btn-light border"
+      >
+        🏢 Imóveis
+      </a>
 
-        <div className="col-6 col-md-2">
-          <a
-            href="/despesas"
-            className="btn btn-danger w-100 py-2"
-          >
-            + Despesa
-          </a>
-        </div>
+      <a
+        href="/contratos"
+        className="btn btn-light border"
+      >
+        📄 Contratos
+      </a>
 
-        <div className="col-6 col-md-2">
-          <a
-            href="/financeiro"
-            className="btn btn-warning w-100 py-2"
-          >
-            💰 Financeiro
-          </a>
-        </div>
+      <a
+        href="/recebimentos"
+        className="btn btn-light border"
+      >
+        💰 Recebimentos
+      </a>
 
-        <div className="col-6 col-md-2">
-          <a
-            href="/"
-            className="btn btn-secondary w-100 py-2"
-          >
-            🏠 Início
-          </a>
-        </div>
+      <a
+        href="/despesas"
+        className="btn btn-light border"
+      >
+        💸 Despesas
+      </a>
 
-      </div>
+      <a
+        href="/financeiro"
+        className="btn btn-light border"
+      >
+        📊 Financeiro
+      </a>
+
     </div>
+
   </div>
+</div>
 
   {/* FILTRO */}
 
