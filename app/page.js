@@ -158,7 +158,7 @@ export default function Financeiro() {
     return recebimentos10Dias || []
   }, [recebimentos10Dias])
 
-  */
+  /*
    * PAGOS E PENDENTES
    */
 
