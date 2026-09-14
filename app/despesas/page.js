@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
 export default function Despesas() {
@@ -10,57 +10,36 @@ export default function Despesas() {
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
 
-  const [categoria, setCategoria] = useState("")
-  const [descricao, setDescricao] = useState("")
-  const [valor, setValor] = useState("")
-  const [dataDespesa, setDataDespesa] = useState(
-    hoje.toISOString().split("T")[0]
-  )
-  const [formaPagamento, setFormaPagamento] = useState("")
-  const [status, setStatus] = useState("Pago")
-  const [observacoes, setObservacoes] = useState("")
-
   const [mes, setMes] = useState(hoje.getMonth() + 1)
   const [ano, setAno] = useState(hoje.getFullYear())
 
-  const nomesMeses = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro"
-  ]
+  const [editandoId, setEditandoId] = useState(null)
+
+  const [form, setForm] = useState({
+    categoria: "",
+    descricao: "",
+    valor: "",
+    data_despesa: "",
+    forma_pagamento: "",
+    status: "Pendente",
+    observacoes: "",
+  })
 
   useEffect(() => {
-    carregarDespesas()
+    buscarDespesas()
   }, [])
 
-  async function carregarDespesas() {
+  async function buscarDespesas() {
     setCarregando(true)
 
     const { data, error } = await supabase
       .from("despesas")
       .select("*")
-      .order("data_despesa", {
-        ascending: false
-      })
+      .order("data_despesa", { ascending: false })
 
     if (error) {
       console.error("Erro ao buscar despesas:", error)
-
-      alert(
-        "Erro ao carregar despesas: " +
-        error.message
-      )
-
-      setDespesas([])
+      alert("Erro ao carregar as despesas.")
     } else {
       setDespesas(data || [])
     }
@@ -68,63 +47,116 @@ export default function Despesas() {
     setCarregando(false)
   }
 
-  async function adicionarDespesa(e) {
+  function atualizarCampo(campo, valor) {
+    setForm((anterior) => ({
+      ...anterior,
+      [campo]: valor,
+    }))
+  }
+
+  function limparFormulario() {
+    setForm({
+      categoria: "",
+      descricao: "",
+      valor: "",
+      data_despesa: "",
+      forma_pagamento: "",
+      status: "Pendente",
+      observacoes: "",
+    })
+
+    setEditandoId(null)
+  }
+
+  async function salvarDespesa(e) {
     e.preventDefault()
 
-    if (!categoria) {
-      alert("Selecione uma categoria.")
+    if (!form.categoria.trim()) {
+      alert("Informe a categoria da despesa.")
       return
     }
 
-    if (!descricao.trim()) {
+    if (!form.descricao.trim()) {
       alert("Informe a descrição da despesa.")
       return
     }
 
-    if (!valor || Number(valor) <= 0) {
-      alert("Informe um valor válido.")
+    if (!form.valor) {
+      alert("Informe o valor da despesa.")
       return
     }
 
-    if (!dataDespesa) {
+    if (!form.data_despesa) {
       alert("Informe a data da despesa.")
       return
     }
 
     setSalvando(true)
 
-    const novaDespesa = {
-      categoria,
-      descricao: descricao.trim(),
-      valor: Number(valor),
-      data_despesa: dataDespesa,
-      forma_pagamento: formaPagamento || null,
-      status,
-      observacoes: observacoes.trim() || null
+    const dados = {
+      categoria: form.categoria.trim(),
+      descricao: form.descricao.trim(),
+      valor: Number(
+        String(form.valor)
+          .replace(/\./g, "")
+          .replace(",", ".")
+      ),
+      data_despesa: form.data_despesa,
+      forma_pagamento: form.forma_pagamento.trim(),
+      status: form.status,
+      observacoes: form.observacoes.trim(),
     }
 
-    const { error } = await supabase
-      .from("despesas")
-      .insert([novaDespesa])
+    let resultado
 
-    if (error) {
-      console.error("Erro ao cadastrar despesa:", error)
+    if (editandoId) {
+      resultado = await supabase
+        .from("despesas")
+        .update(dados)
+        .eq("id", editandoId)
+    } else {
+      resultado = await supabase
+        .from("despesas")
+        .insert([dados])
+    }
 
+    if (resultado.error) {
+      console.error("Erro ao salvar despesa:", resultado.error)
+      alert("Erro ao salvar a despesa: " + resultado.error.message)
+    } else {
       alert(
-        "Erro ao cadastrar despesa: " +
-        error.message
+        editandoId
+          ? "Despesa atualizada com sucesso!"
+          : "Despesa cadastrada com sucesso!"
       )
 
-      setSalvando(false)
-      return
+      limparFormulario()
+      await buscarDespesas()
     }
 
-    alert("Despesa cadastrada com sucesso!")
-
-    limparFormulario()
-    await carregarDespesas()
-
     setSalvando(false)
+  }
+
+  function editarDespesa(despesa) {
+    setEditandoId(despesa.id)
+
+    setForm({
+      categoria: despesa.categoria || "",
+      descricao: despesa.descricao || "",
+      valor:
+        despesa.valor !== null && despesa.valor !== undefined
+          ? String(despesa.valor).replace(".", ",")
+          : "",
+      data_despesa: despesa.data_despesa || "",
+      forma_pagamento: despesa.forma_pagamento || "",
+      status: despesa.status || "Pendente",
+      observacoes: despesa.observacoes || "",
+    })
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    })
   }
 
   async function excluirDespesa(id) {
@@ -143,40 +175,83 @@ export default function Despesas() {
 
     if (error) {
       console.error("Erro ao excluir despesa:", error)
-
-      alert(
-        "Erro ao excluir despesa: " +
-        error.message
-      )
-
+      alert("Erro ao excluir a despesa: " + error.message)
       return
     }
 
-    alert("Despesa excluída com sucesso!")
+    alert("Despesa excluída com sucesso.")
 
-    await carregarDespesas()
+    await buscarDespesas()
   }
 
-  function limparFormulario() {
-    setCategoria("")
-    setDescricao("")
-    setValor("")
-    setDataDespesa(
-      new Date().toISOString().split("T")[0]
-    )
-    setFormaPagamento("")
-    setStatus("Pago")
-    setObservacoes("")
-  }
-
-  function moeda(valor) {
-    return Number(valor || 0).toLocaleString(
-      "pt-BR",
-      {
-        style: "currency",
-        currency: "BRL"
+  const despesasDoMes = useMemo(() => {
+    return despesas.filter((despesa) => {
+      if (!despesa.data_despesa) {
+        return false
       }
-    )
+
+      const data = new Date(
+        despesa.data_despesa + "T00:00:00"
+      )
+
+      return (
+        data.getMonth() + 1 === Number(mes) &&
+        data.getFullYear() === Number(ano)
+      )
+    })
+  }, [despesas, mes, ano])
+
+  const totalDespesas = useMemo(() => {
+    return despesasDoMes.reduce((total, despesa) => {
+      return total + Number(despesa.valor || 0)
+    }, 0)
+  }, [despesasDoMes])
+
+  const totalPagas = useMemo(() => {
+    return despesasDoMes
+      .filter(
+        (despesa) =>
+          String(despesa.status || "").toLowerCase() === "pago" ||
+          String(despesa.status || "").toLowerCase() === "paga"
+      )
+      .reduce((total, despesa) => {
+        return total + Number(despesa.valor || 0)
+      }, 0)
+  }, [despesasDoMes])
+
+  const totalPendentes = useMemo(() => {
+    return despesasDoMes
+      .filter(
+        (despesa) =>
+          String(despesa.status || "").toLowerCase() === "pendente" ||
+          String(despesa.status || "").toLowerCase() === "pendentes"
+      )
+      .reduce((total, despesa) => {
+        return total + Number(despesa.valor || 0)
+      }, 0)
+  }, [despesasDoMes])
+
+  const categorias = useMemo(() => {
+    const resultado = {}
+
+    despesasDoMes.forEach((despesa) => {
+      const categoria = despesa.categoria || "Sem categoria"
+
+      if (!resultado[categoria]) {
+        resultado[categoria] = 0
+      }
+
+      resultado[categoria] += Number(despesa.valor || 0)
+    })
+
+    return Object.entries(resultado).sort((a, b) => b[1] - a[1])
+  }, [despesasDoMes])
+
+  function formatarMoeda(valor) {
+    return Number(valor || 0).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    })
   }
 
   function formatarData(data) {
@@ -184,436 +259,248 @@ export default function Despesas() {
       return "-"
     }
 
-    return new Date(
-      data + "T00:00:00"
-    ).toLocaleDateString("pt-BR")
-  }
+    const partes = data.split("-")
 
-  const despesasDoMes = despesas.filter((despesa) => {
-    if (!despesa.data_despesa) {
-      return false
+    if (partes.length !== 3) {
+      return data
     }
 
-    const data = new Date(
-      despesa.data_despesa + "T00:00:00"
-    )
-
-    return (
-      data.getMonth() + 1 === Number(mes) &&
-      data.getFullYear() === Number(ano)
-    )
-  })
-
-  const despesasPagas = despesasDoMes.filter(
-    (despesa) => despesa.status === "Pago"
-  )
-
-  const despesasPendentes = despesasDoMes.filter(
-    (despesa) => despesa.status === "Pendente"
-  )
-
-  function somar(lista) {
-    return lista.reduce(
-      (total, item) =>
-        total + Number(item.valor || 0),
-      0
-    )
+    return `${partes[2]}/${partes[1]}/${partes[0]}`
   }
 
-  const totalPago = somar(despesasPagas)
+  function statusClasse(status) {
+    const valor = String(status || "").toLowerCase()
 
-  const totalPendente = somar(
-    despesasPendentes
-  )
-
-  const totalDespesas =
-    totalPago + totalPendente
-
-  function mesAnterior() {
-    if (Number(mes) === 1) {
-      setMes(12)
-      setAno(Number(ano) - 1)
-    } else {
-      setMes(Number(mes) - 1)
+    if (valor === "pago" || valor === "paga") {
+      return "bg-success"
     }
-  }
 
-  function proximoMes() {
-    if (Number(mes) === 12) {
-      setMes(1)
-      setAno(Number(ano) + 1)
-    } else {
-      setMes(Number(mes) + 1)
+    if (valor === "pendente" || valor === "pendentes") {
+      return "bg-warning text-dark"
     }
-  }
 
-  function irParaMesAtual() {
-    setMes(hoje.getMonth() + 1)
-    setAno(hoje.getFullYear())
+    if (valor === "cancelado" || valor === "cancelada") {
+      return "bg-danger"
+    }
+
+    return "bg-secondary"
   }
 
   return (
-    <main className="container-fluid py-4">
-
-      {/* CABEÇALHO */}
-
-      <div className="d-flex justify-content-between align-items-center mb-4">
-
+    <main className="container py-4">
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
-          <h1 className="fw-bold mb-1">
-            Despesas
-          </h1>
-
+          <h1 className="mb-1">Despesas</h1>
           <p className="text-muted mb-0">
             Controle das despesas da imobiliária
           </p>
         </div>
 
-        <button
-          className="btn btn-outline-primary"
-          onClick={carregarDespesas}
-        >
-          Atualizar
-        </button>
-
-      </div>
-
-      {/* ACESSO RÁPIDO */}
-
-      <div className="card shadow-sm mb-4">
-
-        <div className="card-body">
-
-          <h5 className="fw-bold mb-3">
-            Acesso rápido
-          </h5>
-
-          <div className="row g-2">
-
-            <div className="col-6 col-md-3">
-              <a
-                href="/financeiro"
-                className="btn btn-primary w-100"
-              >
-                Financeiro
-              </a>
-            </div>
-
-            <div className="col-6 col-md-3">
-              <a
-                href="/recebimentos"
-                className="btn btn-success w-100"
-              >
-                Recebimentos
-              </a>
-            </div>
-
-            <div className="col-6 col-md-3">
-              <a
-                href="/contratos"
-                className="btn btn-outline-primary w-100"
-              >
-                Contratos
-              </a>
-            </div>
-
-            <div className="col-6 col-md-3">
-              <a
-                href="/"
-                className="btn btn-outline-secondary w-100"
-              >
-                Dashboard
-              </a>
-            </div>
-
-          </div>
-
-        </div>
-
+        <a href="/" className="btn btn-outline-secondary">
+          ← Voltar ao Dashboard
+        </a>
       </div>
 
       {/* FORMULÁRIO */}
-
       <div className="card shadow-sm mb-4">
-
         <div className="card-header">
-          <h5 className="fw-bold mb-0">
-            Nova despesa
+          <h5 className="mb-0">
+            {editandoId ? "Editar despesa" : "Cadastrar despesa"}
           </h5>
         </div>
 
         <div className="card-body">
-
-          <form onSubmit={adicionarDespesa}>
-
+          <form onSubmit={salvarDespesa}>
             <div className="row g-3">
-
               <div className="col-md-4">
-
-                <label className="form-label fw-bold">
-                  Categoria
-                </label>
-
-                <select
-                  className="form-select"
-                  value={categoria}
-                  onChange={(e) =>
-                    setCategoria(e.target.value)
-                  }
-                >
-
-                  <option value="">
-                    Selecione
-                  </option>
-
-                  <option value="Aluguel">
-                    Aluguel
-                  </option>
-
-                  <option value="Água">
-                    Água
-                  </option>
-
-                  <option value="Energia">
-                    Energia elétrica
-                  </option>
-
-                  <option value="Internet">
-                    Internet
-                  </option>
-
-                  <option value="Telefone">
-                    Telefone
-                  </option>
-
-                  <option value="Marketing">
-                    Marketing
-                  </option>
-
-                  <option value="Manutenção">
-                    Manutenção
-                  </option>
-
-                  <option value="Material">
-                    Material de escritório
-                  </option>
-
-                  <option value="Impostos">
-                    Impostos
-                  </option>
-
-                  <option value="Comissões">
-                    Comissões
-                  </option>
-
-                  <option value="Salários">
-                    Salários
-                  </option>
-
-                  <option value="Outros">
-                    Outros
-                  </option>
-
-                </select>
-
-              </div>
-
-              <div className="col-md-5">
-
-                <label className="form-label fw-bold">
-                  Descrição
+                <label className="form-label">
+                  Categoria *
                 </label>
 
                 <input
                   type="text"
                   className="form-control"
-                  value={descricao}
+                  value={form.categoria}
                   onChange={(e) =>
-                    setDescricao(e.target.value)
+                    atualizarCampo("categoria", e.target.value)
                   }
-                  placeholder="Ex.: Conta de energia"
+                  placeholder="Ex.: Manutenção"
                 />
-
               </div>
 
-              <div className="col-md-3">
-
-                <label className="form-label fw-bold">
-                  Valor
+              <div className="col-md-8">
+                <label className="form-label">
+                  Descrição *
                 </label>
 
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
                   className="form-control"
-                  value={valor}
+                  value={form.descricao}
                   onChange={(e) =>
-                    setValor(e.target.value)
+                    atualizarCampo("descricao", e.target.value)
+                  }
+                  placeholder="Descrição da despesa"
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label">
+                  Valor *
+                </label>
+
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="form-control"
+                  value={form.valor}
+                  onChange={(e) =>
+                    atualizarCampo("valor", e.target.value)
                   }
                   placeholder="0,00"
                 />
-
               </div>
 
-              <div className="col-md-3">
-
-                <label className="form-label fw-bold">
-                  Data da despesa
+              <div className="col-md-4">
+                <label className="form-label">
+                  Data da despesa *
                 </label>
 
                 <input
                   type="date"
                   className="form-control"
-                  value={dataDespesa}
+                  value={form.data_despesa}
                   onChange={(e) =>
-                    setDataDespesa(e.target.value)
+                    atualizarCampo(
+                      "data_despesa",
+                      e.target.value
+                    )
                   }
                 />
-
               </div>
 
-              <div className="col-md-3">
-
-                <label className="form-label fw-bold">
+              <div className="col-md-4">
+                <label className="form-label">
                   Forma de pagamento
                 </label>
 
                 <select
                   className="form-select"
-                  value={formaPagamento}
+                  value={form.forma_pagamento}
                   onChange={(e) =>
-                    setFormaPagamento(
+                    atualizarCampo(
+                      "forma_pagamento",
                       e.target.value
                     )
                   }
                 >
-
                   <option value="">
                     Selecione
                   </option>
-
                   <option value="Dinheiro">
                     Dinheiro
                   </option>
-
                   <option value="Pix">
                     Pix
                   </option>
-
                   <option value="Cartão de débito">
                     Cartão de débito
                   </option>
-
                   <option value="Cartão de crédito">
                     Cartão de crédito
                   </option>
-
                   <option value="Transferência">
                     Transferência
                   </option>
-
                   <option value="Boleto">
                     Boleto
                   </option>
-
+                  <option value="Débito automático">
+                    Débito automático
+                  </option>
                   <option value="Outro">
                     Outro
                   </option>
-
                 </select>
-
               </div>
 
-              <div className="col-md-3">
-
-                <label className="form-label fw-bold">
+              <div className="col-md-4">
+                <label className="form-label">
                   Status
                 </label>
 
                 <select
                   className="form-select"
-                  value={status}
+                  value={form.status}
                   onChange={(e) =>
-                    setStatus(e.target.value)
+                    atualizarCampo("status", e.target.value)
                   }
                 >
-
-                  <option value="Pago">
-                    Pago
-                  </option>
-
                   <option value="Pendente">
                     Pendente
                   </option>
-
+                  <option value="Pago">
+                    Pago
+                  </option>
+                  <option value="Cancelado">
+                    Cancelado
+                  </option>
                 </select>
-
               </div>
 
-              <div className="col-md-3">
-
-                <label className="form-label fw-bold">
+              <div className="col-md-8">
+                <label className="form-label">
                   Observações
                 </label>
 
-                <input
-                  type="text"
+                <textarea
                   className="form-control"
-                  value={observacoes}
+                  rows="2"
+                  value={form.observacoes}
                   onChange={(e) =>
-                    setObservacoes(e.target.value)
+                    atualizarCampo(
+                      "observacoes",
+                      e.target.value
+                    )
                   }
-                  placeholder="Opcional"
+                  placeholder="Observações adicionais"
                 />
-
               </div>
-
-              <div className="col-12">
-
-                <div className="d-flex gap-2">
-
-                  <button
-                    type="submit"
-                    className="btn btn-danger"
-                    disabled={salvando}
-                  >
-                    {salvando
-                      ? "Salvando..."
-                      : "Cadastrar despesa"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={limparFormulario}
-                  >
-                    Limpar
-                  </button>
-
-                </div>
-
-              </div>
-
             </div>
 
+            <div className="d-flex gap-2 mt-4">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={salvando}
+              >
+                {salvando
+                  ? "Salvando..."
+                  : editandoId
+                  ? "Atualizar despesa"
+                  : "Cadastrar despesa"}
+              </button>
+
+              {editandoId && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={limparFormulario}
+                >
+                  Cancelar edição
+                </button>
+              )}
+            </div>
           </form>
-
         </div>
-
       </div>
 
-      {/* FILTRO DO MÊS */}
-
+      {/* FILTRO */}
       <div className="card shadow-sm mb-4">
-
         <div className="card-body">
-
-          <div className="row align-items-end g-3">
-
+          <div className="row g-3 align-items-end">
             <div className="col-md-4">
-
-              <label className="form-label fw-bold">
+              <label className="form-label">
                 Mês
               </label>
 
@@ -621,329 +508,236 @@ export default function Despesas() {
                 className="form-select"
                 value={mes}
                 onChange={(e) =>
-                  setMes(
-                    Number(e.target.value)
-                  )
+                  setMes(Number(e.target.value))
                 }
               >
-
-                {nomesMeses.map(
-                  (nome, index) => (
-                    <option
-                      key={index + 1}
-                      value={index + 1}
-                    >
-                      {nome}
-                    </option>
-                  )
-                )}
-
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
               </select>
-
             </div>
 
             <div className="col-md-3">
-
-              <label className="form-label fw-bold">
+              <label className="form-label">
                 Ano
               </label>
 
-              <select
-                className="form-select"
+              <input
+                type="number"
+                className="form-control"
                 value={ano}
                 onChange={(e) =>
-                  setAno(
-                    Number(e.target.value)
-                  )
+                  setAno(Number(e.target.value))
                 }
-              >
-
-                {Array.from(
-                  { length: 11 },
-                  (_, index) =>
-                    hoje.getFullYear() -
-                    5 +
-                    index
-                ).map((valorAno) => (
-
-                  <option
-                    key={valorAno}
-                    value={valorAno}
-                  >
-                    {valorAno}
-                  </option>
-
-                ))}
-
-              </select>
-
+              />
             </div>
 
             <div className="col-md-5">
-
-              <div className="d-flex gap-2">
-
-                <button
-                  className="btn btn-outline-secondary flex-fill"
-                  onClick={mesAnterior}
-                >
-                  ← Anterior
-                </button>
-
-                <button
-                  className="btn btn-outline-primary"
-                  onClick={irParaMesAtual}
-                >
-                  Mês atual
-                </button>
-
-                <button
-                  className="btn btn-outline-secondary flex-fill"
-                  onClick={proximoMes}
-                >
-                  Próximo →
-                </button>
-
-              </div>
-
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={buscarDespesas}
+              >
+                🔄 Atualizar despesas
+              </button>
             </div>
-
           </div>
-
-          <div className="text-center mt-4">
-
-            <h2 className="fw-bold mb-0">
-              {nomesMeses[Number(mes) - 1]} / {ano}
-            </h2>
-
-          </div>
-
         </div>
-
       </div>
 
       {/* RESUMO */}
-
       <div className="row g-3 mb-4">
-
         <div className="col-md-4">
-
-          <div className="card shadow-sm border-danger border-3 h-100">
-
+          <div className="card shadow-sm h-100">
             <div className="card-body">
-
-              <p className="text-muted mb-1">
+              <h6 className="text-muted">
                 Total de despesas
-              </p>
+              </h6>
 
-              <h2 className="fw-bold text-danger">
-                {moeda(totalDespesas)}
-              </h2>
-
-              <small className="text-muted">
-                {despesasDoMes.length} despesa(s)
-              </small>
-
+              <h3 className="mb-0">
+                {formatarMoeda(totalDespesas)}
+              </h3>
             </div>
-
           </div>
-
         </div>
 
         <div className="col-md-4">
-
-          <div className="card shadow-sm border-success border-3 h-100">
-
+          <div className="card shadow-sm h-100">
             <div className="card-body">
-
-              <p className="text-muted mb-1">
+              <h6 className="text-muted">
                 Despesas pagas
-              </p>
+              </h6>
 
-              <h2 className="fw-bold text-success">
-                {moeda(totalPago)}
-              </h2>
-
-              <small className="text-muted">
-                {despesasPagas.length} paga(s)
-              </small>
-
+              <h3 className="text-success mb-0">
+                {formatarMoeda(totalPagas)}
+              </h3>
             </div>
-
           </div>
-
         </div>
 
         <div className="col-md-4">
-
-          <div className="card shadow-sm border-warning border-3 h-100">
-
+          <div className="card shadow-sm h-100">
             <div className="card-body">
-
-              <p className="text-muted mb-1">
+              <h6 className="text-muted">
                 Despesas pendentes
-              </p>
+              </h6>
 
-              <h2 className="fw-bold text-warning">
-                {moeda(totalPendente)}
-              </h2>
-
-              <small className="text-muted">
-                {despesasPendentes.length} pendência(s)
-              </small>
-
+              <h3 className="text-warning mb-0">
+                {formatarMoeda(totalPendentes)}
+              </h3>
             </div>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* LISTA DE DESPESAS */}
-
-      <div className="card shadow-sm">
-
-        <div className="card-header d-flex justify-content-between align-items-center">
-
-          <h5 className="mb-0 fw-bold">
-            Despesas de {nomesMeses[Number(mes) - 1]} / {ano}
+      {/* CATEGORIAS */}
+      <div className="card shadow-sm mb-4">
+        <div className="card-header">
+          <h5 className="mb-0">
+            Despesas por categoria
           </h5>
-
-          <span className="badge bg-danger">
-            {despesasDoMes.length}
-          </span>
-
         </div>
 
         <div className="card-body">
-
-          {carregando ? (
-
-            <div className="text-center py-5">
-
-              <div
-                className="spinner-border text-primary"
-                role="status"
-              ></div>
-
-              <p className="text-muted mt-3">
-                Carregando despesas...
-              </p>
-
-            </div>
-
-          ) : despesasDoMes.length === 0 ? (
-
-            <div className="text-center text-muted py-5">
-
-              <h5>
-                Nenhuma despesa encontrada.
-              </h5>
-
-              <p className="mb-0">
-                Não existem despesas cadastradas
-                para este mês.
-              </p>
-
-            </div>
-
+          {categorias.length === 0 ? (
+            <p className="text-muted mb-0">
+              Nenhuma despesa cadastrada neste mês.
+            </p>
           ) : (
+            <div className="row g-3">
+              {categorias.map(([categoria, valor]) => (
+                <div
+                  className="col-md-4"
+                  key={categoria}
+                >
+                  <div className="border rounded p-3 h-100">
+                    <div className="fw-bold">
+                      {categoria}
+                    </div>
 
+                    <div className="fs-5 mt-2">
+                      {formatarMoeda(valor)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* LISTAGEM */}
+      <div className="card shadow-sm">
+        <div className="card-header d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">
+            Despesas cadastradas
+          </h5>
+
+          <span className="badge bg-secondary">
+            {despesasDoMes.length} registro(s)
+          </span>
+        </div>
+
+        <div className="card-body p-0">
+          {carregando ? (
+            <div className="p-4 text-center">
+              Carregando despesas...
+            </div>
+          ) : despesasDoMes.length === 0 ? (
+            <div className="p-4 text-center text-muted">
+              Nenhuma despesa encontrada para o período
+              selecionado.
+            </div>
+          ) : (
             <div className="table-responsive">
-
-              <table className="table table-hover align-middle">
-
+              <table className="table table-hover table-striped mb-0">
                 <thead>
-
                   <tr>
                     <th>Data</th>
                     <th>Categoria</th>
                     <th>Descrição</th>
-                    <th>Forma</th>
-                    <th>Status</th>
                     <th>Valor</th>
-                    <th>Ação</th>
+                    <th>Pagamento</th>
+                    <th>Status</th>
+                    <th>Observações</th>
+                    <th className="text-center">
+                      Ações
+                    </th>
                   </tr>
-
                 </thead>
 
                 <tbody>
+                  {despesasDoMes.map((despesa) => (
+                    <tr key={despesa.id}>
+                      <td>
+                        {formatarData(
+                          despesa.data_despesa
+                        )}
+                      </td>
 
-                  {despesasDoMes.map(
-                    (despesa) => (
+                      <td>
+                        {despesa.categoria || "-"}
+                      </td>
 
-                      <tr key={despesa.id}>
+                      <td>
+                        {despesa.descricao || "-"}
+                      </td>
 
-                        <td>
-                          {formatarData(
-                            despesa.data_despesa
-                          )}
-                        </td>
+                      <td className="fw-bold">
+                        {formatarMoeda(
+                          despesa.valor
+                        )}
+                      </td>
 
-                        <td>
-                          {despesa.categoria || "-"}
-                        </td>
+                      <td>
+                        {despesa.forma_pagamento || "-"}
+                      </td>
 
-                        <td>
-                          {despesa.descricao || "-"}
-                        </td>
+                      <td>
+                        <span
+                          className={`badge ${statusClasse(
+                            despesa.status
+                          )}`}
+                        >
+                          {despesa.status || "-"}
+                        </span>
+                      </td>
 
-                        <td>
-                          {despesa.forma_pagamento ||
-                           "-"}
-                        </td>
+                      <td>
+                        {despesa.observacoes || "-"}
+                      </td>
 
-                        <td>
-
-                          <span
-                            className={
-                              despesa.status === "Pago"
-                                ? "badge bg-success"
-                                : "badge bg-warning text-dark"
-                            }
-                          >
-                            {despesa.status || "-"}
-                          </span>
-
-                        </td>
-
-                        <td className="fw-bold text-danger">
-                          {moeda(despesa.valor)}
-                        </td>
-
-                        <td>
-
+                      <td>
+                        <div className="d-flex gap-2 justify-content-center">
                           <button
-                            className="btn btn-sm btn-outline-danger"
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
                             onClick={() =>
-                              excluirDespesa(
-                                despesa.id
-                              )
+                              editarDespesa(despesa)
                             }
                           >
-                            Excluir
+                            Editar
                           </button>
 
-                        </td>
-
-                      </tr>
-
-                    )
-                  )}
-
-                </tbody>
-
-              </table>
-
-            </div>
-
-          )}
-
-        </div>
-
-      </div>
-
-    </main>
-  )
-} 
+                         </div>
+</td>
+</tr>
+))}
+</tbody>
+</table>
+</div>
+)}
+</div>
+</div>
+</main>
+)
+}
