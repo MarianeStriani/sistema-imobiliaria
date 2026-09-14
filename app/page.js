@@ -1,189 +1,287 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "../lib/supabase"
+import { useEffect, useMemo, useState } from "react"
+import { supabase } from "../../lib/supabase"
 
-export default function Home() {
-  const [imoveis, setImoveis] = useState([])
-  const [clientes, setClientes] = useState([])
-  const [contratos, setContratos] = useState([])
+export default function Financeiro() {
+  const hoje = new Date()
+
+  const [mes, setMes] = useState(hoje.getMonth() + 1)
+  const [ano, setAno] = useState(hoje.getFullYear())
+
   const [recebimentos, setRecebimentos] = useState([])
+  const [contratos, setContratos] = useState([])
   const [carregando, setCarregando] = useState(true)
 
+  const nomesMeses = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro"
+  ]
+
   useEffect(() => {
-    carregarDashboard()
+    carregarDados()
   }, [])
 
-  async function carregarDashboard() {
+  async function carregarDados() {
     setCarregando(true)
 
     const [
-      { data: imoveisData, error: imoveisError },
-      { data: clientesData, error: clientesError },
-      { data: contratosData, error: contratosError },
-      { data: recebimentosData, error: recebimentosError }
+      recebimentosResult,
+      contratosResult
     ] = await Promise.all([
       supabase
-        .from("imoveis")
-        .select("*")
-        .order("id", { ascending: false }),
-
-      supabase
-        .from("clientes")
-        .select("*")
-        .order("id", { ascending: false }),
+        .from("recebimentos")
+        .select(`
+          *,
+          clientes (
+            nome
+          ),
+          contratos (
+            numero,
+            imovel,
+            cliente,
+            tipo,
+            termino
+          )
+        `)
+        .order("data_recebimento", {
+          ascending: false
+        }),
 
       supabase
         .from("contratos")
         .select("*")
-        .order("id", { ascending: false }),
-
-      supabase
-        .from("recebimentos")
-        .select("*")
-        .order("data_recebimento", { ascending: false })
+        .order("termino", {
+          ascending: true
+        })
     ])
 
-    if (imoveisError) {
-      console.error("Erro ao buscar imóveis:", imoveisError)
-    }
-
-    if (clientesError) {
-      console.error("Erro ao buscar clientes:", clientesError)
-    }
-
-    if (contratosError) {
-      console.error("Erro ao buscar contratos:", contratosError)
-    }
-
-    if (recebimentosError) {
+    if (recebimentosResult.error) {
       console.error(
         "Erro ao buscar recebimentos:",
-        recebimentosError
+        recebimentosResult.error
+      )
+
+      alert(
+        "Erro ao carregar os recebimentos: " +
+        recebimentosResult.error.message
       )
     }
 
-    setImoveis(imoveisData || [])
-    setClientes(clientesData || [])
-    setContratos(contratosData || [])
-    setRecebimentos(recebimentosData || [])
+    if (contratosResult.error) {
+      console.error(
+        "Erro ao buscar contratos:",
+        contratosResult.error
+      )
+
+      alert(
+        "Erro ao carregar os contratos: " +
+        contratosResult.error.message
+      )
+    }
+
+    setRecebimentos(
+      recebimentosResult.data || []
+    )
+
+    setContratos(
+      contratosResult.data || []
+    )
 
     setCarregando(false)
   }
 
-  function moeda(valor) {
-    return Number(valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL"
-    })
-  }
+  /*
+   * RECEBIMENTOS DO MÊS SELECIONADO
+   */
 
-  const contratosAtivos = contratos.filter(
-    (contrato) => contrato.status === "Ativo"
+  const recebimentosDoMes = useMemo(() => {
+    return recebimentos.filter((item) => {
+      if (!item.data_recebimento) {
+        return false
+      }
+
+      const data = new Date(
+        item.data_recebimento + "T00:00:00"
+      )
+
+      return (
+        data.getMonth() + 1 === Number(mes) &&
+        data.getFullYear() === Number(ano)
+      )
+    })
+  }, [recebimentos, mes, ano])
+
+  /*
+   * CONTRATOS QUE TERMINAM NO MÊS
+   */
+
+  const contratosVencendo = useMemo(() => {
+    return contratos
+      .filter((contrato) => {
+        if (!contrato.termino) {
+          return false
+        }
+
+        const data = new Date(
+          contrato.termino + "T00:00:00"
+        )
+
+        return (
+          data.getMonth() + 1 === Number(mes) &&
+          data.getFullYear() === Number(ano)
+        )
+      })
+      .sort((a, b) => {
+        return (
+          new Date(a.termino) -
+          new Date(b.termino)
+        )
+      })
+  }, [contratos, mes, ano])
+
+  /*
+    * PRÓXIMOS RECEBIMENTOS - 10 DIAS
+   */
+
+  const proximosRecebimentos = useMemo(() => {
+    return recebimentos10Dias || []
+  }, [recebimentos10Dias])
+
+  */
+   * PAGOS E PENDENTES
+   */
+
+  const pagos = recebimentosDoMes.filter(
+    (item) => item.status === "Pago"
   )
 
-  function contratosPorTipo(tipo) {
-    return contratosAtivos.filter(
-      (contrato) => contrato.tipo === tipo
-    )
-  }
+  const pendentes = recebimentosDoMes.filter(
+    (item) => item.status === "Pendente"
+  )
 
-  function valorContratosPorTipo(tipo) {
-    return contratosPorTipo(tipo).reduce(
-      (total, contrato) =>
-        total + Number(contrato.valor || 0),
+  /*
+   * SOMAS
+   */
+
+  function somar(lista) {
+    return lista.reduce(
+      (total, item) =>
+        total + Number(item.valor || 0),
       0
     )
   }
 
-  const alugueis = contratosPorTipo("Locação")
-  const vendas = contratosPorTipo("Compra e Venda")
-  const temporadas = contratosPorTipo("Temporada")
-  const administracao = contratosPorTipo("Administração")
+  const totalPago = somar(pagos)
 
-  const valorAlugueis =
-    valorContratosPorTipo("Locação")
+  const totalPendente = somar(pendentes)
 
-  const valorVendas =
-    valorContratosPorTipo("Compra e Venda")
+  const totalMes =
+    totalPago + totalPendente
 
-  const valorTemporadas =
-    valorContratosPorTipo("Temporada")
+  /*
+   * CATEGORIAS
+   */
 
-  const valorAdministracao =
-    valorContratosPorTipo("Administração")
+  function valorCategoria(
+    categoria,
+    status = "Pago"
+  ) {
+    return recebimentosDoMes
+      .filter((item) => {
+        return (
+          item.categoria === categoria &&
+          item.status === status
+        )
+      })
+      .reduce(
+        (total, item) =>
+          total + Number(item.valor || 0),
+        0
+      )
+  }
 
-  const valorTotalContratosAtivos =
-    contratosAtivos.reduce(
-      (total, contrato) =>
-        total + Number(contrato.valor || 0),
-      0
+  const aluguelPago =
+    valorCategoria("Locação", "Pago")
+
+  const vendasPago =
+    valorCategoria(
+      "Compra e Venda",
+      "Pago"
+    )
+
+  const temporadaPago =
+    valorCategoria(
+      "Temporada",
+      "Pago"
+    )
+
+  const administracaoPago =
+    valorCategoria(
+      "Administração",
+      "Pago"
     )
 
   /*
-   * RECEBIMENTOS PAGOS
+   * FORMATAÇÕES
    */
 
-  const recebimentosPagos = recebimentos.filter(
-    (recebimento) => recebimento.status === "Pago"
-  )
-
-  const recebimentosPendentes = recebimentos.filter(
-    (recebimento) =>
-      recebimento.status === "Pendente"
-  )
-
-  function valorRecebidoPorCategoria(categoria) {
-    return recebimentosPagos
-      .filter(
-        (recebimento) =>
-          recebimento.categoria === categoria
-      )
-      .reduce(
-        (total, recebimento) =>
-          total + Number(recebimento.valor || 0),
-        0
-      )
+  function moeda(valor) {
+    return Number(valor || 0).toLocaleString(
+      "pt-BR",
+      {
+        style: "currency",
+        currency: "BRL"
+      }
+    )
   }
 
-  function valorPendentePorCategoria(categoria) {
-    return recebimentosPendentes
-      .filter(
-        (recebimento) =>
-          recebimento.categoria === categoria
-      )
-      .reduce(
-        (total, recebimento) =>
-          total + Number(recebimento.valor || 0),
-        0
-      )
+  function formatarData(data) {
+    if (!data) {
+      return "-"
+    }
+
+    return new Date(
+      data + "T00:00:00"
+    ).toLocaleDateString("pt-BR")
   }
 
-  const recebidoAlugueis =
-    valorRecebidoPorCategoria("Locação")
+  /*
+   * NAVEGAÇÃO DOS MESES
+   */
 
-  const recebidoVendas =
-    valorRecebidoPorCategoria("Compra e Venda")
+  function mesAnterior() {
+    if (Number(mes) === 1) {
+      setMes(12)
+      setAno(Number(ano) - 1)
+    } else {
+      setMes(Number(mes) - 1)
+    }
+  }
 
-  const recebidoTemporadas =
-    valorRecebidoPorCategoria("Temporada")
+  function proximoMes() {
+    if (Number(mes) === 12) {
+      setMes(1)
+      setAno(Number(ano) + 1)
+    } else {
+      setMes(Number(mes) + 1)
+    }
+  }
 
-  const recebidoAdministracao =
-    valorRecebidoPorCategoria("Administração")
-
-  const totalRecebido =
-    recebimentosPagos.reduce(
-      (total, recebimento) =>
-        total + Number(recebimento.valor || 0),
-      0
-    )
-
-  const totalPendente =
-    recebimentosPendentes.reduce(
-      (total, recebimento) =>
-        total + Number(recebimento.valor || 0),
-      0
-    )
+  function irParaMesAtual() {
+    setMes(hoje.getMonth() + 1)
+    setAno(hoje.getFullYear())
+  }
 
   return (
     <main className="container-fluid py-4">
@@ -194,431 +292,395 @@ export default function Home() {
 
         <div>
           <h1 className="fw-bold mb-1">
-            Dashboard
+            Financeiro
           </h1>
 
           <p className="text-muted mb-0">
-            Sistema de Administração de Imóveis
+            Controle financeiro mensal
           </p>
         </div>
 
         <button
           className="btn btn-outline-primary"
-          onClick={carregarDashboard}
+          onClick={carregarDados}
         >
           Atualizar
         </button>
 
       </div>
 
+      {/* ACESSO RÁPIDO */}
+
+      <div className="card shadow-sm mb-4">
+
+        <div className="card-body">
+
+          <h5 className="fw-bold mb-3">
+            Acesso rápido
+          </h5>
+
+          <div className="row g-2">
+
+            <div className="col-6 col-md-3">
+              <a
+                href="/recebimentos"
+                className="btn btn-success w-100 py-2"
+              >
+                + Recebimento
+              </a>
+            </div>
+
+            <div className="col-6 col-md-3">
+              <a
+                href="/contratos"
+                className="btn btn-primary w-100 py-2"
+              >
+                Contratos
+              </a>
+            </div>
+
+            <div className="col-6 col-md-3">
+              <a
+                href="/clientes"
+                className="btn btn-outline-primary w-100 py-2"
+              >
+                Clientes
+              </a>
+            </div>
+
+            <div className="col-6 col-md-3">
+              <a
+                href="/"
+                className="btn btn-outline-secondary w-100 py-2"
+              >
+                Dashboard
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* SELEÇÃO DO MÊS */}
+
+      <div className="card shadow-sm mb-4">
+
+        <div className="card-body">
+
+          <div className="row align-items-end g-3">
+
+            <div className="col-md-4">
+
+              <label className="form-label fw-bold">
+                Mês
+              </label>
+
+              <select
+                className="form-select"
+                value={mes}
+                onChange={(e) =>
+                  setMes(
+                    Number(e.target.value)
+                  )
+                }
+              >
+
+                {nomesMeses.map(
+                  (nome, index) => (
+                    <option
+                      key={index + 1}
+                      value={index + 1}
+                    >
+                      {nome}
+                    </option>
+                  )
+                )}
+
+              </select>
+
+            </div>
+
+            <div className="col-md-3">
+
+              <label className="form-label fw-bold">
+                Ano
+              </label>
+
+              <select
+                className="form-select"
+                value={ano}
+                onChange={(e) =>
+                  setAno(
+                    Number(e.target.value)
+                  )
+                }
+              >
+
+                {Array.from(
+                  { length: 11 },
+                  (_, index) =>
+                    hoje.getFullYear() -
+                    5 +
+                    index
+                ).map((valorAno) => (
+
+                  <option
+                    key={valorAno}
+                    value={valorAno}
+                  >
+                    {valorAno}
+                  </option>
+
+                ))}
+
+              </select>
+
+            </div>
+
+            <div className="col-md-5">
+
+              <div className="d-flex gap-2">
+
+                <button
+                  className="btn btn-outline-secondary flex-fill"
+                  onClick={mesAnterior}
+                >
+                  ← Anterior
+                </button>
+
+                <button
+                  className="btn btn-outline-primary"
+                  onClick={irParaMesAtual}
+                >
+                  Mês atual
+                </button>
+
+                <button
+                  className="btn btn-outline-secondary flex-fill"
+                  onClick={proximoMes}
+                >
+                  Próximo →
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="text-center mt-4">
+
+            <h2 className="fw-bold mb-0">
+              {nomesMeses[Number(mes) - 1]} / {ano}
+            </h2>
+
+          </div>
+
+        </div>
+
+      </div>
+
       {carregando ? (
 
         <div className="text-center py-5">
+
           <div
             className="spinner-border text-primary"
             role="status"
           ></div>
 
-          <p className="mt-3 text-muted">
-            Carregando informações...
+          <p className="text-muted mt-3">
+            Carregando informações financeiras...
           </p>
+
         </div>
 
       ) : (
 
         <>
 
-          {/* RESUMO GERAL */}
-
-          <h4 className="fw-bold mb-3">
-            Resumo geral
-          </h4>
+          {/* CARDS PRINCIPAIS */}
 
           <div className="row g-3 mb-5">
 
-            <div className="col-md-3">
-              <div className="card shadow-sm h-100">
+            <div className="col-md-4">
+
+              <div className="card shadow-sm border-success border-3 h-100">
+
                 <div className="card-body">
-                  <p className="text-muted mb-1">
-                    Imóveis
-                  </p>
 
-                  <h2 className="fw-bold">
-                    {imoveis.length}
-                  </h2>
-
-                  <a
-                    href="/imoveis"
-                    className="btn btn-sm btn-outline-primary"
-                  >
-                    Ver imóveis
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-3">
-              <div className="card shadow-sm h-100">
-                <div className="card-body">
-                  <p className="text-muted mb-1">
-                    Clientes
-                  </p>
-
-                  <h2 className="fw-bold">
-                    {clientes.length}
-                  </h2>
-
-                  <a
-                    href="/clientes"
-                    className="btn btn-sm btn-outline-primary"
-                  >
-                    Ver clientes
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-3">
-              <div className="card shadow-sm h-100">
-                <div className="card-body">
-                  <p className="text-muted mb-1">
-                    Contratos ativos
-                  </p>
-
-                  <h2 className="fw-bold">
-                    {contratosAtivos.length}
-                  </h2>
-
-                  <a
-                    href="/contratos"
-                    className="btn btn-sm btn-outline-primary"
-                  >
-                    Ver contratos
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-3">
-              <div className="card shadow-sm h-100">
-                <div className="card-body">
                   <p className="text-muted mb-1">
                     Total recebido
                   </p>
 
                   <h2 className="fw-bold text-success">
-                    {moeda(totalRecebido)}
+                    {moeda(totalPago)}
                   </h2>
 
-                  <a
-                    href="/recebimentos"
-                    className="btn btn-sm btn-outline-success"
-                  >
-                    Ver recebimentos
-                  </a>
+                  <small className="text-muted">
+                    {pagos.length} recebimento(s) pago(s)
+                  </small>
+
                 </div>
+
               </div>
+
+            </div>
+
+            <div className="col-md-4">
+
+              <div className="card shadow-sm border-warning border-3 h-100">
+
+                <div className="card-body">
+
+                  <p className="text-muted mb-1">
+                    Total pendente
+                  </p>
+
+                  <h2 className="fw-bold text-warning">
+                    {moeda(totalPendente)}
+                  </h2>
+
+                  <small className="text-muted">
+                    {pendentes.length} pendência(s)
+                  </small>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="col-md-4">
+
+              <div className="card shadow-sm border-primary border-3 h-100">
+
+                <div className="card-body">
+
+                  <p className="text-muted mb-1">
+                    Total do mês
+                  </p>
+
+                  <h2 className="fw-bold text-primary">
+                    {moeda(totalMes)}
+                  </h2>
+
+                  <small className="text-muted">
+                    Recebido + pendente
+                  </small>
+
+                </div>
+
+              </div>
+
             </div>
 
           </div>
 
-          {/* CONTRATOS POR CATEGORIA */}
+          {/* RECEBIDOS POR CATEGORIA */}
 
           <h4 className="fw-bold mb-3">
-            Contratos ativos por categoria
+            Valores recebidos por categoria
           </h4>
 
           <div className="row g-3 mb-5">
 
             <div className="col-md-3">
-              <div className="card shadow-sm border-start border-primary border-4 h-100">
+
+              <div className="card shadow-sm h-100">
+
                 <div className="card-body">
 
                   <h5 className="fw-bold">
                     Aluguéis
                   </h5>
 
-                  <h3>
-                    {alugueis.length}
-                  </h3>
-
-                  <p className="text-muted mb-0">
-                    Valor dos contratos
+                  <p className="text-muted mb-1">
+                    Locação
                   </p>
 
-                  <strong>
-                    {moeda(valorAlugueis)}
-                  </strong>
+                  <h3 className="fw-bold text-success">
+                    {moeda(aluguelPago)}
+                  </h3>
 
                 </div>
+
               </div>
+
             </div>
 
             <div className="col-md-3">
-              <div className="card shadow-sm border-start border-success border-4 h-100">
+
+              <div className="card shadow-sm h-100">
+
                 <div className="card-body">
 
                   <h5 className="fw-bold">
                     Vendas
                   </h5>
 
-                  <h3>
-                    {vendas.length}
-                  </h3>
-
-                  <p className="text-muted mb-0">
-                    Valor dos contratos
+                  <p className="text-muted mb-1">
+                    Compra e Venda
                   </p>
 
-                  <strong>
-                    {moeda(valorVendas)}
-                  </strong>
+                  <h3 className="fw-bold text-success">
+                    {moeda(vendasPago)}
+                  </h3>
 
                 </div>
+
               </div>
+
             </div>
 
             <div className="col-md-3">
-              <div className="card shadow-sm border-start border-warning border-4 h-100">
+
+              <div className="card shadow-sm h-100">
+
                 <div className="card-body">
 
                   <h5 className="fw-bold">
                     Temporadas
                   </h5>
 
-                  <h3>
-                    {temporadas.length}
-                  </h3>
-
-                  <p className="text-muted mb-0">
-                    Valor dos contratos
+                  <p className="text-muted mb-1">
+                    Temporada
                   </p>
 
-                  <strong>
-                    {moeda(valorTemporadas)}
-                  </strong>
+                  <h3 className="fw-bold text-success">
+                    {moeda(temporadaPago)}
+                  </h3>
 
                 </div>
+
               </div>
+
             </div>
 
             <div className="col-md-3">
-              <div className="card shadow-sm border-start border-info border-4 h-100">
+
+              <div className="card shadow-sm h-100">
+
                 <div className="card-body">
 
                   <h5 className="fw-bold">
                     Administração
                   </h5>
 
-                  <h3>
-                    {administracao.length}
-                  </h3>
-
-                  <p className="text-muted mb-0">
-                    Valor dos contratos
+                  <p className="text-muted mb-1">
+                    Administração
                   </p>
 
-                  <strong>
-                    {moeda(valorAdministracao)}
-                  </strong>
-
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* TOTAL CONTRATOS */}
-
-          <div className="card shadow-sm mb-5">
-            <div className="card-body">
-
-              <div className="row align-items-center">
-
-                <div className="col-md-8">
-                  <h5 className="fw-bold mb-1">
-                    Valor total dos contratos ativos
-                  </h5>
-
-                  <p className="text-muted mb-0">
-                    Soma dos valores cadastrados nos
-                    contratos ativos.
-                  </p>
-                </div>
-
-                <div className="col-md-4 text-md-end">
-                  <h2 className="fw-bold mb-0">
-                    {moeda(valorTotalContratosAtivos)}
-                  </h2>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-
-          {/* FINANCEIRO */}
-
-          <h4 className="fw-bold mb-3">
-            Financeiro — valores recebidos
-          </h4>
-
-          <div className="row g-3 mb-4">
-
-            <div className="col-md-3">
-              <div className="card shadow-sm h-100">
-                <div className="card-body">
-
-                  <h6 className="text-muted">
-                    Aluguéis recebidos
-                  </h6>
-
                   <h3 className="fw-bold text-success">
-                    {moeda(recebidoAlugueis)}
+                    {moeda(administracaoPago)}
                   </h3>
 
                 </div>
+
               </div>
-            </div>
 
-            <div className="col-md-3">
-              <div className="card shadow-sm h-100">
-                <div className="card-body">
-
-                  <h6 className="text-muted">
-                    Vendas recebidas
-                  </h6>
-
-                  <h3 className="fw-bold text-success">
-                    {moeda(recebidoVendas)}
-                  </h3>
-
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-3">
-              <div className="card shadow-sm h-100">
-                <div className="card-body">
-
-                  <h6 className="text-muted">
-                    Temporadas recebidas
-                  </h6>
-
-                  <h3 className="fw-bold text-success">
-                    {moeda(recebidoTemporadas)}
-                  </h3>
-
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-3">
-              <div className="card shadow-sm h-100">
-                <div className="card-body">
-
-                  <h6 className="text-muted">
-                    Administração recebida
-                  </h6>
-
-                  <h3 className="fw-bold text-success">
-                    {moeda(recebidoAdministracao)}
-                  </h3>
-
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* TOTAL RECEBIDO E PENDENTE */}
-
-          <div className="row g-3 mb-5">
-
-            <div className="col-md-6">
-              <div className="card shadow-sm bg-success text-white">
-                <div className="card-body">
-
-                  <p className="mb-1">
-                    Total recebido
-                  </p>
-
-                  <h2 className="fw-bold mb-0">
-                    {moeda(totalRecebido)}
-                  </h2>
-
-                  <small>
-                    {recebimentosPagos.length} recebimento(s) pago(s)
-                  </small>
-
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-6">
-              <div className="card shadow-sm bg-warning">
-                <div className="card-body">
-
-                  <p className="mb-1">
-                    Total pendente
-                  </p>
-
-                  <h2 className="fw-bold mb-0">
-                    {moeda(totalPendente)}
-                  </h2>
-
-                  <small>
-                    {recebimentosPendentes.length} recebimento(s) pendente(s)
-                  </small>
-
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* ATALHOS */}
-
-          <h4 className="fw-bold mb-3">
-            Acesso rápido
-          </h4>
-
-          <div className="row g-3 mb-5">
-
-            <div className="col-md-3">
-              <a
-                href="/imoveis"
-                className="btn btn-primary w-100 py-3"
-              >
-                + Cadastrar imóvel
-              </a>
-            </div>
-
-            <div className="col-md-3">
-              <a
-                href="/clientes"
-                className="btn btn-primary w-100 py-3"
-              >
-                + Cadastrar cliente
-              </a>
-            </div>
-
-            <div className="col-md-3">
-              <a
-                href="/contratos"
-                className="btn btn-primary w-100 py-3"
-              >
-                + Cadastrar contrato
-              </a>
-            </div>
-
-            <div className="col-md-3">
-              <a
-                href="/recebimentos"
-                className="btn btn-success w-100 py-3"
-              >
-                + Registrar recebimento
-              </a>
             </div>
 
           </div>
@@ -627,10 +689,16 @@ export default function Home() {
 
           <div className="card shadow-sm mb-5">
 
-            <div className="card-header">
-              <h5 className="mb-0">
+            <div className="card-header d-flex justify-content-between align-items-center">
+
+              <h5 className="mb-0 fw-bold">
                 Últimos recebimentos
               </h5>
+
+              <span className="badge bg-success">
+                {pagos.length} pago(s)
+              </span>
+
             </div>
 
             <div className="card-body">
@@ -640,66 +708,68 @@ export default function Home() {
                 <table className="table table-hover align-middle">
 
                   <thead>
+
                     <tr>
                       <th>Data</th>
+                      <th>Cliente</th>
+                      <th>Contrato</th>
                       <th>Categoria</th>
+                      <th>Forma</th>
                       <th>Valor</th>
-                      <th>Status</th>
                     </tr>
+
                   </thead>
 
                   <tbody>
 
-                    {recebimentos.length === 0 ? (
+                    {pagos.length === 0 ? (
 
                       <tr>
+
                         <td
-                          colSpan="4"
+                          colSpan="6"
                           className="text-center text-muted py-4"
                         >
-                          Nenhum recebimento cadastrado.
+                          Nenhum recebimento pago neste mês.
                         </td>
+
                       </tr>
 
                     ) : (
 
-                      recebimentos
-                        .slice(0, 5)
+                      pagos
+                        .slice(0, 10)
                         .map((item) => (
 
                           <tr key={item.id}>
 
                             <td>
-                              {item.data_recebimento
-                                ? new Date(
-                                    item.data_recebimento +
-                                      "T00:00:00"
-                                  ).toLocaleDateString(
-                                    "pt-BR"
-                                  )
-                                : "-"}
+                              {formatarData(
+                                item.data_recebimento
+                              )}
+                            </td>
+
+                            <td>
+                              {item.clientes?.nome ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {item.contratos?.numero ||
+                                "-"}
                             </td>
 
                             <td>
                               {item.categoria}
                             </td>
 
-                            <td className="fw-bold">
-                              {moeda(item.valor)}
+                            <td>
+                              {item.forma_pagamento ||
+                                "-"}
                             </td>
 
-                            <td>
-
-                              <span
-                                className={
-                                  item.status === "Pago"
-                                    ? "badge bg-success"
-                                    : "badge bg-warning text-dark"
-                                }
-                              >
-                                {item.status}
-                              </span>
-
+                            <td className="fw-bold text-success">
+                              {moeda(item.valor)}
                             </td>
 
                           </tr>
@@ -714,103 +784,127 @@ export default function Home() {
 
               </div>
 
-              {recebimentos.length > 0 && (
+              {pagos.length > 0 && (
+
                 <a
                   href="/recebimentos"
-                  className="btn btn-outline-primary"
+                  className="btn btn-outline-success"
                 >
                   Ver todos os recebimentos
                 </a>
+
               )}
 
             </div>
 
           </div>
 
-          {/* ÚLTIMOS CLIENTES */}
+          {/* CONTRATOS VENCENDO */}
 
-          <div className="card shadow-sm">
+          <div className="card shadow-sm mb-5">
 
             <div className="card-header">
-              <h5 className="mb-0">
-                Clientes cadastrados
-              </h5>
+
+              <div className="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                  <h5 className="mb-1 fw-bold">
+                    Contratos que vencem no mês
+                  </h5>
+
+                  <small className="text-muted">
+                    {nomesMeses[Number(mes) - 1]} / {ano}
+                  </small>
+
+                </div>
+
+                <span className="badge bg-danger">
+                  {contratosVencendo.length} contrato(s)
+                </span>
+
+              </div>
+
             </div>
 
             <div className="card-body">
 
-              {clientes.length === 0 ? (
+              {contratosVencendo.length === 0 ? (
 
-                <p className="text-muted mb-0">
-                  Nenhum cliente cadastrado.
-                </p>
+                <div className="text-center text-muted py-4">
+
+                  <h5>
+                    Nenhum contrato vence neste mês.
+                  </h5>
+
+                  <p className="mb-0">
+                    Não existem contratos com data de término em{" "}
+                    {nomesMeses[Number(mes) - 1]} / {ano}.
+                  </p>
+
+                </div>
 
               ) : (
 
                 <div className="table-responsive">
 
-                  <table className="table table-hover">
+                  <table className="table table-hover align-middle">
 
                     <thead>
+
                       <tr>
-                        <th>Nome</th>
+                        <th>Vencimento</th>
+                        <th>Nº contrato</th>
+                        <th>Imóvel</th>
+                        <th>Cliente</th>
                         <th>Tipo</th>
-                        <th>Telefone</th>
-                        <th>Cidade</th>
+                        <th>Valor</th>
+                        <th>Status</th>
                       </tr>
+
                     </thead>
 
                     <tbody>
 
-                      {clientes
-                        .slice(0, 5)
-                        .map((cliente) => (
+                      {contratosVencendo.map(
+                        (contrato) => (
 
-                          <tr key={cliente.id}>
+                          <tr key={contrato.id}>
 
-                            <td>
-                              {cliente.nome}
+                            <td className="fw-bold text-danger">
+                              {formatarData(
+                                contrato.termino
+                              )}
                             </td>
 
                             <td>
-                              {cliente.tipo}
+                              {contrato.numero ||
+                                "-"}
                             </td>
 
                             <td>
-                              {cliente.telefone}
+                              {contrato.imovel ||
+                                "-"}
                             </td>
 
-                   <td>
-                              {cliente.cidade || "-"}
+                            <td>
+                              {contrato.cliente ||
+                                "-"}
                             </td>
 
-                          </tr>
+                            <td>
+                              {contrato.tipo ||
+                                "-"}
+                            </td>
 
-                        ))}
+                            <td className="fw-bold">
+                              {moeda(
+                                contrato.valor
+                              )}
+                            </td>
 
-                    </tbody>
+                            <td>
 
-                  </table>
-
-                </div>
-
-              )}
-
-              <a
-                href="/clientes"
-                className="btn btn-outline-primary"
-              >
-                Ver todos os clientes
-              </a>
-
-            </div>
-
-          </div>
-
-        </>
-
-      )}
-
-    </main>
-  )
-}
+                              <span
+                                className={
+    
