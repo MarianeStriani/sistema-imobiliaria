@@ -24,6 +24,7 @@ export default function Financeiro() {
     setErro("")
 
     try {
+      // RECEBIMENTOS
       const { data: recebimentosData, error: recebimentosError } =
         await supabase
           .from("recebimentos")
@@ -40,35 +41,26 @@ export default function Financeiro() {
             )
           `)
           .order("data_recebimento", {
-            ascending: true,
+            ascending: false,
           })
 
       if (recebimentosError) {
         throw recebimentosError
       }
 
+      // DESPESAS / LANÇAMENTOS
       const { data: lancamentosData, error: lancamentosError } =
         await supabase
           .from("lancamentos_financeiros")
-          .select(`
-            *,
-            clientes (
-              nome
-            ),
-            contratos (
-              numero,
-              cliente,
-              imovel,
-              tipo
-            )
-          `)
+          .select("*")
+          .eq("tipo", "Saída")
           .order("data_lancamento", {
-            ascending: true,
+            ascending: false,
           })
 
       if (lancamentosError) {
         console.warn(
-          "Não foi possível carregar lançamentos:",
+          "Tabela de despesas:",
           lancamentosError.message
         )
 
@@ -91,104 +83,60 @@ export default function Financeiro() {
 
   /*
    * ==========================================================
-   * EXTRATO MENSAL
+   * FILTRAR RECEBIMENTOS PELO MÊS
    * ==========================================================
    */
 
-  const extratoMensal = useMemo(() => {
-    const entradas = recebimentos
-      .filter((item) => {
-        if (!item.data_recebimento) {
-          return false
-        }
+  const recebimentosDoMes = useMemo(() => {
+    return recebimentos.filter((item) => {
+      if (!item.data_recebimento) {
+        return false
+      }
 
-        const data = new Date(
-          item.data_recebimento + "T00:00:00"
-        )
+      const data = new Date(
+        item.data_recebimento + "T00:00:00"
+      )
 
-        return (
-          data.getMonth() + 1 === Number(mes) &&
-          data.getFullYear() === Number(ano)
-        )
-      })
-      .map((item) => ({
-        id: `recebimento-${item.id}`,
-        data: item.data_recebimento,
-        tipo: "Entrada",
-        descricao:
-          item.observacoes || "Recebimento",
-        contrato:
-          item.contratos?.numero || "-",
-        cliente:
-          item.clientes?.nome ||
-          item.contratos?.cliente ||
-          "-",
-        categoria:
-          item.categoria ||
-          item.contratos?.tipo ||
-          "Outros",
-        valor: Number(item.valor || 0),
-        status: item.status || "Pago",
-        origem: "recebimento",
-      }))
-
-    const outrosLancamentos = lancamentos
-      .filter((item) => {
-        if (!item.data_lancamento) {
-          return false
-        }
-
-        const data = new Date(
-          item.data_lancamento + "T00:00:00"
-        )
-
-        return (
-          data.getMonth() + 1 === Number(mes) &&
-          data.getFullYear() === Number(ano)
-        )
-      })
-      .map((item) => ({
-        id: `lancamento-${item.id}`,
-        data: item.data_lancamento,
-        tipo: item.tipo,
-        descricao:
-          item.descricao || "Lançamento",
-        contrato:
-          item.contratos?.numero || "-",
-        cliente:
-          item.clientes?.nome ||
-          item.contratos?.cliente ||
-          "-",
-        categoria:
-          item.categoria || "Outros",
-        valor: Number(item.valor || 0),
-        status: item.status || "Pago",
-        origem: "lancamento",
-        original: item,
-      }))
-
-    return [
-      ...entradas,
-      ...outrosLancamentos,
-    ].sort((a, b) => {
       return (
-        new Date(a.data + "T00:00:00") -
-        new Date(b.data + "T00:00:00")
+        data.getMonth() + 1 === Number(mes) &&
+        data.getFullYear() === Number(ano)
       )
     })
-  }, [recebimentos, lancamentos, mes, ano])
+  }, [recebimentos, mes, ano])
 
   /*
    * ==========================================================
-   * TOTAIS
+   * FILTRAR DESPESAS PELO MÊS
    * ==========================================================
    */
 
-  const totalEntradas = useMemo(() => {
-    return extratoMensal
+  const despesasDoMes = useMemo(() => {
+    return lancamentos.filter((item) => {
+      if (!item.data_lancamento) {
+        return false
+      }
+
+      const data = new Date(
+        item.data_lancamento + "T00:00:00"
+      )
+
+      return (
+        data.getMonth() + 1 === Number(mes) &&
+        data.getFullYear() === Number(ano)
+      )
+    })
+  }, [lancamentos, mes, ano])
+
+  /*
+   * ==========================================================
+   * TOTAL RECEBIDO
+   * ==========================================================
+   */
+
+  const totalRecebido = useMemo(() => {
+    return recebimentosDoMes
       .filter(
         (item) =>
-          item.tipo === "Entrada" &&
           item.status !== "Pendente"
       )
       .reduce(
@@ -196,13 +144,18 @@ export default function Financeiro() {
           total + Number(item.valor || 0),
         0
       )
-  }, [extratoMensal])
+  }, [recebimentosDoMes])
 
-  const totalSaidas = useMemo(() => {
-    return extratoMensal
+  /*
+   * ==========================================================
+   * TOTAL DESPESAS
+   * ==========================================================
+   */
+
+  const totalDespesas = useMemo(() => {
+    return despesasDoMes
       .filter(
         (item) =>
-          item.tipo === "Saída" &&
           item.status !== "Pendente"
       )
       .reduce(
@@ -210,10 +163,54 @@ export default function Financeiro() {
           total + Number(item.valor || 0),
         0
       )
-  }, [extratoMensal])
+  }, [despesasDoMes])
 
-  const totalDisponivel =
-    totalEntradas - totalSaidas
+  /*
+   * ==========================================================
+   * SALDO DISPONÍVEL
+   * ==========================================================
+   */
+
+  const saldoDisponivel =
+    totalRecebido - totalDespesas
+
+  /*
+   * ==========================================================
+   * VALORES POR CATEGORIA
+   * ==========================================================
+   */
+
+  const valoresCategorias = useMemo(() => {
+    const categorias = {
+      "Locação": 0,
+      "Compra e Venda": 0,
+      "Temporada": 0,
+      "Administração": 0,
+    }
+
+    recebimentosDoMes
+      .filter(
+        (item) =>
+          item.status !== "Pendente"
+      )
+      .forEach((item) => {
+        const categoria =
+          item.categoria
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            categorias,
+            categoria
+          )
+        ) {
+          categorias[categoria] += Number(
+            item.valor || 0
+          )
+        }
+      })
+
+    return categorias
+  }, [recebimentosDoMes])
 
   /*
    * ==========================================================
@@ -229,14 +226,6 @@ export default function Financeiro() {
         currency: "BRL",
       }
     )
-  }
-
-  function formatarData(data) {
-    if (!data) return "-"
-
-    return new Date(
-      data + "T00:00:00"
-    ).toLocaleDateString("pt-BR")
   }
 
   function nomeMes(numero) {
@@ -296,14 +285,25 @@ export default function Financeiro() {
           CABEÇALHO
       ====================================================== */}
 
-      <div className="mb-4">
-        <h1 className="fw-bold mb-1">
-          Financeiro
-        </h1>
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
-        <p className="text-muted mb-0">
-          Extrato mensal de entradas e saídas
-        </p>
+        <div>
+          <h1 className="fw-bold mb-1">
+            Financeiro
+          </h1>
+
+          <p className="text-muted mb-0">
+            Resumo financeiro da imobiliária
+          </p>
+        </div>
+
+        <button
+          className="btn btn-outline-primary"
+          onClick={carregarDados}
+        >
+          🔄 Atualizar
+        </button>
+
       </div>
 
       {/* ======================================================
@@ -362,7 +362,7 @@ export default function Financeiro() {
       </div>
 
       {/* ======================================================
-          FILTRO POR MÊS
+          FILTRO
       ====================================================== */}
 
       <div className="card shadow-sm border-0 mb-4">
@@ -373,7 +373,7 @@ export default function Financeiro() {
 
             <div>
               <h5 className="fw-bold mb-1">
-                Filtrar por mês
+                Período
               </h5>
 
               <span className="text-muted">
@@ -381,7 +381,7 @@ export default function Financeiro() {
               </span>
             </div>
 
-            <div className="d-flex flex-wrap gap-2">
+            <div className="d-flex gap-2 flex-wrap">
 
               <button
                 className="btn btn-outline-secondary"
@@ -395,10 +395,11 @@ export default function Financeiro() {
                 style={{ width: "150px" }}
                 value={mes}
                 onChange={(e) =>
-                  setMes(Number(e.target.value))
+                  setMes(
+                    Number(e.target.value)
+                  )
                 }
               >
-
                 {Array.from(
                   { length: 12 },
                   (_, index) => (
@@ -410,7 +411,6 @@ export default function Financeiro() {
                     </option>
                   )
                 )}
-
               </select>
 
               <input
@@ -419,7 +419,9 @@ export default function Financeiro() {
                 style={{ width: "100px" }}
                 value={ano}
                 onChange={(e) =>
-                  setAno(Number(e.target.value))
+                  setAno(
+                    Number(e.target.value)
+                  )
                 }
               />
 
@@ -431,7 +433,7 @@ export default function Financeiro() {
               </button>
 
               <button
-                className="btn btn-outline-primary"
+                className="btn btn-primary"
                 onClick={mesAtual}
               >
                 Mês atual
@@ -446,28 +448,32 @@ export default function Financeiro() {
       </div>
 
       {/* ======================================================
-          RESUMO
+          CARDS PRINCIPAIS
       ====================================================== */}
 
-      <div className="row g-3 mb-4">
+      <div className="row g-4 mb-4">
 
-        {/* ENTRADAS */}
+        {/* TOTAL RECEBIDO */}
 
         <div className="col-md-4">
 
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card shadow-sm border-0 h-100">
 
             <div className="card-body">
 
-              <div className="text-muted">
-                Total de entradas
+              <div className="text-muted mb-2">
+                💰 Total recebido
               </div>
 
-              <div className="fs-3 fw-bold text-success mt-2">
+              <div className="fs-2 fw-bold text-success">
                 {formatarMoeda(
-                  totalEntradas
+                  totalRecebido
                 )}
               </div>
+
+              <small className="text-muted">
+                Valores pagos no mês
+              </small>
 
             </div>
 
@@ -475,23 +481,27 @@ export default function Financeiro() {
 
         </div>
 
-        {/* SAÍDAS */}
+        {/* DESPESAS */}
 
         <div className="col-md-4">
 
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card shadow-sm border-0 h-100">
 
             <div className="card-body">
 
-              <div className="text-muted">
-                Total de saídas
+              <div className="text-muted mb-2">
+                💸 Despesas
               </div>
 
-              <div className="fs-3 fw-bold text-danger mt-2">
+              <div className="fs-2 fw-bold text-danger">
                 {formatarMoeda(
-                  totalSaidas
+                  totalDespesas
                 )}
               </div>
+
+              <small className="text-muted">
+                Despesas pagas no mês
+              </small>
 
             </div>
 
@@ -499,32 +509,32 @@ export default function Financeiro() {
 
         </div>
 
-        {/* DISPONÍVEL */}
+        {/* SALDO */}
 
         <div className="col-md-4">
 
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card shadow-sm border-0 h-100">
 
             <div className="card-body">
 
-              <div className="text-muted">
-                Total disponível
+              <div className="text-muted mb-2">
+                🏦 Saldo disponível
               </div>
 
               <div
-                className={`fs-3 fw-bold mt-2 ${
-                  totalDisponivel >= 0
+                className={`fs-2 fw-bold ${
+                  saldoDisponivel >= 0
                     ? "text-primary"
                     : "text-danger"
                 }`}
               >
                 {formatarMoeda(
-                  totalDisponivel
+                  saldoDisponivel
                 )}
               </div>
 
               <small className="text-muted">
-                Entradas − Saídas
+                Recebimentos - despesas
               </small>
 
             </div>
@@ -536,186 +546,186 @@ export default function Financeiro() {
       </div>
 
       {/* ======================================================
-          EXTRATO MENSAL
+          VALORES POR CATEGORIA
+      ====================================================== */}
+
+      <h4 className="fw-bold mb-3">
+        Valores recebidos por categoria
+      </h4>
+
+      <div className="row g-4 mb-4">
+
+        {/* LOCAÇÃO */}
+
+        <div className="col-sm-6 col-lg-3">
+
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body">
+
+              <div className="text-muted">
+                🏠 Locação
+              </div>
+
+              <div className="fs-4 fw-bold text-success mt-2">
+                {formatarMoeda(
+                  valoresCategorias[
+                    "Locação"
+                  ]
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* COMPRA E VENDA */}
+
+        <div className="col-sm-6 col-lg-3">
+
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body">
+
+              <div className="text-muted">
+                🤝 Compra e Venda
+              </div>
+
+              <div className="fs-4 fw-bold text-success mt-2">
+                {formatarMoeda(
+                  valoresCategorias[
+                    "Compra e Venda"
+                  ]
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* TEMPORADA */}
+
+        <div className="col-sm-6 col-lg-3">
+
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body">
+
+              <div className="text-muted">
+                🌴 Temporada
+              </div>
+
+              <div className="fs-4 fw-bold text-success mt-2">
+                {formatarMoeda(
+                  valoresCategorias[
+                    "Temporada"
+                  ]
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ADMINISTRAÇÃO */}
+
+        <div className="col-sm-6 col-lg-3">
+
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body">
+
+              <div className="text-muted">
+                📋 Administração
+              </div>
+
+              <div className="fs-4 fw-bold text-success mt-2">
+                {formatarMoeda(
+                  valoresCategorias[
+                    "Administração"
+                  ]
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ======================================================
+          RESUMO
       ====================================================== */}
 
       <div className="card shadow-sm border-0">
 
         <div className="card-body">
 
-          <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5 className="fw-bold mb-3">
+            Resumo do período
+          </h5>
 
-            <div>
+          <div className="table-responsive">
 
-              <h5 className="fw-bold mb-1">
-                Extrato mensal
-              </h5>
+            <table className="table align-middle mb-0">
 
-              <small className="text-muted">
-                {nomeMes(mes)} de {ano}
-              </small>
+              <tbody>
 
-            </div>
+                <tr>
+                  <td>
+                    Total recebido
+                  </td>
 
-            <span className="badge text-bg-primary">
-              {extratoMensal.length} lançamentos
-            </span>
+                  <td className="text-end fw-bold text-success">
+                    {formatarMoeda(
+                      totalRecebido
+                    )}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>
+                    Total de despesas
+                  </td>
+
+                  <td className="text-end fw-bold text-danger">
+                    {formatarMoeda(
+                      totalDespesas
+                    )}
+                  </td>
+                </tr>
+
+                <tr className="table-light">
+                  <td className="fw-bold">
+                    Saldo disponível
+                  </td>
+
+                  <td
+                    className={`text-end fw-bold fs-5 ${
+                      saldoDisponivel >= 0
+                        ? "text-primary"
+                        : "text-danger"
+                    }`}
+                  >
+                    {formatarMoeda(
+                      saldoDisponivel
+                    )}
+                  </td>
+                </tr>
+
+              </tbody>
+
+            </table>
 
           </div>
-
-          {extratoMensal.length === 0 ? (
-
-            <div className="alert alert-light border mb-0">
-              Nenhum lançamento encontrado neste mês.
-            </div>
-
-          ) : (
-
-            <div className="table-responsive">
-
-              <table className="table table-hover align-middle">
-
-                <thead className="table-light">
-
-                  <tr>
-                    <th>Data</th>
-                    <th>Tipo</th>
-                    <th>Descrição</th>
-                    <th>Contrato</th>
-                    <th>Cliente / Inquilino</th>
-                    <th>Categoria</th>
-                    <th>Status</th>
-                    <th className="text-end">
-                      Valor
-                    </th>
-                  </tr>
-
-                </thead>
-
-                <tbody>
-
-                  {extratoMensal.map(
-                    (item) => (
-                      <tr key={item.id}>
-
-                        <td>
-                          {formatarData(
-                            item.data
-                          )}
-                        </td>
-
-                        <td>
-
-                          {item.tipo ===
-                          "Entrada" ? (
-
-                            <span className="badge text-bg-success">
-                              Entrada
-                            </span>
-
-                          ) : (
-
-                            <span className="badge text-bg-danger">
-                              Saída
-                            </span>
-
-                          )}
-
-                        </td>
-
-                        <td>
-                          {item.descricao}
-                        </td>
-
-                        <td>
-                          {item.contrato}
-                        </td>
-
-                        <td>
-                          {item.cliente}
-                        </td>
-
-                        <td>
-                          {item.categoria}
-                        </td>
-
-                        <td>
-
-                          {item.status ===
-                          "Pendente" ? (
-
-                            <span className="badge text-bg-warning">
-                              Pendente
-                            </span>
-
-                          ) : (
-
-                            <span className="badge text-bg-success">
-                              Pago
-                            </span>
-
-                          )}
-
-                        </td>
-
-                        <td
-                          className={`text-end fw-bold ${
-                            item.tipo ===
-                            "Entrada"
-                              ? "text-success"
-                              : "text-danger"
-                          }`}
-                        >
-
-                          {item.tipo ===
-                          "Entrada"
-                            ? "+"
-                            : "-"}
-
-                          {formatarMoeda(
-                            item.valor
-                          )}
-
-                        </td>
-
-                      </tr>
-                    )
-                  )}
-
-                </tbody>
-
-                <tfoot className="table-light">
-
-                  <tr>
-
-                    <th
-                      colSpan="7"
-                      className="text-end"
-                    >
-                      Total disponível:
-                    </th>
-
-                    <th
-                      className={`text-end fs-5 ${
-                        totalDisponivel >= 0
-                          ? "text-primary"
-                          : "text-danger"
-                      }`}
-                    >
-                      {formatarMoeda(
-                        totalDisponivel
-                      )}
-                    </th>
-
-                  </tr>
-
-                </tfoot>
-
-              </table>
-
-            </div>
-
-          )}
 
         </div>
 
@@ -726,12 +736,8 @@ export default function Financeiro() {
       ====================================================== */}
 
       {carregando && (
-        <div className="position-fixed bottom-0 end-0 p-3">
-
-          <div className="alert alert-info shadow">
-            Carregando financeiro...
-          </div>
-
+        <div className="alert alert-info mt-4">
+          Carregando informações financeiras...
         </div>
       )}
 
@@ -740,7 +746,7 @@ export default function Financeiro() {
       ====================================================== */}
 
       {erro && (
-        <div className="alert alert-danger mt-3">
+        <div className="alert alert-danger mt-4">
           {erro}
         </div>
       )}
