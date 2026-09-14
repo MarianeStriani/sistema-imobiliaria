@@ -679,3 +679,5 @@ export default function ContratosPage() {
       )}
 
     </main>
+  )
+}
