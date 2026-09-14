@@ -311,57 +311,76 @@ export default function Financeiro() {
 
       {/* ACESSO RÁPIDO */}
 
-      <div className="card shadow-sm mb-4">
+<div className="card shadow-sm mb-4">
 
-        <div className="card-body">
+  <div className="card-body">
 
-          <h5 className="fw-bold mb-3">
-            Acesso rápido
-          </h5>
+    <h5 className="fw-bold mb-3">
+      Acesso rápido
+    </h5>
 
-          <div className="row g-2">
+    <div className="row g-2">
 
-            <div className="col-6 col-md-3">
-              <a
-                href="/recebimentos"
-                className="btn btn-success w-100 py-2"
-              >
-                + Recebimento
-              </a>
-            </div>
-
-            <div className="col-6 col-md-3">
-              <a
-                href="/contratos"
-                className="btn btn-primary w-100 py-2"
-              >
-                Contratos
-              </a>
-            </div>
-
-            <div className="col-6 col-md-3">
-              <a
-                href="/clientes"
-                className="btn btn-outline-primary w-100 py-2"
-              >
-                Clientes
-              </a>
-            </div>
-
-            <div className="col-6 col-md-3">
-              <a
-                href="/"
-                className="btn btn-outline-secondary w-100 py-2"
-              >
-                Dashboard
-              </a>
-            </div>
-
-          </div>
-
-        </div>
-
+      <div className="col-6 col-md-3">
+        <a
+          href="/recebimentos"
+          className="btn btn-success w-100 py-2"
+        >
+          + Recebimento
+        </a>
       </div>
+
+      <div className="col-6 col-md-3">
+        <a
+          href="/despesas"
+          className="btn btn-danger w-100 py-2"
+        >
+          + Despesa
+        </a>
+      </div>
+
+      <div className="col-6 col-md-3">
+        <a
+          href="/contratos"
+          className="btn btn-primary w-100 py-2"
+        >
+          Contratos
+        </a>
+      </div>
+
+      <div className="col-6 col-md-3">
+        <a
+          href="/clientes"
+          className="btn btn-outline-primary w-100 py-2"
+        >
+          Clientes
+        </a>
+      </div>
+
+      <div className="col-6 col-md-3">
+        <a
+          href="/financeiro"
+          className="btn btn-warning w-100 py-2"
+        >
+          Financeiro
+        </a>
+      </div>
+
+      <div className="col-6 col-md-3">
+        <a
+          href="/"
+          className="btn btn-outline-secondary w-100 py-2"
+        >
+          Dashboard
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
 
       {/* SELEÇÃO DO MÊS */}
 
