@@ -12,10 +12,25 @@ export default function Recebimentos() {
   const [carregando, setCarregando] = useState(true)
   const [mensagem, setMensagem] = useState("")
 
-  const [statusSelecionado, setStatusSelecionado] = useState({})
-
   const [mes, setMes] = useState(hoje.getMonth() + 1)
   const [ano, setAno] = useState(hoje.getFullYear())
+
+  const [modalAberto, setModalAberto] = useState(false)
+  const [contratoSelecionado, setContratoSelecionado] =
+    useState(null)
+
+  const [dataRecebimento, setDataRecebimento] =
+    useState(
+      hoje.toISOString().split("T")[0]
+    )
+
+  const [formaPagamento, setFormaPagamento] =
+    useState("PIX")
+
+  const [observacoes, setObservacoes] =
+    useState("")
+
+  const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
     carregarDados()
@@ -25,44 +40,51 @@ export default function Recebimentos() {
     setCarregando(true)
     setMensagem("")
 
-    const [contratosResponse, recebimentosResponse] =
-      await Promise.all([
-        supabase
-          .from("contratos")
-          .select("*")
-          .order("id", { ascending: false }),
-
-        supabase
-          .from("recebimentos")
-          .select("*")
-          .order("id", { ascending: false }),
-      ])
+    const contratosResponse = await supabase
+      .from("contratos")
+      .select("*")
+      .order("id", { ascending: false })
 
     if (contratosResponse.error) {
       console.error(contratosResponse.error)
-      setMensagem("Erro ao carregar os contratos.")
+
+      setMensagem(
+        "Erro ao carregar os contratos."
+      )
+
+      setContratos([])
+    } else {
+      setContratos(
+        contratosResponse.data || []
+      )
     }
+
+    const recebimentosResponse = await supabase
+      .from("recebimentos")
+      .select("*")
+      .order("id", { ascending: false })
 
     if (recebimentosResponse.error) {
       console.error(recebimentosResponse.error)
 
-      // Caso a tabela ainda não esteja criada/configurada,
-      // mantemos a página funcionando com os contratos.
       setRecebimentos([])
     } else {
-      setRecebimentos(recebimentosResponse.data || [])
+      setRecebimentos(
+        recebimentosResponse.data || []
+      )
     }
-
-    setContratos(contratosResponse.data || [])
 
     setCarregando(false)
   }
 
   function formatarValor(valor) {
-    return Number(valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    })
+    return Number(valor || 0).toLocaleString(
+      "pt-BR",
+      {
+        style: "currency",
+        currency: "BRL",
+      }
+    )
   }
 
   function formatarData(data) {
@@ -70,27 +92,23 @@ export default function Recebimentos() {
 
     const partes = String(data).split("-")
 
-    if (partes.length !== 3) return data
+    if (partes.length !== 3) {
+      return data
+    }
 
     return `${partes[2]}/${partes[1]}/${partes[0]}`
   }
 
   function obterDataVencimento(contrato) {
-    /*
-      O contrato atual possui a data de início.
-      Para contratos mensais, utilizamos o mesmo dia
-      do início como dia de vencimento.
-
-      Exemplo:
-      início: 10/01/2026
-      vencimento mensal: 10 do mês.
-    */
-
     if (!contrato?.inicio) return null
 
-    const dataInicio = new Date(`${contrato.inicio}T00:00:00`)
+    const dataInicio = new Date(
+      `${contrato.inicio}T00:00:00`
+    )
 
-    if (Number.isNaN(dataInicio.getTime())) return null
+    if (Number.isNaN(dataInicio.getTime())) {
+      return null
+    }
 
     const dia = dataInicio.getDate()
 
@@ -100,7 +118,10 @@ export default function Recebimentos() {
       0
     ).getDate()
 
-    const diaVencimento = Math.min(dia, ultimoDiaDoMes)
+    const diaVencimento = Math.min(
+      dia,
+      ultimoDiaDoMes
+    )
 
     const data = new Date(
       ano,
@@ -110,23 +131,31 @@ export default function Recebimentos() {
 
     return `${data.getFullYear()}-${String(
       data.getMonth() + 1
-    ).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`
+    ).padStart(2, "0")}-${String(
+      data.getDate()
+    ).padStart(2, "0")}`
   }
 
   function contratoEstaAtivo(contrato) {
     if (!contrato) return false
 
-    if (contrato.status !== "Ativo") {
-      return false
-    }
-
-    if (contrato.tipo === "Compra e Venda") {
+    if (
+      String(contrato.status).toLowerCase() !==
+      "ativo"
+    ) {
       return false
     }
 
     if (contrato.inicio) {
-      const inicio = new Date(`${contrato.inicio}T00:00:00`)
-      const referencia = new Date(ano, mes - 1, 1)
+      const inicio = new Date(
+        `${contrato.inicio}T00:00:00`
+      )
+
+      const referencia = new Date(
+        ano,
+        mes - 1,
+        1
+      )
 
       if (inicio > referencia) {
         return false
@@ -134,17 +163,20 @@ export default function Recebimentos() {
     }
 
     if (contrato.termino) {
-      const termino = new Date(`${contrato.termino}T23:59:59`)
-      const referencia = new Date(
+      const termino = new Date(
+        `${contrato.termino}T23:59:59`
+      )
+
+      const ultimoDia = new Date(
         ano,
-        mes - 1,
-        new Date(ano, mes, 0).getDate(),
+        mes,
+        0,
         23,
         59,
         59
       )
 
-      if (termino < referencia) {
+      if (termino < ultimoDia) {
         return false
       }
     }
@@ -156,171 +188,233 @@ export default function Recebimentos() {
     return contratos.filter(contratoEstaAtivo)
   }, [contratos, mes, ano])
 
-  const recebimentoDoContrato = (contrato) => {
+  function buscarRecebimento(contratoId) {
     return recebimentos.find(
       (recebimento) =>
         String(recebimento.contrato_id) ===
-        String(contrato.id)
+        String(contratoId)
     )
   }
 
   const pendentes = useMemo(() => {
     return contratosAtivos
       .map((contrato) => {
-        const recebimento = recebimentoDoContrato(contrato)
+        const recebimento =
+          buscarRecebimento(contrato.id)
 
         if (
           recebimento &&
-          String(recebimento.status).toLowerCase() === "recebido"
+          String(
+            recebimento.status
+          ).toLowerCase() === "recebido"
         ) {
           return null
         }
 
         return {
           ...contrato,
-          vencimento: obterDataVencimento(contrato),
+          vencimento:
+            obterDataVencimento(contrato),
           recebimento,
         }
       })
       .filter(Boolean)
-  }, [contratosAtivos, recebimentos, mes, ano])
+  }, [
+    contratosAtivos,
+    recebimentos,
+    mes,
+    ano,
+  ])
 
   const recebidos = useMemo(() => {
-    return recebimentos.filter((recebimento) => {
-      if (
-        String(recebimento.status).toLowerCase() !==
-        "recebido"
-      ) {
-        return false
+    return recebimentos.filter(
+      (recebimento) => {
+        if (
+          String(
+            recebimento.status
+          ).toLowerCase() !== "recebido"
+        ) {
+          return false
+        }
+
+        if (!recebimento.data_recebimento) {
+          return true
+        }
+
+        const data = new Date(
+          `${recebimento.data_recebimento}T00:00:00`
+        )
+
+        return (
+          data.getMonth() + 1 === mes &&
+          data.getFullYear() === ano
+        )
       }
-
-      const dataRecebimento =
-        recebimento.data_recebimento
-
-      if (!dataRecebimento) return true
-
-      const data = new Date(
-        `${dataRecebimento}T00:00:00`
-      )
-
-      return (
-        data.getMonth() + 1 === mes &&
-        data.getFullYear() === ano
-      )
-    })
+    )
   }, [recebimentos, mes, ano])
 
-  const quantidadePendentes = pendentes.length
+  const quantidadePendentes =
+    pendentes.length
 
-  const valorPendente = pendentes.reduce(
-    (total, contrato) =>
-      total + Number(contrato.valor || 0),
-    0
-  )
+  const valorPendente =
+    pendentes.reduce(
+      (total, contrato) =>
+        total +
+        Number(contrato.valor || 0),
+      0
+    )
 
-  const quantidadeRecebidos = recebidos.length
+  const quantidadeRecebidos =
+    recebidos.length
 
-  const valorRecebido = recebidos.reduce(
-    (total, recebimento) =>
-      total + Number(recebimento.valor || 0),
-    0
-  )
+  const valorRecebido =
+    recebidos.reduce(
+      (total, recebimento) =>
+        total +
+        Number(recebimento.valor || 0),
+      0
+    )
 
-  function alterarStatus(id, status) {
-    setStatusSelecionado((anterior) => ({
-      ...anterior,
-      [id]: status,
-    }))
+  function abrirModalRecebimento(
+    contrato
+  ) {
+    setContratoSelecionado(contrato)
+
+    setDataRecebimento(
+      new Date()
+        .toISOString()
+        .split("T")[0]
+    )
+
+    setFormaPagamento("PIX")
+    setObservacoes("")
+    setMensagem("")
+
+    setModalAberto(true)
   }
 
-  async function salvarRecebimento(contrato) {
-    const status =
-      statusSelecionado[contrato.id] || "Pendente"
+  function fecharModal() {
+    if (salvando) return
 
-    if (status !== "Recebido") {
-      setMensagem(
-        "Selecione 'Recebido' antes de salvar o pagamento."
-      )
+    setModalAberto(false)
+    setContratoSelecionado(null)
+  }
+
+  async function confirmarRecebimento() {
+    if (!contratoSelecionado) {
       return
     }
 
+    if (!dataRecebimento) {
+      setMensagem(
+        "Informe a data do recebimento."
+      )
+
+      return
+    }
+
+    setSalvando(true)
     setMensagem("")
 
-    const dataRecebimento =
-      new Date().toISOString().split("T")[0]
-
     const dados = {
-      contrato_id: contrato.id,
-      valor: Number(contrato.valor || 0),
+      contrato_id:
+        contratoSelecionado.id,
+
+      valor: Number(
+        contratoSelecionado.valor || 0
+      ),
+
       status: "Recebido",
-      data_recebimento: dataRecebimento,
+
+      data_recebimento:
+        dataRecebimento,
+
+      forma_pagamento:
+        formaPagamento,
+
+      observacoes:
+        observacoes || null,
     }
 
     const recebimentoExistente =
-      contrato.recebimento
+      contratoSelecionado.recebimento
 
-    let error = null
+    let resposta
 
     if (recebimentoExistente?.id) {
-      const resposta = await supabase
+      resposta = await supabase
         .from("recebimentos")
         .update(dados)
-        .eq("id", recebimentoExistente.id)
-
-      error = resposta.error
+        .eq(
+          "id",
+          recebimentoExistente.id
+        )
     } else {
-      const resposta = await supabase
+      resposta = await supabase
         .from("recebimentos")
         .insert([dados])
-
-      error = resposta.error
     }
 
-    if (error) {
-      console.error(error)
+    if (resposta.error) {
+      console.error(
+        resposta.error
+      )
 
       setMensagem(
-        "Não foi possível salvar o recebimento. Verifique as colunas da tabela recebimentos no Supabase."
+        "Não foi possível registrar o recebimento. Verifique as colunas da tabela recebimentos no Supabase."
       )
+
+      setSalvando(false)
 
       return
     }
 
+    setModalAberto(false)
+    setContratoSelecionado(null)
+
     setMensagem(
-      "Pagamento registrado como recebido com sucesso."
+      "Pagamento recebido e registrado com sucesso."
     )
 
-    setStatusSelecionado((anterior) => {
-      const novo = { ...anterior }
-      delete novo[contrato.id]
-      return novo
-    })
+    setSalvando(false)
 
     await carregarDados()
   }
 
-  function abrirWhatsAppLembrete(contrato) {
+  function abrirWhatsAppLembrete(
+    contrato
+  ) {
     const telefone =
       contrato.telefone ||
       contrato.celular ||
       contrato.whatsapp ||
       ""
 
-    const vencimento = formatarData(
-      contrato.vencimento
-    )
-
-    const valor = formatarValor(contrato.valor)
-
     const mensagemWhatsApp =
-      `Olá, ${contrato.cliente || ""}! Tudo bem?\n\n` +
-      `Este é um lembrete referente ao pagamento do imóvel ${contrato.imovel || ""}.\n\n` +
-      `Vencimento: ${vencimento}\n` +
-      `Valor: ${valor}\n\n` +
+      `Olá, ${
+        contrato.cliente || ""
+      }! Tudo bem?\n\n` +
+      `Este é um lembrete referente ao pagamento do imóvel ${
+        contrato.imovel || ""
+      }.\n\n` +
+      `Vencimento: ${
+        formatarData(
+          contrato.vencimento
+        )
+      }\n` +
+      `Valor: ${
+        formatarValor(
+          contrato.valor
+        )
+      }\n\n` +
       `Caso o pagamento já tenha sido realizado, por favor desconsidere esta mensagem.\n\n` +
       `Obrigado!`
 
-    const numero = String(telefone).replace(/\D/g, "")
+    const numero =
+      String(telefone).replace(
+        /\D/g,
+        ""
+      )
 
     const url = numero
       ? `https://wa.me/${numero}?text=${encodeURIComponent(
@@ -330,19 +424,32 @@ export default function Recebimentos() {
           mensagemWhatsApp
         )}`
 
-    window.open(url, "_blank")
+    window.open(
+      url,
+      "_blank"
+    )
   }
 
-  function abrirWhatsAppConfirmacao(recebimento) {
+  function abrirWhatsAppConfirmacao(
+    recebimento
+  ) {
     const mensagemWhatsApp =
-      `Olá, ${recebimento.cliente || ""}! Tudo bem?\n\n` +
-      `Confirmamos o recebimento do pagamento referente ao imóvel ${recebimento.imovel || ""}.\n\n` +
-      `Valor recebido: ${formatarValor(
-        recebimento.valor
-      )}\n` +
-      `Data do recebimento: ${formatarData(
-        recebimento.data_recebimento
-      )}\n\n` +
+      `Olá, ${
+        recebimento.cliente || ""
+      }! Tudo bem?\n\n` +
+      `Confirmamos o recebimento do pagamento referente ao imóvel ${
+        recebimento.imovel || ""
+      }.\n\n` +
+      `Valor recebido: ${
+        formatarValor(
+          recebimento.valor
+        )
+      }\n` +
+      `Data do recebimento: ${
+        formatarData(
+          recebimento.data_recebimento
+        )
+      }\n\n` +
       `Obrigado!`
 
     const telefone =
@@ -351,7 +458,11 @@ export default function Recebimentos() {
       recebimento.whatsapp ||
       ""
 
-    const numero = String(telefone).replace(/\D/g, "")
+    const numero =
+      String(telefone).replace(
+        /\D/g,
+        ""
+      )
 
     const url = numero
       ? `https://wa.me/${numero}?text=${encodeURIComponent(
@@ -361,7 +472,10 @@ export default function Recebimentos() {
           mensagemWhatsApp
         )}`
 
-    window.open(url, "_blank")
+    window.open(
+      url,
+      "_blank"
+    )
   }
 
   function mudarMes(valor) {
@@ -401,21 +515,12 @@ export default function Recebimentos() {
     return nomes[numero - 1]
   }
 
-  function classeStatus(status) {
-    if (
-      String(status).toLowerCase() === "recebido"
-    ) {
-      return "bg-success-subtle text-success"
-    }
-
-    return "bg-danger-subtle text-danger"
-  }
-
   return (
     <main className="container py-4">
 
       {/* TÍTULO */}
       <div className="d-flex justify-content-between align-items-center mb-3">
+
         <div>
           <h1 className="fw-bold mb-1">
             Recebimentos
@@ -436,10 +541,12 @@ export default function Recebimentos() {
             ? "Atualizando..."
             : "🔄 Atualizar"}
         </button>
+
       </div>
 
       {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm mb-4">
+
         <div className="card-body">
 
           <h5 className="fw-bold mb-3">
@@ -448,7 +555,10 @@ export default function Recebimentos() {
 
           <div className="d-flex gap-2 flex-wrap">
 
-            <a href="/" className="btn btn-primary">
+            <a
+              href="/"
+              className="btn btn-primary"
+            >
               🏠 Início
             </a>
 
@@ -495,6 +605,7 @@ export default function Recebimentos() {
             </a>
 
           </div>
+
         </div>
       </div>
 
@@ -505,8 +616,9 @@ export default function Recebimentos() {
         </div>
       )}
 
-      {/* FILTRO DE PERÍODO */}
+      {/* PERÍODO */}
       <div className="card shadow-sm mb-4">
+
         <div className="card-body">
 
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
@@ -517,7 +629,8 @@ export default function Recebimentos() {
               </h5>
 
               <span className="text-muted">
-                Visualizando {nomeMes(mes)} de {ano}
+                Visualizando{" "}
+                {nomeMes(mes)} de {ano}
               </span>
             </div>
 
@@ -525,14 +638,18 @@ export default function Recebimentos() {
 
               <button
                 className="btn btn-light border"
-                onClick={() => mudarMes(-1)}
+                onClick={() =>
+                  mudarMes(-1)
+                }
               >
                 ← Anterior
               </button>
 
               <button
                 className="btn btn-light border"
-                onClick={() => mudarMes(1)}
+                onClick={() =>
+                  mudarMes(1)
+                }
               >
                 Próximo →
               </button>
@@ -548,7 +665,9 @@ export default function Recebimentos() {
       <div className="row g-3 mb-4">
 
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card shadow-sm h-100 border-0">
+
+          <div className="card shadow-sm border-0 h-100">
+
             <div className="card-body">
 
               <div className="text-muted small">
@@ -560,15 +679,19 @@ export default function Recebimentos() {
               </div>
 
               <div className="small text-muted">
-                {formatarValor(valorPendente)}
+                aguardando pagamento
               </div>
 
             </div>
+
           </div>
+
         </div>
 
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card shadow-sm h-100 border-0">
+
+          <div className="card shadow-sm border-0 h-100">
+
             <div className="card-body">
 
               <div className="text-muted small">
@@ -576,15 +699,21 @@ export default function Recebimentos() {
               </div>
 
               <div className="fs-4 fw-bold text-danger">
-                {formatarValor(valorPendente)}
+                {formatarValor(
+                  valorPendente
+                )}
               </div>
 
             </div>
+
           </div>
+
         </div>
 
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card shadow-sm h-100 border-0">
+
+          <div className="card shadow-sm border-0 h-100">
+
             <div className="card-body">
 
               <div className="text-muted small">
@@ -596,15 +725,19 @@ export default function Recebimentos() {
               </div>
 
               <div className="small text-muted">
-                {formatarValor(valorRecebido)}
+                pagamentos confirmados
               </div>
 
             </div>
+
           </div>
+
         </div>
 
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card shadow-sm h-100 border-0">
+
+          <div className="card shadow-sm border-0 h-100">
+
             <div className="card-body">
 
               <div className="text-muted small">
@@ -612,11 +745,15 @@ export default function Recebimentos() {
               </div>
 
               <div className="fs-4 fw-bold text-success">
-                {formatarValor(valorRecebido)}
+                {formatarValor(
+                  valorRecebido
+                )}
               </div>
 
             </div>
+
           </div>
+
         </div>
 
       </div>
@@ -654,13 +791,19 @@ export default function Recebimentos() {
             <div className="card-body px-4">
 
               {carregando ? (
+
                 <div className="text-center py-5">
+
                   <div className="spinner-border text-primary" />
+
                   <p className="text-muted mt-3 mb-0">
                     Carregando recebimentos...
                   </p>
+
                 </div>
+
               ) : pendentes.length === 0 ? (
+
                 <div className="text-center py-5">
 
                   <div className="fs-1">
@@ -672,21 +815,18 @@ export default function Recebimentos() {
                   </h5>
 
                   <p className="text-muted mb-0">
-                    Todos os pagamentos deste período estão em dia.
+                    Todos os pagamentos estão em dia.
                   </p>
 
                 </div>
+
               ) : (
+
                 <div className="d-flex flex-column gap-3">
 
-                  {pendentes.map((contrato) => {
+                  {pendentes.map(
+                    (contrato) => (
 
-                    const statusAtual =
-                      statusSelecionado[
-                        contrato.id
-                      ] || "Pendente"
-
-                    return (
                       <div
                         key={contrato.id}
                         className="border rounded-4 p-3 bg-light"
@@ -695,6 +835,7 @@ export default function Recebimentos() {
                         <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
 
                           <div>
+
                             <h5 className="fw-bold mb-1">
                               {contrato.cliente ||
                                 "Cliente não informado"}
@@ -705,6 +846,7 @@ export default function Recebimentos() {
                               {contrato.imovel ||
                                 "Imóvel não informado"}
                             </div>
+
                           </div>
 
                           <span className="badge bg-danger-subtle text-danger">
@@ -716,7 +858,9 @@ export default function Recebimentos() {
                         <div className="row g-2 mb-3">
 
                           <div className="col-6">
+
                             <div className="bg-white rounded-3 p-2">
+
                               <small className="text-muted d-block">
                                 Vencimento
                               </small>
@@ -726,11 +870,15 @@ export default function Recebimentos() {
                                   contrato.vencimento
                                 )}
                               </strong>
+
                             </div>
+
                           </div>
 
                           <div className="col-6">
+
                             <div className="bg-white rounded-3 p-2">
+
                               <small className="text-muted d-block">
                                 Valor
                               </small>
@@ -740,33 +888,12 @@ export default function Recebimentos() {
                                   contrato.valor
                                 )}
                               </strong>
+
                             </div>
+
                           </div>
 
                         </div>
-
-                        <label className="form-label fw-semibold">
-                          Status
-                        </label>
-
-                        <select
-                          className="form-select mb-3"
-                          value={statusAtual}
-                          onChange={(e) =>
-                            alterarStatus(
-                              contrato.id,
-                              e.target.value
-                            )
-                          }
-                        >
-                          <option value="Pendente">
-                            Pendente
-                          </option>
-
-                          <option value="Recebido">
-                            Recebido
-                          </option>
-                        </select>
 
                         <div className="d-grid gap-2">
 
@@ -774,12 +901,12 @@ export default function Recebimentos() {
                             type="button"
                             className="btn btn-success"
                             onClick={() =>
-                              salvarRecebimento(
+                              abrirModalRecebimento(
                                 contrato
                               )
                             }
                           >
-                            💾 Salvar
+                            💰 Acusar recebimento
                           </button>
 
                           <button
@@ -797,14 +924,18 @@ export default function Recebimentos() {
                         </div>
 
                       </div>
+
                     )
-                  })}
+                  )}
 
                 </div>
+
               )}
 
             </div>
+
           </div>
+
         </div>
 
         {/* RECEBIDOS */}
@@ -817,6 +948,7 @@ export default function Recebimentos() {
               <div className="d-flex justify-content-between align-items-center">
 
                 <div>
+
                   <h4 className="fw-bold text-success mb-1">
                     🟢 Recebidos
                   </h4>
@@ -824,6 +956,7 @@ export default function Recebimentos() {
                   <small className="text-muted">
                     Pagamentos confirmados
                   </small>
+
                 </div>
 
                 <span className="badge rounded-pill bg-success">
@@ -837,13 +970,19 @@ export default function Recebimentos() {
             <div className="card-body px-4">
 
               {carregando ? (
+
                 <div className="text-center py-5">
+
                   <div className="spinner-border text-primary" />
+
                   <p className="text-muted mt-3 mb-0">
                     Carregando recebimentos...
                   </p>
+
                 </div>
+
               ) : recebidos.length === 0 ? (
+
                 <div className="text-center py-5">
 
                   <div className="fs-1">
@@ -859,111 +998,358 @@ export default function Recebimentos() {
                   </p>
 
                 </div>
+
               ) : (
+
                 <div className="d-flex flex-column gap-3">
 
-                  {recebidos.map((recebimento) => (
+                  {recebidos.map(
+                    (recebimento) => (
 
-                    <div
-                      key={recebimento.id}
-                      className="border rounded-4 p-3"
-                    >
-
-                      <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
-
-                        <div>
-                          <h5 className="fw-bold mb-1">
-                            {recebimento.cliente ||
-                              "Cliente"}
-                          </h5>
-
-                          <div className="text-muted">
-                            🏢{" "}
-                            {recebimento.imovel ||
-                              "Imóvel"}
-                          </div>
-                        </div>
-
-                        <span
-                          className={`badge ${classeStatus(
-                            recebimento.status
-                          )}`}
-                        >
-                          Recebido
-                        </span>
-
-                      </div>
-
-                      <div className="row g-2 mb-3">
-
-                        <div className="col-6">
-                          <div className="bg-light rounded-3 p-2">
-                            <small className="text-muted d-block">
-                              Vencimento
-                            </small>
-
-                            <strong>
-                              {formatarData(
-                                recebimento.vencimento
-                              )}
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="col-6">
-                          <div className="bg-light rounded-3 p-2">
-                            <small className="text-muted d-block">
-                              Valor
-                            </small>
-
-                            <strong className="text-success">
-                              {formatarValor(
-                                recebimento.valor
-                              )}
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="col-12">
-                          <div className="bg-light rounded-3 p-2">
-                            <small className="text-muted d-block">
-                              Data do recebimento
-                            </small>
-
-                            <strong>
-                              {formatarData(
-                                recebimento.data_recebimento
-                              )}
-                            </strong>
-                          </div>
-                        </div>
-
-                      </div>
-
-                      <button
-                        type="button"
-                        className="btn btn-outline-success w-100"
-                        onClick={() =>
-                          abrirWhatsAppConfirmacao(
-                            recebimento
-                          )
-                        }
+                      <div
+                        key={recebimento.id}
+                        className="border rounded-4 p-3"
                       >
-                        📱 Confirmação de pagamento
-                      </button>
 
-                    </div>
+                        <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
 
-                  ))}
+                          <div>
+
+                            <h5 className="fw-bold mb-1">
+                              {recebimento.cliente ||
+                                "Cliente"}
+                            </h5>
+
+                            <div className="text-muted">
+                              🏢{" "}
+                              {recebimento.imovel ||
+                                "Imóvel"}
+                            </div>
+
+                          </div>
+
+                          <span className="badge bg-success-subtle text-success">
+                            Recebido
+                          </span>
+
+                        </div>
+
+                        <div className="row g-2 mb-3">
+
+                          <div className="col-6">
+
+                            <div className="bg-light rounded-3 p-2">
+
+                              <small className="text-muted d-block">
+                                Valor
+                              </small>
+
+                              <strong className="text-success">
+                                {formatarValor(
+                                  recebimento.valor
+                                )}
+                              </strong>
+
+                            </div>
+
+                          </div>
+
+                          <div className="col-6">
+
+                            <div className="bg-light rounded-3 p-2">
+
+                              <small className="text-muted d-block">
+                                Recebido em
+                              </small>
+
+                              <strong>
+                                {formatarData(
+                                  recebimento.data_recebimento
+                                )}
+                              </strong>
+
+                            </div>
+
+                          </div>
+
+                          <div className="col-12">
+
+                            <div className="bg-light rounded-3 p-2">
+
+                              <small className="text-muted d-block">
+                                Forma de pagamento
+                              </small>
+
+                              <strong>
+                                {recebimento.forma_pagamento ||
+                                  "-"}
+                              </strong>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn btn-outline-success w-100"
+                          onClick={() =>
+                            abrirWhatsAppConfirmacao(
+                              recebimento
+                            )
+                          }
+                        >
+                          📱 Confirmação de pagamento
+                        </button>
+
+                      </div>
+
+                    )
+                  )}
 
                 </div>
+
               )}
 
             </div>
+
           </div>
+
         </div>
 
       </div>
+
+      {/* MODAL DE ACUSAR RECEBIMENTO */}
+      {modalAberto &&
+        contratoSelecionado && (
+
+          <div
+            className="modal fade show d-block"
+            tabIndex="-1"
+            style={{
+              backgroundColor:
+                "rgba(0, 0, 0, 0.55)",
+            }}
+          >
+
+            <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+
+              <div className="modal-content border-0 shadow-lg rounded-4">
+
+                <div className="modal-header border-0">
+
+                  <div>
+
+                    <h5 className="modal-title fw-bold">
+                      💰 Acusar recebimento
+                    </h5>
+
+                    <small className="text-muted">
+                      Confirme os dados do pagamento
+                    </small>
+
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={fecharModal}
+                    disabled={salvando}
+                  />
+
+                </div>
+
+                <div className="modal-body">
+
+                  {/* CLIENTE */}
+                  <div className="mb-3">
+
+                    <label className="form-label text-muted small">
+                      Cliente
+                    </label>
+
+                    <div className="form-control bg-light">
+                      {contratoSelecionado.cliente ||
+                        "Não informado"}
+                    </div>
+
+                  </div>
+
+                  {/* IMÓVEL */}
+                  <div className="mb-3">
+
+                    <label className="form-label text-muted small">
+                      Imóvel
+                    </label>
+
+                    <div className="form-control bg-light">
+                      {contratoSelecionado.imovel ||
+                        "Não informado"}
+                    </div>
+
+                  </div>
+
+                  {/* VENCIMENTO E VALOR */}
+                  <div className="row g-3 mb-3">
+
+                    <div className="col-6">
+
+                      <label className="form-label text-muted small">
+                        Vencimento
+                      </label>
+
+                      <div className="form-control bg-light">
+                        {formatarData(
+                          contratoSelecionado.vencimento
+                        )}
+                      </div>
+
+                    </div>
+
+                    <div className="col-6">
+
+                      <label className="form-label text-muted small">
+                        Valor
+                      </label>
+
+                      <div className="form-control bg-light fw-bold text-success">
+                        {formatarValor(
+                          contratoSelecionado.valor
+                        )}
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                  {/* DATA */}
+                  <div className="mb-3">
+
+                    <label className="form-label fw-semibold">
+                      Data do recebimento
+                    </label>
+
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={dataRecebimento}
+                      onChange={(e) =>
+                        setDataRecebimento(
+                          e.target.value
+                        )
+                      }
+                    />
+
+                  </div>
+
+                  {/* FORMA DE PAGAMENTO */}
+                  <div className="mb-3">
+
+                    <label className="form-label fw-semibold">
+                      Forma de pagamento
+                    </label>
+
+                    <select
+                      className="form-select"
+                      value={formaPagamento}
+                      onChange={(e) =>
+                        setFormaPagamento(
+                          e.target.value
+                        )
+                      }
+                    >
+
+                      <option value="PIX">
+                        PIX
+                      </option>
+
+                      <option value="Transferência">
+                        Transferência
+                      </option>
+
+                      <option value="Dinheiro">
+                        Dinheiro
+                      </option>
+
+                      <option value="Cartão">
+                        Cartão
+                      </option>
+
+                      <option value="Boleto">
+                        Boleto
+                      </option>
+
+                      <option value="Outro">
+                        Outro
+                      </option>
+
+                    </select>
+
+                  </div>
+
+                  {/* OBSERVAÇÕES */}
+                  <div className="mb-3">
+
+                    <label className="form-label fw-semibold">
+                      Observações
+                    </label>
+
+                    <textarea
+                      className="form-control"
+                      rows="3"
+                      placeholder="Observações sobre o recebimento..."
+                      value={observacoes}
+                      onChange={(e) =>
+                        setObservacoes(
+                          e.target.value
+                        )
+                      }
+                    />
+
+                  </div>
+
+                  {mensagem && (
+                    <div className="alert alert-warning mb-0">
+                      {mensagem}
+                    </div>
+                  )}
+
+                </div>
+
+                <div className="modal-footer border-0">
+
+                  <button
+                    type="button"
+                    className="btn btn-light border"
+                    onClick={fecharModal}
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-success"
+                    onClick={
+                      confirmarRecebimento
+                    }
+                    disabled={salvando}
+                  >
+                    {salvando
+                      ? "Salvando..."
+                      : "✓ Confirmar recebimento"}
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
 
     </main>
   )
