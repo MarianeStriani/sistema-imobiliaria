@@ -173,9 +173,37 @@ alert("Cliente excluído com sucesso!")
 return (
 <main className="container py-4">
 
+  {/* TÍTULO */}
+
+  <div className="d-flex justify-content-between align-items-center mb-3">
+
+    <div>
+      <h1 className="fw-bold mb-1">
+        Clientes
+      </h1>
+
+      <p className="text-muted mb-0">
+        Administração de clientes
+      </p>
+    </div>
+
+    <button
+      type="button"
+      className="btn btn-outline-primary"
+      onClick={carregarClientes}
+      disabled={carregando}
+    >
+      {carregando
+        ? "Atualizando..."
+        : "🔄 Atualizar"}
+    </button>
+
+  </div>
+
   {/* ACESSO RÁPIDO */}
 
   <div className="card shadow-sm mb-4">
+
     <div className="card-body">
 
       <h5 className="fw-bold mb-3">
@@ -236,19 +264,7 @@ return (
       </div>
 
     </div>
-  </div>
 
-  <div className="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h1 className="fw-bold mb-1">Clientes</h1>
-      <p className="text-muted mb-0">
-        Administração de clientes
-      </p>
-    </div>
-
-    <a href="/" className="btn btn-outline-secondary">
-      Voltar
-    </a>
   </div>
 
   <div className="card shadow-sm mb-4">
