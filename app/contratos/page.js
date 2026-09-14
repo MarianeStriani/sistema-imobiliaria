@@ -19,9 +19,9 @@ export default function ContratosPage() {
   const [contratos, setContratos] = useState([])
   const [form, setForm] = useState(formularioInicial)
   const [editandoId, setEditandoId] = useState(null)
+  const [visualizando, setVisualizando] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
-  const [visualizando, setVisualizando] = useState(null)
 
   useEffect(() => {
     carregarContratos()
@@ -46,15 +46,13 @@ export default function ContratosPage() {
   }
 
   function alterarCampo(e) {
-    const { name, value } = e.target
-
-    setForm((anterior) => ({
-      ...anterior,
-      [name]: value
-    }))
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    })
   }
 
-  function prepararEdicao(contrato) {
+  function editarContrato(contrato) {
     setEditandoId(contrato.id)
 
     setForm({
@@ -64,7 +62,7 @@ export default function ContratosPage() {
       tipo: contrato.tipo || "Locação",
       inicio: contrato.inicio || "",
       termino: contrato.termino || "",
-      valor: contrato.valor ?? "",
+      valor: contrato.valor || "",
       status: contrato.status || "Ativo",
       observacoes: contrato.observacoes || ""
     })
@@ -113,13 +111,15 @@ export default function ContratosPage() {
         console.error(error)
         alert("Erro ao atualizar contrato.")
       } else {
-        setContratos((anterior) =>
-          anterior.map((item) =>
-            item.id === editandoId ? data[0] : item
+        setContratos(
+          contratos.map((contrato) =>
+            contrato.id === editandoId
+              ? data[0]
+              : contrato
           )
         )
 
-        alert("Contrato atualizado com sucesso!")
+        alert("Contrato atualizado!")
         cancelarEdicao()
       }
     } else {
@@ -132,10 +132,14 @@ export default function ContratosPage() {
         console.error(error)
         alert("Erro ao cadastrar contrato.")
       } else {
-        setContratos((anterior) => [data[0], ...anterior])
+        setContratos([
+          data[0],
+          ...contratos
+        ])
+
         setForm(formularioInicial)
 
-        alert("Contrato cadastrado com sucesso!")
+        alert("Contrato cadastrado!")
       }
     }
 
@@ -144,7 +148,7 @@ export default function ContratosPage() {
 
   async function excluirContrato(id) {
     const confirmar = window.confirm(
-      "Tem certeza que deseja excluir este contrato?"
+      "Deseja realmente excluir este contrato?"
     )
 
     if (!confirmar) return
@@ -160,15 +164,13 @@ export default function ContratosPage() {
       return
     }
 
-    setContratos((anterior) =>
-      anterior.filter((item) => item.id !== id)
+    setContratos(
+      contratos.filter((contrato) => contrato.id !== id)
     )
 
-    if (visualizando?.id === id) {
-      setVisualizando(null)
-    }
+    setVisualizando(null)
 
-    alert("Contrato excluído com sucesso!")
+    alert("Contrato excluído!")
   }
 
   function formatarValor(valor) {
@@ -193,16 +195,19 @@ export default function ContratosPage() {
 
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h1 className="fw-bold mb-1">
+          <h1 className="fw-bold">
             Contratos
           </h1>
 
-          <p className="text-muted mb-0">
+          <p className="text-muted">
             Administração de contratos
           </p>
         </div>
 
-        <a href="/" className="btn btn-outline-secondary">
+        <a
+          href="/"
+          className="btn btn-outline-secondary"
+        >
           Voltar
         </a>
       </div>
@@ -214,7 +219,7 @@ export default function ContratosPage() {
           <h4 className="mb-4">
             {editandoId
               ? "Editar contrato"
-              : "Cadastrar contrato"}
+              : "Novo contrato"}
           </h4>
 
           <form onSubmit={salvarContrato}>
@@ -223,15 +228,14 @@ export default function ContratosPage() {
 
               <div className="col-md-3">
                 <label className="form-label">
-                  Número do contrato *
+                  Número *
                 </label>
 
                 <input
-                  type="text"
+                  className="form-control"
                   name="numero"
                   value={form.numero}
                   onChange={alterarCampo}
-                  className="form-control"
                   placeholder="CTR001"
                 />
               </div>
@@ -242,12 +246,11 @@ export default function ContratosPage() {
                 </label>
 
                 <input
-                  type="text"
+                  className="form-control"
                   name="imovel"
                   value={form.imovel}
                   onChange={alterarCampo}
-                  className="form-control"
-                  placeholder="Código ou identificação do imóvel"
+                  placeholder="IMV001"
                 />
               </div>
 
@@ -257,11 +260,10 @@ export default function ContratosPage() {
                 </label>
 
                 <input
-                  type="text"
+                  className="form-control"
                   name="cliente"
                   value={form.cliente}
                   onChange={alterarCampo}
-                  className="form-control"
                   placeholder="Nome do cliente"
                 />
               </div>
@@ -272,10 +274,10 @@ export default function ContratosPage() {
                 </label>
 
                 <select
+                  className="form-select"
                   name="tipo"
                   value={form.tipo}
                   onChange={alterarCampo}
-                  className="form-select"
                 >
                   <option>Locação</option>
                   <option>Compra e Venda</option>
@@ -291,10 +293,10 @@ export default function ContratosPage() {
 
                 <input
                   type="date"
+                  className="form-control"
                   name="inicio"
                   value={form.inicio}
                   onChange={alterarCampo}
-                  className="form-control"
                 />
               </div>
 
@@ -305,10 +307,10 @@ export default function ContratosPage() {
 
                 <input
                   type="date"
+                  className="form-control"
                   name="termino"
                   value={form.termino}
                   onChange={alterarCampo}
-                  className="form-control"
                 />
               </div>
 
@@ -319,13 +321,12 @@ export default function ContratosPage() {
 
                 <input
                   type="number"
+                  step="0.01"
+                  className="form-control"
                   name="valor"
                   value={form.valor}
                   onChange={alterarCampo}
-                  className="form-control"
-                  min="0"
-                  step="0.01"
-                  placeholder="0,00"
+                  placeholder="0.00"
                 />
               </div>
 
@@ -335,10 +336,10 @@ export default function ContratosPage() {
                 </label>
 
                 <select
+                  className="form-select"
                   name="status"
                   value={form.status}
                   onChange={alterarCampo}
-                  className="form-select"
                 >
                   <option>Ativo</option>
                   <option>Encerrado</option>
@@ -353,22 +354,21 @@ export default function ContratosPage() {
                 </label>
 
                 <textarea
+                  className="form-control"
                   name="observacoes"
                   value={form.observacoes}
                   onChange={alterarCampo}
-                  className="form-control"
                   rows="3"
-                  placeholder="Observações do contrato..."
                 />
               </div>
 
             </div>
 
-            <div className="mt-4 d-flex gap-2">
+            <div className="mt-4">
 
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="btn btn-primary me-2"
                 disabled={salvando}
               >
                 {salvando
@@ -393,16 +393,15 @@ export default function ContratosPage() {
           </form>
 
         </div>
-
       </div>
 
       <div className="card shadow-sm">
 
         <div className="card-body">
 
-          <div className="d-flex justify-content-between align-items-center mb-3">
+          <div className="d-flex justify-content-between mb-3">
 
-            <h4 className="mb-0">
+            <h4>
               Contratos cadastrados
             </h4>
 
@@ -414,8 +413,8 @@ export default function ContratosPage() {
 
           {carregando ? (
 
-            <div className="text-center py-4">
-              Carregando contratos...
+            <div className="text-center p-4">
+              Carregando...
             </div>
 
           ) : contratos.length === 0 ? (
@@ -467,32 +466,18 @@ export default function ContratosPage() {
                       </td>
 
                       <td>
-                        <strong>
-                          {formatarValor(contrato.valor)}
-                        </strong>
+                        {formatarValor(contrato.valor)}
                       </td>
 
                       <td>
-
-                        <span
-                          className={`badge ${
-                            contrato.status === "Ativo"
-                              ? "bg-success"
-                              : contrato.status === "Encerrado"
-                                ? "bg-secondary"
-                                : contrato.status === "Cancelado"
-                                  ? "bg-danger"
-                                  : "bg-warning text-dark"
-                          }`}
-                        >
+                        <span className="badge bg-success">
                           {contrato.status}
                         </span>
-
                       </td>
 
                       <td>
 
-                        <div className="d-flex gap-2 flex-wrap">
+                        <div className="d-flex gap-1">
 
                           <button
                             type="button"
@@ -508,7 +493,7 @@ export default function ContratosPage() {
                             type="button"
                             className="btn btn-sm btn-warning"
                             onClick={() =>
-                              prepararEdicao(contrato)
+                              editarContrato(contrato)
                             }
                           >
                             Editar
@@ -541,14 +526,12 @@ export default function ContratosPage() {
           )}
 
         </div>
-
       </div>
 
       {visualizando && (
 
         <div
           className="modal d-block"
-          tabIndex="-1"
           style={{
             backgroundColor: "rgba(0,0,0,0.5)"
           }}
@@ -580,65 +563,55 @@ export default function ContratosPage() {
 
                   <div className="col-md-6">
                     <strong>Número:</strong>
-                    <div>
-                      {visualizando.numero}
-                    </div>
+                    <p>{visualizando.numero}</p>
                   </div>
 
                   <div className="col-md-6">
                     <strong>Tipo:</strong>
-                    <div>
-                      {visualizando.tipo}
-                    </div>
+                    <p>{visualizando.tipo}</p>
                   </div>
 
                   <div className="col-md-6">
                     <strong>Imóvel:</strong>
-                    <div>
-                      {visualizando.imovel}
-                    </div>
+                    <p>{visualizando.imovel}</p>
                   </div>
 
                   <div className="col-md-6">
                     <strong>Cliente:</strong>
-                    <div>
-                      {visualizando.cliente}
-                    </div>
+                    <p>{visualizando.cliente}</p>
                   </div>
 
                   <div className="col-md-4">
                     <strong>Início:</strong>
-                    <div>
+                    <p>
                       {formatarData(visualizando.inicio)}
-                    </div>
+                    </p>
                   </div>
 
                   <div className="col-md-4">
                     <strong>Término:</strong>
-                    <div>
+                    <p>
                       {formatarData(visualizando.termino)}
-                    </div>
+                    </p>
                   </div>
 
                   <div className="col-md-4">
                     <strong>Valor:</strong>
-                    <div>
+                    <p>
                       {formatarValor(visualizando.valor)}
-                    </div>
+                    </p>
                   </div>
 
                   <div className="col-md-4">
                     <strong>Status:</strong>
-                    <div>
-                      {visualizando.status}
-                    </div>
+                    <p>{visualizando.status}</p>
                   </div>
 
                   <div className="col-12">
                     <strong>Observações:</strong>
-                    <div>
+                    <p>
                       {visualizando.observacoes || "-"}
-                    </div>
+                    </p>
                   </div>
 
                 </div>
@@ -661,7 +634,7 @@ export default function ContratosPage() {
                   type="button"
                   className="btn btn-warning"
                   onClick={() => {
-                    prepararEdicao(visualizando)
+                    editarContrato(visualizando)
                     setVisualizando(null)
                   }}
                 >
@@ -680,4 +653,4 @@ export default function ContratosPage() {
 
     </main>
   )
-}
+                    }
