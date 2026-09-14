@@ -151,6 +151,14 @@ export default function Financeiro() {
   }, [contratos, mes, ano])
 
   /*
+    * PRÓXIMOS RECEBIMENTOS - 10 DIAS
+   */
+
+  const proximosRecebimentos = useMemo(() => {
+    return recebimentos10Dias || []
+  }, [recebimentos10Dias])
+
+  */
    * PAGOS E PENDENTES
    */
 
