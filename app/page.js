@@ -477,6 +477,36 @@ return (
   ) : (
 
     <>
+{/* SALDO */}
+
+      <div className="card shadow-sm mb-5">
+
+        <div className="card-body text-center py-4">
+
+          <h4 className="fw-bold">
+            Saldo financeiro de{" "}
+            {nomesMeses[Number(mes) - 1]} / {ano}
+          </h4>
+
+          <h1
+            className={`fw-bold ${
+              saldoFinanceiro >= 0
+                ? "text-success"
+                : "text-danger"
+            }`}
+          >
+            {moeda(saldoFinanceiro)}
+          </h1>
+
+          <p className="text-muted mb-0">
+            Total recebido: {moeda(totalRecebido)}
+            {"  "}−{"  "}
+            Total de despesas: {moeda(totalDespesas)}
+          </p>
+
+        </div>
+
+      </div>
 
       {/* RESUMO */}
 
@@ -799,36 +829,7 @@ return (
         </div>
       </div>
 
-      {/* SALDO */}
-
-      <div className="card shadow-sm mb-5">
-
-        <div className="card-body text-center py-4">
-
-          <h4 className="fw-bold">
-            Saldo financeiro de{" "}
-            {nomesMeses[Number(mes) - 1]} / {ano}
-          </h4>
-
-          <h1
-            className={`fw-bold ${
-              saldoFinanceiro >= 0
-                ? "text-success"
-                : "text-danger"
-            }`}
-          >
-            {moeda(saldoFinanceiro)}
-          </h1>
-
-          <p className="text-muted mb-0">
-            Total recebido: {moeda(totalRecebido)}
-            {"  "}−{"  "}
-            Total de despesas: {moeda(totalDespesas)}
-          </p>
-
-        </div>
-
-      </div>
+      
 
     </>
   )}
