@@ -1,18 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
 export default function Despesas() {
-  const hoje = new Date()
-
   const [despesas, setDespesas] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
-
-  const [mes, setMes] = useState(hoje.getMonth() + 1)
-  const [ano, setAno] = useState(hoje.getFullYear())
-
   const [editandoId, setEditandoId] = useState(null)
 
   const [form, setForm] = useState({
@@ -26,20 +20,23 @@ export default function Despesas() {
   })
 
   useEffect(() => {
-    buscarDespesas()
+    carregarDespesas()
   }, [])
 
-  async function buscarDespesas() {
+  async function carregarDespesas() {
     setCarregando(true)
 
     const { data, error } = await supabase
       .from("despesas")
-      .select("*")
+      .select(
+        "id, categoria, descricao, valor, data_despesa, forma_pagamento, status, observacoes, created_at"
+      )
       .order("data_despesa", { ascending: false })
 
     if (error) {
-      console.error("Erro ao buscar despesas:", error)
-      alert("Erro ao carregar as despesas.")
+      console.error("Erro ao carregar despesas:", error)
+      alert("Erro ao carregar despesas: " + error.message)
+      setDespesas([])
     } else {
       setDespesas(data || [])
     }
@@ -47,7 +44,7 @@ export default function Despesas() {
     setCarregando(false)
   }
 
-  function atualizarCampo(campo, valor) {
+  function alterarCampo(campo, valor) {
     setForm((anterior) => ({
       ...anterior,
       [campo]: valor,
@@ -68,21 +65,21 @@ export default function Despesas() {
     setEditandoId(null)
   }
 
-  async function salvarDespesa(e) {
-    e.preventDefault()
+  async function salvarDespesa(event) {
+    event.preventDefault()
 
     if (!form.categoria.trim()) {
-      alert("Informe a categoria da despesa.")
+      alert("Informe a categoria.")
       return
     }
 
     if (!form.descricao.trim()) {
-      alert("Informe a descrição da despesa.")
+      alert("Informe a descrição.")
       return
     }
 
     if (!form.valor) {
-      alert("Informe o valor da despesa.")
+      alert("Informe o valor.")
       return
     }
 
@@ -91,20 +88,25 @@ export default function Despesas() {
       return
     }
 
+    const valorNumerico = Number(
+      String(form.valor).replace(",", ".")
+    )
+
+    if (isNaN(valorNumerico) || valorNumerico <= 0) {
+      alert("Informe um valor válido.")
+      return
+    }
+
     setSalvando(true)
 
     const dados = {
       categoria: form.categoria.trim(),
       descricao: form.descricao.trim(),
-      valor: Number(
-        String(form.valor)
-          .replace(/\./g, "")
-          .replace(",", ".")
-      ),
+      valor: valorNumerico,
       data_despesa: form.data_despesa,
-      forma_pagamento: form.forma_pagamento.trim(),
+      forma_pagamento: form.forma_pagamento.trim() || null,
       status: form.status,
-      observacoes: form.observacoes.trim(),
+      observacoes: form.observacoes.trim() || null,
     }
 
     let resultado
@@ -121,8 +123,8 @@ export default function Despesas() {
     }
 
     if (resultado.error) {
-      console.error("Erro ao salvar despesa:", resultado.error)
-      alert("Erro ao salvar a despesa: " + resultado.error.message)
+      console.error("Erro ao salvar:", resultado.error)
+      alert("Erro ao salvar despesa: " + resultado.error.message)
     } else {
       alert(
         editandoId
@@ -131,7 +133,7 @@ export default function Despesas() {
       )
 
       limparFormulario()
-      await buscarDespesas()
+      await carregarDespesas()
     }
 
     setSalvando(false)
@@ -145,7 +147,7 @@ export default function Despesas() {
       descricao: despesa.descricao || "",
       valor:
         despesa.valor !== null && despesa.valor !== undefined
-          ? String(despesa.valor).replace(".", ",")
+          ? String(despesa.valor)
           : "",
       data_despesa: despesa.data_despesa || "",
       forma_pagamento: despesa.forma_pagamento || "",
@@ -161,7 +163,7 @@ export default function Despesas() {
 
   async function excluirDespesa(id) {
     const confirmar = window.confirm(
-      "Tem certeza que deseja excluir esta despesa?"
+      "Deseja realmente excluir esta despesa?"
     )
 
     if (!confirmar) {
@@ -174,78 +176,15 @@ export default function Despesas() {
       .eq("id", id)
 
     if (error) {
-      console.error("Erro ao excluir despesa:", error)
-      alert("Erro ao excluir a despesa: " + error.message)
+      console.error("Erro ao excluir:", error)
+      alert("Erro ao excluir despesa: " + error.message)
       return
     }
 
     alert("Despesa excluída com sucesso.")
 
-    await buscarDespesas()
+    await carregarDespesas()
   }
-
-  const despesasDoMes = useMemo(() => {
-    return despesas.filter((despesa) => {
-      if (!despesa.data_despesa) {
-        return false
-      }
-
-      const data = new Date(
-        despesa.data_despesa + "T00:00:00"
-      )
-
-      return (
-        data.getMonth() + 1 === Number(mes) &&
-        data.getFullYear() === Number(ano)
-      )
-    })
-  }, [despesas, mes, ano])
-
-  const totalDespesas = useMemo(() => {
-    return despesasDoMes.reduce((total, despesa) => {
-      return total + Number(despesa.valor || 0)
-    }, 0)
-  }, [despesasDoMes])
-
-  const totalPagas = useMemo(() => {
-    return despesasDoMes
-      .filter(
-        (despesa) =>
-          String(despesa.status || "").toLowerCase() === "pago" ||
-          String(despesa.status || "").toLowerCase() === "paga"
-      )
-      .reduce((total, despesa) => {
-        return total + Number(despesa.valor || 0)
-      }, 0)
-  }, [despesasDoMes])
-
-  const totalPendentes = useMemo(() => {
-    return despesasDoMes
-      .filter(
-        (despesa) =>
-          String(despesa.status || "").toLowerCase() === "pendente" ||
-          String(despesa.status || "").toLowerCase() === "pendentes"
-      )
-      .reduce((total, despesa) => {
-        return total + Number(despesa.valor || 0)
-      }, 0)
-  }, [despesasDoMes])
-
-  const categorias = useMemo(() => {
-    const resultado = {}
-
-    despesasDoMes.forEach((despesa) => {
-      const categoria = despesa.categoria || "Sem categoria"
-
-      if (!resultado[categoria]) {
-        resultado[categoria] = 0
-      }
-
-      resultado[categoria] += Number(despesa.valor || 0)
-    })
-
-    return Object.entries(resultado).sort((a, b) => b[1] - a[1])
-  }, [despesasDoMes])
 
   function formatarMoeda(valor) {
     return Number(valor || 0).toLocaleString("pt-BR", {
@@ -255,9 +194,7 @@ export default function Despesas() {
   }
 
   function formatarData(data) {
-    if (!data) {
-      return "-"
-    }
+    if (!data) return "-"
 
     const partes = data.split("-")
 
@@ -268,50 +205,64 @@ export default function Despesas() {
     return `${partes[2]}/${partes[1]}/${partes[0]}`
   }
 
-  function statusClasse(status) {
-    const valor = String(status || "").toLowerCase()
+  const total = despesas.reduce(
+    (soma, despesa) => soma + Number(despesa.valor || 0),
+    0
+  )
 
-    if (valor === "pago" || valor === "paga") {
-      return "bg-success"
-    }
+  const totalPagas = despesas
+    .filter(
+      (despesa) =>
+        String(despesa.status).toLowerCase() === "pago"
+    )
+    .reduce(
+      (soma, despesa) => soma + Number(despesa.valor || 0),
+      0
+    )
 
-    if (valor === "pendente" || valor === "pendentes") {
-      return "bg-warning text-dark"
-    }
-
-    if (valor === "cancelado" || valor === "cancelada") {
-      return "bg-danger"
-    }
-
-    return "bg-secondary"
-  }
+  const totalPendentes = despesas
+    .filter(
+      (despesa) =>
+        String(despesa.status).toLowerCase() === "pendente"
+    )
+    .reduce(
+      (soma, despesa) => soma + Number(despesa.valor || 0),
+      0
+    )
 
   return (
     <main className="container py-4">
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+
+      <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h1 className="mb-1">Despesas</h1>
+          <h1 className="fw-bold mb-1">Despesas</h1>
           <p className="text-muted mb-0">
-            Controle das despesas da imobiliária
+            Controle financeiro das despesas
           </p>
         </div>
 
         <a href="/" className="btn btn-outline-secondary">
-          ← Voltar ao Dashboard
+          ← Dashboard
         </a>
       </div>
 
       {/* FORMULÁRIO */}
+
       <div className="card shadow-sm mb-4">
         <div className="card-header">
           <h5 className="mb-0">
-            {editandoId ? "Editar despesa" : "Cadastrar despesa"}
+            {editandoId
+              ? "Editar despesa"
+              : "Nova despesa"}
           </h5>
         </div>
 
         <div className="card-body">
+
           <form onSubmit={salvarDespesa}>
+
             <div className="row g-3">
+
               <div className="col-md-4">
                 <label className="form-label">
                   Categoria *
@@ -322,9 +273,13 @@ export default function Despesas() {
                   className="form-control"
                   value={form.categoria}
                   onChange={(e) =>
-                    atualizarCampo("categoria", e.target.value)
+                    alterarCampo(
+                      "categoria",
+                      e.target.value
+                    )
                   }
                   placeholder="Ex.: Manutenção"
+                  required
                 />
               </div>
 
@@ -338,9 +293,13 @@ export default function Despesas() {
                   className="form-control"
                   value={form.descricao}
                   onChange={(e) =>
-                    atualizarCampo("descricao", e.target.value)
+                    alterarCampo(
+                      "descricao",
+                      e.target.value
+                    )
                   }
                   placeholder="Descrição da despesa"
+                  required
                 />
               </div>
 
@@ -350,14 +309,19 @@ export default function Despesas() {
                 </label>
 
                 <input
-                  type="text"
-                  inputMode="decimal"
+                  type="number"
                   className="form-control"
                   value={form.valor}
                   onChange={(e) =>
-                    atualizarCampo("valor", e.target.value)
+                    alterarCampo(
+                      "valor",
+                      e.target.value
+                    )
                   }
-                  placeholder="0,00"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  required
                 />
               </div>
 
@@ -371,11 +335,12 @@ export default function Despesas() {
                   className="form-control"
                   value={form.data_despesa}
                   onChange={(e) =>
-                    atualizarCampo(
+                    alterarCampo(
                       "data_despesa",
                       e.target.value
                     )
                   }
+                  required
                 />
               </div>
 
@@ -388,7 +353,7 @@ export default function Despesas() {
                   className="form-select"
                   value={form.forma_pagamento}
                   onChange={(e) =>
-                    atualizarCampo(
+                    alterarCampo(
                       "forma_pagamento",
                       e.target.value
                     )
@@ -397,27 +362,27 @@ export default function Despesas() {
                   <option value="">
                     Selecione
                   </option>
+
                   <option value="Dinheiro">
                     Dinheiro
                   </option>
-                  <option value="Pix">
-                    Pix
+
+                  <option value="PIX">
+                    PIX
                   </option>
-                  <option value="Cartão de débito">
-                    Cartão de débito
+
+                  <option value="Cartão">
+                    Cartão
                   </option>
-                  <option value="Cartão de crédito">
-                    Cartão de crédito
-                  </option>
-                  <option value="Transferência">
-                    Transferência
-                  </option>
+
                   <option value="Boleto">
                     Boleto
                   </option>
-                  <option value="Débito automático">
-                    Débito automático
+
+                  <option value="Transferência">
+                    Transferência
                   </option>
+
                   <option value="Outro">
                     Outro
                   </option>
@@ -433,15 +398,20 @@ export default function Despesas() {
                   className="form-select"
                   value={form.status}
                   onChange={(e) =>
-                    atualizarCampo("status", e.target.value)
+                    alterarCampo(
+                      "status",
+                      e.target.value
+                    )
                   }
                 >
                   <option value="Pendente">
                     Pendente
                   </option>
+
                   <option value="Pago">
                     Pago
                   </option>
+
                   <option value="Cancelado">
                     Cancelado
                   </option>
@@ -458,17 +428,19 @@ export default function Despesas() {
                   rows="2"
                   value={form.observacoes}
                   onChange={(e) =>
-                    atualizarCampo(
+                    alterarCampo(
                       "observacoes",
                       e.target.value
                     )
                   }
-                  placeholder="Observações adicionais"
+                  placeholder="Observações"
                 />
               </div>
+
             </div>
 
-            <div className="d-flex gap-2 mt-4">
+            <div className="mt-4 d-flex gap-2">
+
               <button
                 type="submit"
                 className="btn btn-primary"
@@ -477,8 +449,8 @@ export default function Despesas() {
                 {salvando
                   ? "Salvando..."
                   : editandoId
-                  ? "Atualizar despesa"
-                  : "Cadastrar despesa"}
+                  ? "Atualizar"
+                  : "Cadastrar"}
               </button>
 
               {editandoId && (
@@ -487,75 +459,21 @@ export default function Despesas() {
                   className="btn btn-secondary"
                   onClick={limparFormulario}
                 >
-                  Cancelar edição
+                  Cancelar
                 </button>
               )}
+
             </div>
+
           </form>
-        </div>
-      </div>
 
-      {/* FILTRO */}
-      <div className="card shadow-sm mb-4">
-        <div className="card-body">
-          <div className="row g-3 align-items-end">
-            <div className="col-md-4">
-              <label className="form-label">
-                Mês
-              </label>
-
-              <select
-                className="form-select"
-                value={mes}
-                onChange={(e) =>
-                  setMes(Number(e.target.value))
-                }
-              >
-                <option value="1">Janeiro</option>
-                <option value="2">Fevereiro</option>
-                <option value="3">Março</option>
-                <option value="4">Abril</option>
-                <option value="5">Maio</option>
-                <option value="6">Junho</option>
-                <option value="7">Julho</option>
-                <option value="8">Agosto</option>
-                <option value="9">Setembro</option>
-                <option value="10">Outubro</option>
-                <option value="11">Novembro</option>
-                <option value="12">Dezembro</option>
-              </select>
-            </div>
-
-            <div className="col-md-3">
-              <label className="form-label">
-                Ano
-              </label>
-
-              <input
-                type="number"
-                className="form-control"
-                value={ano}
-                onChange={(e) =>
-                  setAno(Number(e.target.value))
-                }
-              />
-            </div>
-
-            <div className="col-md-5">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100"
-                onClick={buscarDespesas}
-              >
-                🔄 Atualizar despesas
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* RESUMO */}
+
       <div className="row g-3 mb-4">
+
         <div className="col-md-4">
           <div className="card shadow-sm h-100">
             <div className="card-body">
@@ -563,8 +481,8 @@ export default function Despesas() {
                 Total de despesas
               </h6>
 
-              <h3 className="mb-0">
-                {formatarMoeda(totalDespesas)}
+              <h3 className="fw-bold">
+                {formatarMoeda(total)}
               </h3>
             </div>
           </div>
@@ -574,10 +492,10 @@ export default function Despesas() {
           <div className="card shadow-sm h-100">
             <div className="card-body">
               <h6 className="text-muted">
-                Despesas pagas
+                Total pago
               </h6>
 
-              <h3 className="text-success mb-0">
+              <h3 className="fw-bold text-success">
                 {formatarMoeda(totalPagas)}
               </h3>
             </div>
@@ -588,79 +506,49 @@ export default function Despesas() {
           <div className="card shadow-sm h-100">
             <div className="card-body">
               <h6 className="text-muted">
-                Despesas pendentes
+                Total pendente
               </h6>
 
-              <h3 className="text-warning mb-0">
+              <h3 className="fw-bold text-warning">
                 {formatarMoeda(totalPendentes)}
               </h3>
             </div>
           </div>
         </div>
+
       </div>
 
-      {/* CATEGORIAS */}
-      <div className="card shadow-sm mb-4">
-        <div className="card-header">
-          <h5 className="mb-0">
-            Despesas por categoria
-          </h5>
-        </div>
+      {/* LISTA */}
 
-        <div className="card-body">
-          {categorias.length === 0 ? (
-            <p className="text-muted mb-0">
-              Nenhuma despesa cadastrada neste mês.
-            </p>
-          ) : (
-            <div className="row g-3">
-              {categorias.map(([categoria, valor]) => (
-                <div
-                  className="col-md-4"
-                  key={categoria}
-                >
-                  <div className="border rounded p-3 h-100">
-                    <div className="fw-bold">
-                      {categoria}
-                    </div>
-
-                    <div className="fs-5 mt-2">
-                      {formatarMoeda(valor)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* LISTAGEM */}
       <div className="card shadow-sm">
+
         <div className="card-header d-flex justify-content-between align-items-center">
           <h5 className="mb-0">
             Despesas cadastradas
           </h5>
 
           <span className="badge bg-secondary">
-            {despesasDoMes.length} registro(s)
+            {despesas.length}
           </span>
         </div>
 
         <div className="card-body p-0">
+
           {carregando ? (
             <div className="p-4 text-center">
               Carregando despesas...
             </div>
-          ) : despesasDoMes.length === 0 ? (
+          ) : despesas.length === 0 ? (
             <div className="p-4 text-center text-muted">
-              Nenhuma despesa encontrada para o período
-              selecionado.
+              Nenhuma despesa cadastrada.
             </div>
           ) : (
             <div className="table-responsive">
-              <table className="table table-hover table-striped mb-0">
-                <thead>
+
+              <table className="table table-hover align-middle mb-0">
+
+                <thead className="table-light">
+
                   <tr>
                     <th>Data</th>
                     <th>Categoria</th>
@@ -669,15 +557,17 @@ export default function Despesas() {
                     <th>Pagamento</th>
                     <th>Status</th>
                     <th>Observações</th>
-                    <th className="text-center">
-                      Ações
-                    </th>
+                    <th>Ações</th>
                   </tr>
+
                 </thead>
 
                 <tbody>
-                  {despesasDoMes.map((despesa) => (
+
+                  {despesas.map((despesa) => (
+
                     <tr key={despesa.id}>
+
                       <td>
                         {formatarData(
                           despesa.data_despesa
@@ -704,9 +594,13 @@ export default function Despesas() {
 
                       <td>
                         <span
-                          className={`badge ${statusClasse(
-                            despesa.status
-                          )}`}
+                          className={
+                            despesa.status === "Pago"
+                              ? "badge bg-success"
+                              : despesa.status === "Pendente"
+                              ? "badge bg-warning text-dark"
+                              : "badge bg-secondary"
+                          }
                         >
                           {despesa.status || "-"}
                         </span>
@@ -717,27 +611,52 @@ export default function Despesas() {
                       </td>
 
                       <td>
-                        <div className="d-flex gap-2 justify-content-center">
+
+                        <div className="d-flex gap-2">
+
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-primary"
                             onClick={() =>
-                              editarDespesa(despesa)
+                              editarDespesa(
+                                despesa
+                              )
                             }
                           >
                             Editar
                           </button>
 
-                         </div>
-</td>
-</tr>
-))}
-</tbody>
-</table>
-</div>
-)}
-</div>
-</div>
-</main>
-)
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() =>
+                              excluirDespesa(
+                                despesa.id
+                              )
+                            }
+                          >
+                            Excluir
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+    </main>
+  )
 }
