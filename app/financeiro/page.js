@@ -10,43 +10,8 @@ export default function Financeiro() {
   const [ano, setAno] = useState(hoje.getFullYear())
 
   const [recebimentos, setRecebimentos] = useState([])
+  const [contratos, setContratos] = useState([])
   const [carregando, setCarregando] = useState(true)
-
-  useEffect(() => {
-    carregarRecebimentos()
-  }, [])
-
-  async function carregarRecebimentos() {
-    setCarregando(true)
-
-    const { data, error } = await supabase
-      .from("recebimentos")
-      .select(`
-        *,
-        clientes (
-          nome
-        ),
-        contratos (
-          numero,
-          imovel,
-          cliente,
-          tipo
-        )
-      `)
-      .order("data_recebimento", {
-        ascending: false
-      })
-
-    if (error) {
-      console.error("Erro ao buscar recebimentos:", error)
-      alert("Erro ao carregar os dados financeiros.")
-      setRecebimentos([])
-    } else {
-      setRecebimentos(data || [])
-    }
-
-    setCarregando(false)
-  }
 
   const nomesMeses = [
     "Janeiro",
@@ -63,9 +28,88 @@ export default function Financeiro() {
     "Dezembro"
   ]
 
+  useEffect(() => {
+    carregarDados()
+  }, [])
+
+  async function carregarDados() {
+    setCarregando(true)
+
+    const [
+      recebimentosResult,
+      contratosResult
+    ] = await Promise.all([
+      supabase
+        .from("recebimentos")
+        .select(`
+          *,
+          clientes (
+            nome
+          ),
+          contratos (
+            numero,
+            imovel,
+            cliente,
+            tipo,
+            termino
+          )
+        `)
+        .order("data_recebimento", {
+          ascending: false
+        }),
+
+      supabase
+        .from("contratos")
+        .select("*")
+        .order("termino", {
+          ascending: true
+        })
+    ])
+
+    if (recebimentosResult.error) {
+      console.error(
+        "Erro ao buscar recebimentos:",
+        recebimentosResult.error
+      )
+
+      alert(
+        "Erro ao carregar os recebimentos: " +
+        recebimentosResult.error.message
+      )
+    }
+
+    if (contratosResult.error) {
+      console.error(
+        "Erro ao buscar contratos:",
+        contratosResult.error
+      )
+
+      alert(
+        "Erro ao carregar os contratos: " +
+        contratosResult.error.message
+      )
+    }
+
+    setRecebimentos(
+      recebimentosResult.data || []
+    )
+
+    setContratos(
+      contratosResult.data || []
+    )
+
+    setCarregando(false)
+  }
+
+  /*
+   * RECEBIMENTOS DO MÊS SELECIONADO
+   */
+
   const recebimentosDoMes = useMemo(() => {
     return recebimentos.filter((item) => {
-      if (!item.data_recebimento) return false
+      if (!item.data_recebimento) {
+        return false
+      }
 
       const data = new Date(
         item.data_recebimento + "T00:00:00"
@@ -78,6 +122,38 @@ export default function Financeiro() {
     })
   }, [recebimentos, mes, ano])
 
+  /*
+   * CONTRATOS QUE TERMINAM NO MÊS
+   */
+
+  const contratosVencendo = useMemo(() => {
+    return contratos
+      .filter((contrato) => {
+        if (!contrato.termino) {
+          return false
+        }
+
+        const data = new Date(
+          contrato.termino + "T00:00:00"
+        )
+
+        return (
+          data.getMonth() + 1 === Number(mes) &&
+          data.getFullYear() === Number(ano)
+        )
+      })
+      .sort((a, b) => {
+        return (
+          new Date(a.termino) -
+          new Date(b.termino)
+        )
+      })
+  }, [contratos, mes, ano])
+
+  /*
+   * PAGOS E PENDENTES
+   */
+
   const pagos = recebimentosDoMes.filter(
     (item) => item.status === "Pago"
   )
@@ -85,6 +161,10 @@ export default function Financeiro() {
   const pendentes = recebimentosDoMes.filter(
     (item) => item.status === "Pendente"
   )
+
+  /*
+   * SOMAS
+   */
 
   function somar(lista) {
     return lista.reduce(
@@ -94,18 +174,25 @@ export default function Financeiro() {
     )
   }
 
-  function somarCategoria(categoria, status = null) {
+  const totalPago = somar(pagos)
+
+  const totalPendente = somar(pendentes)
+
+  const totalMes =
+    totalPago + totalPendente
+
+  /*
+   * CATEGORIAS
+   */
+
+  function valorCategoria(
+    categoria,
+    status = "Pago"
+  ) {
     return recebimentosDoMes
       .filter((item) => {
-        const mesmaCategoria =
-          item.categoria === categoria
-
-        if (!status) {
-          return mesmaCategoria
-        }
-
         return (
-          mesmaCategoria &&
+          item.categoria === categoria &&
           item.status === status
         )
       })
@@ -116,33 +203,30 @@ export default function Financeiro() {
       )
   }
 
-  const totalPago = somar(pagos)
-  const totalPendente = somar(pendentes)
-  const totalMes = totalPago + totalPendente
-
   const aluguelPago =
-    somarCategoria("Locação", "Pago")
-
-  const aluguelPendente =
-    somarCategoria("Locação", "Pendente")
+    valorCategoria("Locação", "Pago")
 
   const vendasPago =
-    somarCategoria("Compra e Venda", "Pago")
-
-  const vendasPendente =
-    somarCategoria("Compra e Venda", "Pendente")
+    valorCategoria(
+      "Compra e Venda",
+      "Pago"
+    )
 
   const temporadaPago =
-    somarCategoria("Temporada", "Pago")
-
-  const temporadaPendente =
-    somarCategoria("Temporada", "Pendente")
+    valorCategoria(
+      "Temporada",
+      "Pago"
+    )
 
   const administracaoPago =
-    somarCategoria("Administração", "Pago")
+    valorCategoria(
+      "Administração",
+      "Pago"
+    )
 
-  const administracaoPendente =
-    somarCategoria("Administração", "Pendente")
+  /*
+   * FORMATAÇÕES
+   */
 
   function moeda(valor) {
     return Number(valor || 0).toLocaleString(
@@ -155,12 +239,18 @@ export default function Financeiro() {
   }
 
   function formatarData(data) {
-    if (!data) return "-"
+    if (!data) {
+      return "-"
+    }
 
     return new Date(
       data + "T00:00:00"
     ).toLocaleDateString("pt-BR")
   }
+
+  /*
+   * NAVEGAÇÃO DOS MESES
+   */
 
   function mesAnterior() {
     if (Number(mes) === 1) {
@@ -178,6 +268,11 @@ export default function Financeiro() {
     } else {
       setMes(Number(mes) + 1)
     }
+  }
+
+  function irParaMesAtual() {
+    setMes(hoje.getMonth() + 1)
+    setAno(hoje.getFullYear())
   }
 
   return (
@@ -199,14 +294,68 @@ export default function Financeiro() {
 
         <button
           className="btn btn-outline-primary"
-          onClick={carregarRecebimentos}
+          onClick={carregarDados}
         >
           Atualizar
         </button>
 
       </div>
 
-      {/* SELETOR DE MÊS */}
+      {/* ACESSO RÁPIDO */}
+
+      <div className="card shadow-sm mb-4">
+
+        <div className="card-body">
+
+          <h5 className="fw-bold mb-3">
+            Acesso rápido
+          </h5>
+
+          <div className="row g-2">
+
+            <div className="col-6 col-md-3">
+              <a
+                href="/recebimentos"
+                className="btn btn-success w-100 py-2"
+              >
+                + Recebimento
+              </a>
+            </div>
+
+            <div className="col-6 col-md-3">
+              <a
+                href="/contratos"
+                className="btn btn-primary w-100 py-2"
+              >
+                Contratos
+              </a>
+            </div>
+
+            <div className="col-6 col-md-3">
+              <a
+                href="/clientes"
+                className="btn btn-outline-primary w-100 py-2"
+              >
+                Clientes
+              </a>
+            </div>
+
+            <div className="col-6 col-md-3">
+              <a
+                href="/"
+                className="btn btn-outline-secondary w-100 py-2"
+              >
+                Dashboard
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* SELEÇÃO DO MÊS */}
 
       <div className="card shadow-sm mb-4">
 
@@ -224,9 +373,12 @@ export default function Financeiro() {
                 className="form-select"
                 value={mes}
                 onChange={(e) =>
-                  setMes(Number(e.target.value))
+                  setMes(
+                    Number(e.target.value)
+                  )
                 }
               >
+
                 {nomesMeses.map(
                   (nome, index) => (
                     <option
@@ -237,6 +389,7 @@ export default function Financeiro() {
                     </option>
                   )
                 )}
+
               </select>
 
             </div>
@@ -251,21 +404,29 @@ export default function Financeiro() {
                 className="form-select"
                 value={ano}
                 onChange={(e) =>
-                  setAno(Number(e.target.value))
+                  setAno(
+                    Number(e.target.value)
+                  )
                 }
               >
+
                 {Array.from(
                   { length: 11 },
                   (_, index) =>
-                    hoje.getFullYear() - 5 + index
+                    hoje.getFullYear() -
+                    5 +
+                    index
                 ).map((valorAno) => (
+
                   <option
                     key={valorAno}
                     value={valorAno}
                   >
                     {valorAno}
                   </option>
+
                 ))}
+
               </select>
 
             </div>
@@ -278,14 +439,21 @@ export default function Financeiro() {
                   className="btn btn-outline-secondary flex-fill"
                   onClick={mesAnterior}
                 >
-                  ← Mês anterior
+                  ← Anterior
+                </button>
+
+                <button
+                  className="btn btn-outline-primary"
+                  onClick={irParaMesAtual}
+                >
+                  Mês atual
                 </button>
 
                 <button
                   className="btn btn-outline-secondary flex-fill"
                   onClick={proximoMes}
                 >
-                  Próximo mês →
+                  Próximo →
                 </button>
 
               </div>
@@ -296,9 +464,9 @@ export default function Financeiro() {
 
           <div className="text-center mt-4">
 
-            <h3 className="fw-bold mb-0">
+            <h2 className="fw-bold mb-0">
               {nomesMeses[Number(mes) - 1]} / {ano}
-            </h3>
+            </h2>
 
           </div>
 
@@ -316,7 +484,7 @@ export default function Financeiro() {
           ></div>
 
           <p className="text-muted mt-3">
-            Carregando financeiro...
+            Carregando informações financeiras...
           </p>
 
         </div>
@@ -325,9 +493,9 @@ export default function Financeiro() {
 
         <>
 
-          {/* RESUMO */}
+          {/* CARDS PRINCIPAIS */}
 
-          <div className="row g-3 mb-4">
+          <div className="row g-3 mb-5">
 
             <div className="col-md-4">
 
@@ -344,7 +512,7 @@ export default function Financeiro() {
                   </h2>
 
                   <small className="text-muted">
-                    {pagos.length} pagamento(s)
+                    {pagos.length} recebimento(s) pago(s)
                   </small>
 
                 </div>
@@ -403,15 +571,13 @@ export default function Financeiro() {
 
           </div>
 
-          {/* CATEGORIAS */}
+          {/* RECEBIDOS POR CATEGORIA */}
 
           <h4 className="fw-bold mb-3">
-            Resumo por categoria
+            Valores recebidos por categoria
           </h4>
 
           <div className="row g-3 mb-5">
-
-            {/* LOCAÇÃO */}
 
             <div className="col-md-3">
 
@@ -423,29 +589,19 @@ export default function Financeiro() {
                     Aluguéis
                   </h5>
 
-                  <p className="mb-1 text-success">
-                    Recebido
+                  <p className="text-muted mb-1">
+                    Locação
                   </p>
 
-                  <h4 className="fw-bold">
+                  <h3 className="fw-bold text-success">
                     {moeda(aluguelPago)}
-                  </h4>
-
-                  <p className="mb-1 text-warning">
-                    Pendente
-                  </p>
-
-                  <h5>
-                    {moeda(aluguelPendente)}
-                  </h5>
+                  </h3>
 
                 </div>
 
               </div>
 
             </div>
-
-            {/* VENDAS */}
 
             <div className="col-md-3">
 
@@ -457,29 +613,19 @@ export default function Financeiro() {
                     Vendas
                   </h5>
 
-                  <p className="mb-1 text-success">
-                    Recebido
+                  <p className="text-muted mb-1">
+                    Compra e Venda
                   </p>
 
-                  <h4 className="fw-bold">
+                  <h3 className="fw-bold text-success">
                     {moeda(vendasPago)}
-                  </h4>
-
-                  <p className="mb-1 text-warning">
-                    Pendente
-                  </p>
-
-                  <h5>
-                    {moeda(vendasPendente)}
-                  </h5>
+                  </h3>
 
                 </div>
 
               </div>
 
             </div>
-
-            {/* TEMPORADA */}
 
             <div className="col-md-3">
 
@@ -491,29 +637,19 @@ export default function Financeiro() {
                     Temporadas
                   </h5>
 
-                  <p className="mb-1 text-success">
-                    Recebido
+                  <p className="text-muted mb-1">
+                    Temporada
                   </p>
 
-                  <h4 className="fw-bold">
+                  <h3 className="fw-bold text-success">
                     {moeda(temporadaPago)}
-                  </h4>
-
-                  <p className="mb-1 text-warning">
-                    Pendente
-                  </p>
-
-                  <h5>
-                    {moeda(temporadaPendente)}
-                  </h5>
+                  </h3>
 
                 </div>
 
               </div>
 
             </div>
-
-            {/* ADMINISTRAÇÃO */}
 
             <div className="col-md-3">
 
@@ -525,21 +661,13 @@ export default function Financeiro() {
                     Administração
                   </h5>
 
-                  <p className="mb-1 text-success">
-                    Recebido
+                  <p className="text-muted mb-1">
+                    Administração
                   </p>
 
-                  <h4 className="fw-bold">
+                  <h3 className="fw-bold text-success">
                     {moeda(administracaoPago)}
-                  </h4>
-
-                  <p className="mb-1 text-warning">
-                    Pendente
-                  </p>
-
-                  <h5>
-                    {moeda(administracaoPendente)}
-                  </h5>
+                  </h3>
 
                 </div>
 
@@ -549,23 +677,277 @@ export default function Financeiro() {
 
           </div>
 
-          {/* LANÇAMENTOS */}
+          {/* ÚLTIMOS RECEBIMENTOS */}
 
-          <div className="card shadow-sm">
+          <div className="card shadow-sm mb-5">
+
+            <div className="card-header d-flex justify-content-between align-items-center">
+
+              <h5 className="mb-0 fw-bold">
+                Últimos recebimentos
+              </h5>
+
+              <span className="badge bg-success">
+                {pagos.length} pago(s)
+              </span>
+
+            </div>
+
+            <div className="card-body">
+
+              <div className="table-responsive">
+
+                <table className="table table-hover align-middle">
+
+                  <thead>
+
+                    <tr>
+                      <th>Data</th>
+                      <th>Cliente</th>
+                      <th>Contrato</th>
+                      <th>Categoria</th>
+                      <th>Forma</th>
+                      <th>Valor</th>
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {pagos.length === 0 ? (
+
+                      <tr>
+
+                        <td
+                          colSpan="6"
+                          className="text-center text-muted py-4"
+                        >
+                          Nenhum recebimento pago neste mês.
+                        </td>
+
+                      </tr>
+
+                    ) : (
+
+                      pagos
+                        .slice(0, 10)
+                        .map((item) => (
+
+                          <tr key={item.id}>
+
+                            <td>
+                              {formatarData(
+                                item.data_recebimento
+                              )}
+                            </td>
+
+                            <td>
+                              {item.clientes?.nome ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {item.contratos?.numero ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {item.categoria}
+                            </td>
+
+                            <td>
+                              {item.forma_pagamento ||
+                                "-"}
+                            </td>
+
+                            <td className="fw-bold text-success">
+                              {moeda(item.valor)}
+                            </td>
+
+                          </tr>
+
+                        ))
+
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+              {pagos.length > 0 && (
+
+                <a
+                  href="/recebimentos"
+                  className="btn btn-outline-success"
+                >
+                  Ver todos os recebimentos
+                </a>
+
+              )}
+
+            </div>
+
+          </div>
+
+          {/* CONTRATOS VENCENDO */}
+
+          <div className="card shadow-sm mb-5">
 
             <div className="card-header">
 
               <div className="d-flex justify-content-between align-items-center">
 
-                <h5 className="mb-0 fw-bold">
-                  Lançamentos de {nomesMeses[Number(mes) - 1]} / {ano}
-                </h5>
+                <div>
 
-                <span className="badge bg-primary">
-                  {recebimentosDoMes.length} lançamento(s)
+                  <h5 className="mb-1 fw-bold">
+                    Contratos que vencem no mês
+                  </h5>
+
+                  <small className="text-muted">
+                    {nomesMeses[Number(mes) - 1]} / {ano}
+                  </small>
+
+                </div>
+
+                <span className="badge bg-danger">
+                  {contratosVencendo.length} contrato(s)
                 </span>
 
               </div>
+
+            </div>
+
+            <div className="card-body">
+
+              {contratosVencendo.length === 0 ? (
+
+                <div className="text-center text-muted py-4">
+
+                  <h5>
+                    Nenhum contrato vence neste mês.
+                  </h5>
+
+                  <p className="mb-0">
+                    Não existem contratos com data de término em{" "}
+                    {nomesMeses[Number(mes) - 1]} / {ano}.
+                  </p>
+
+                </div>
+
+              ) : (
+
+                <div className="table-responsive">
+
+                  <table className="table table-hover align-middle">
+
+                    <thead>
+
+                      <tr>
+                        <th>Vencimento</th>
+                        <th>Nº contrato</th>
+                        <th>Imóvel</th>
+                        <th>Cliente</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                      </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                      {contratosVencendo.map(
+                        (contrato) => (
+
+                          <tr key={contrato.id}>
+
+                            <td className="fw-bold text-danger">
+                              {formatarData(
+                                contrato.termino
+                              )}
+                            </td>
+
+                            <td>
+                              {contrato.numero ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {contrato.imovel ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {contrato.cliente ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {contrato.tipo ||
+                                "-"}
+                            </td>
+
+                            <td className="fw-bold">
+                              {moeda(
+                                contrato.valor
+                              )}
+                            </td>
+
+                            <td>
+
+                              <span
+                                className={
+                                  contrato.status ===
+                                  "Ativo"
+                                    ? "badge bg-success"
+             : "badge bg-secondary"
+                                }
+                              >
+                                {contrato.status ||
+                                  "-"}
+                              </span>
+
+                            </td>
+
+                          </tr>
+
+                        )
+                      )}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+              )}
+
+              <div className="mt-3">
+
+                <a
+                  href="/contratos"
+                  className="btn btn-outline-primary"
+                >
+                  Ver contratos
+                </a>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* TODOS OS LANÇAMENTOS DO MÊS */}
+
+          <div className="card shadow-sm">
+
+            <div className="card-header">
+
+              <h5 className="mb-0 fw-bold">
+                Todos os lançamentos do mês
+              </h5>
 
             </div>
 
@@ -644,7 +1026,8 @@ export default function Financeiro() {
 
                               <span
                                 className={
-                                  item.status === "Pago"
+                                  item.status ===
+                                  "Pago"
                                     ? "badge bg-success"
                                     : "badge bg-warning text-dark"
                                 }
