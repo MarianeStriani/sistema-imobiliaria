@@ -780,4 +780,37 @@ export default function Home() {
                               {cliente.telefone}
                             </td>
 
-                   
+                   <td>
+                              {cliente.cidade || "-"}
+                            </td>
+
+                          </tr>
+
+                        ))}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+              )}
+
+              <a
+                href="/clientes"
+                className="btn btn-outline-primary"
+              >
+                Ver todos os clientes
+              </a>
+
+            </div>
+
+          </div>
+
+        </>
+
+      )}
+
+    </main>
+  )
+}
