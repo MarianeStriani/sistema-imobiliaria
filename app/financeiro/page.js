@@ -10,7 +10,7 @@ export default function Financeiro() {
   const [ano, setAno] = useState(hoje.getFullYear())
 
   const [recebimentos, setRecebimentos] = useState([])
-  const [lancamentos, setLancamentos] = useState([])
+  const [despesas, setDespesas] = useState([])
 
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState("")
@@ -24,68 +24,78 @@ export default function Financeiro() {
     setErro("")
 
     try {
+      // ==============================
       // RECEBIMENTOS
-      const { data: recebimentosData, error: recebimentosError } =
-        await supabase
-          .from("recebimentos")
-          .select(`
-            *,
-            clientes (
-              nome
-            ),
-            contratos (
-              numero,
-              cliente,
-              imovel,
-              tipo
-            )
-          `)
-          .order("data_recebimento", {
-            ascending: false,
-          })
+      // ==============================
+
+      const {
+        data: recebimentosData,
+        error: recebimentosError,
+      } = await supabase
+        .from("recebimentos")
+        .select(`
+          *,
+          clientes (
+            nome
+          ),
+          contratos (
+            numero,
+            cliente,
+            imovel,
+            tipo
+          )
+        `)
+        .order("data_recebimento", {
+          ascending: false,
+        })
 
       if (recebimentosError) {
         throw recebimentosError
       }
 
-      // DESPESAS / LANÇAMENTOS
-      const { data: lancamentosData, error: lancamentosError } =
-        await supabase
-          .from("lancamentos_financeiros")
-          .select("*")
-          .eq("tipo", "Saída")
-          .order("data_lancamento", {
-            ascending: false,
-          })
+      // ==============================
+      // DESPESAS
+      // ==============================
 
-      if (lancamentosError) {
+      const {
+        data: despesasData,
+        error: despesasError,
+      } = await supabase
+        .from("lancamentos_financeiros")
+        .select("*")
+        .eq("tipo", "Saída")
+        .order("data_lancamento", {
+          ascending: false,
+        })
+
+      if (despesasError) {
         console.warn(
-          "Tabela de despesas:",
-          lancamentosError.message
+          "Não foi possível carregar despesas:",
+          despesasError.message
         )
 
-        setLancamentos([])
+        setDespesas([])
       } else {
-        setLancamentos(lancamentosData || [])
+        setDespesas(despesasData || [])
       }
 
-      setRecebimentos(recebimentosData || [])
+      setRecebimentos(
+        recebimentosData || []
+      )
     } catch (error) {
       console.error(error)
 
       setErro(
-        "Não foi possível carregar os dados financeiros."
+        "Não foi possível carregar o financeiro."
       )
     } finally {
       setCarregando(false)
     }
   }
 
-  /*
-   * ==========================================================
-   * FILTRAR RECEBIMENTOS PELO MÊS
-   * ==========================================================
-   */
+  // ==============================
+  // RECEBIMENTOS DO MÊS
+  // ==============================
 
   const recebimentosDoMes = useMemo(() => {
     return recebimentos.filter((item) => {
@@ -102,16 +112,18 @@ export default function Financeiro() {
         data.getFullYear() === Number(ano)
       )
     })
-  }, [recebimentos, mes, ano])
+  }, [
+    recebimentos,
+    mes,
+    ano,
+  ])
 
-  /*
-   * ==========================================================
-   * FILTRAR DESPESAS PELO MÊS
-   * ==========================================================
-   */
+  // ==============================
+  // DESPESAS DO MÊS
+  // ==============================
 
   const despesasDoMes = useMemo(() => {
-    return lancamentos.filter((item) => {
+    return despesas.filter((item) => {
       if (!item.data_lancamento) {
         return false
       }
@@ -125,13 +137,15 @@ export default function Financeiro() {
         data.getFullYear() === Number(ano)
       )
     })
-  }, [lancamentos, mes, ano])
+  }, [
+    despesas,
+    mes,
+    ano,
+  ])
 
-  /*
-   * ==========================================================
-   * TOTAL RECEBIDO
-   * ==========================================================
-   */
+  // ==============================
+  // TOTAL RECEBIDO
+  // ==============================
 
   const totalRecebido = useMemo(() => {
     return recebimentosDoMes
@@ -146,11 +160,9 @@ export default function Financeiro() {
       )
   }, [recebimentosDoMes])
 
-  /*
-   * ==========================================================
-   * TOTAL DESPESAS
-   * ==========================================================
-   */
+  // ==============================
+  // TOTAL DESPESAS
+  // ==============================
 
   const totalDespesas = useMemo(() => {
     return despesasDoMes
@@ -165,23 +177,19 @@ export default function Financeiro() {
       )
   }, [despesasDoMes])
 
-  /*
-   * ==========================================================
-   * SALDO DISPONÍVEL
-   * ==========================================================
-   */
+  // ==============================
+  // SALDO
+  // ==============================
 
   const saldoDisponivel =
     totalRecebido - totalDespesas
 
-  /*
-   * ==========================================================
-   * VALORES POR CATEGORIA
-   * ==========================================================
-   */
+  // ==============================
+  // CATEGORIAS
+  // ==============================
 
-  const valoresCategorias = useMemo(() => {
-    const categorias = {
+  const categorias = useMemo(() => {
+    const valores = {
       "Locação": 0,
       "Compra e Venda": 0,
       "Temporada": 0,
@@ -199,26 +207,24 @@ export default function Financeiro() {
 
         if (
           Object.prototype.hasOwnProperty.call(
-            categorias,
+            valores,
             categoria
           )
         ) {
-          categorias[categoria] += Number(
+          valores[categoria] += Number(
             item.valor || 0
           )
         }
       })
 
-    return categorias
+    return valores
   }, [recebimentosDoMes])
 
-  /*
-   * ==========================================================
-   * FORMATAÇÃO
-   * ==========================================================
-   */
+  // ==============================
+  // FORMATAÇÃO
+  // ==============================
 
-  function formatarMoeda(valor) {
+  function moeda(valor) {
     return Number(valor || 0).toLocaleString(
       "pt-BR",
       {
@@ -244,24 +250,24 @@ export default function Financeiro() {
       "Dezembro",
     ]
 
-    return meses[Number(numero) - 1]
+    return meses[numero - 1]
   }
 
   function mesAnterior() {
-    if (Number(mes) === 1) {
+    if (mes === 1) {
       setMes(12)
-      setAno(Number(ano) - 1)
+      setAno(ano - 1)
     } else {
-      setMes(Number(mes) - 1)
+      setMes(mes - 1)
     }
   }
 
   function mesSeguinte() {
-    if (Number(mes) === 12) {
+    if (mes === 12) {
       setMes(1)
-      setAno(Number(ano) + 1)
+      setAno(ano + 1)
     } else {
-      setMes(Number(mes) + 1)
+      setMes(mes + 1)
     }
   }
 
@@ -272,20 +278,16 @@ export default function Financeiro() {
     setAno(data.getFullYear())
   }
 
-  /*
-   * ==========================================================
-   * TELA
-   * ==========================================================
-   */
+  // ==============================
+  // TELA
+  // ==============================
 
   return (
     <div className="container-fluid py-4">
 
-      {/* ======================================================
-          CABEÇALHO
-      ====================================================== */}
+      {/* CABEÇALHO */}
 
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
 
         <div>
           <h1 className="fw-bold mb-1">
@@ -306,9 +308,9 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ======================================================
+      {/* ==============================
           ACESSO RÁPIDO
-      ====================================================== */}
+      ============================== */}
 
       <div className="card shadow-sm border-0 mb-4">
 
@@ -361,15 +363,15 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ======================================================
+      {/* ==============================
           FILTRO
-      ====================================================== */}
+      ============================== */}
 
       <div className="card shadow-sm border-0 mb-4">
 
         <div className="card-body">
 
-          <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
             <div>
               <h5 className="fw-bold mb-1">
@@ -400,6 +402,7 @@ export default function Financeiro() {
                   )
                 }
               >
+
                 {Array.from(
                   { length: 12 },
                   (_, index) => (
@@ -411,6 +414,7 @@ export default function Financeiro() {
                     </option>
                   )
                 )}
+
               </select>
 
               <input
@@ -447,9 +451,9 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ======================================================
+      {/* ==============================
           CARDS PRINCIPAIS
-      ====================================================== */}
+      ============================== */}
 
       <div className="row g-4 mb-4">
 
@@ -466,13 +470,11 @@ export default function Financeiro() {
               </div>
 
               <div className="fs-2 fw-bold text-success">
-                {formatarMoeda(
-                  totalRecebido
-                )}
+                {moeda(totalRecebido)}
               </div>
 
               <small className="text-muted">
-                Valores pagos no mês
+                Recebimentos pagos no mês
               </small>
 
             </div>
@@ -494,9 +496,7 @@ export default function Financeiro() {
               </div>
 
               <div className="fs-2 fw-bold text-danger">
-                {formatarMoeda(
-                  totalDespesas
-                )}
+                {moeda(totalDespesas)}
               </div>
 
               <small className="text-muted">
@@ -528,13 +528,11 @@ export default function Financeiro() {
                     : "text-danger"
                 }`}
               >
-                {formatarMoeda(
-                  saldoDisponivel
-                )}
+                {moeda(saldoDisponivel)}
               </div>
 
               <small className="text-muted">
-                Recebimentos - despesas
+                Recebimentos menos despesas
               </small>
 
             </div>
@@ -545,9 +543,9 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ======================================================
-          VALORES POR CATEGORIA
-      ====================================================== */}
+      {/* ==============================
+          CATEGORIAS
+      ============================== */}
 
       <h4 className="fw-bold mb-3">
         Valores recebidos por categoria
@@ -557,7 +555,7 @@ export default function Financeiro() {
 
         {/* LOCAÇÃO */}
 
-        <div className="col-sm-6 col-lg-3">
+        <div className="col-12 col-sm-6 col-lg-3">
 
           <div className="card shadow-sm border-0 h-100">
 
@@ -568,11 +566,7 @@ export default function Financeiro() {
               </div>
 
               <div className="fs-4 fw-bold text-success mt-2">
-                {formatarMoeda(
-                  valoresCategorias[
-                    "Locação"
-                  ]
-                )}
+                {moeda(categorias["Locação"])}
               </div>
 
             </div>
@@ -583,7 +577,7 @@ export default function Financeiro() {
 
         {/* COMPRA E VENDA */}
 
-        <div className="col-sm-6 col-lg-3">
+        <div className="col-12 col-sm-6 col-lg-3">
 
           <div className="card shadow-sm border-0 h-100">
 
@@ -594,10 +588,8 @@ export default function Financeiro() {
               </div>
 
               <div className="fs-4 fw-bold text-success mt-2">
-                {formatarMoeda(
-                  valoresCategorias[
-                    "Compra e Venda"
-                  ]
+                {moeda(
+                  categorias["Compra e Venda"]
                 )}
               </div>
 
@@ -609,7 +601,7 @@ export default function Financeiro() {
 
         {/* TEMPORADA */}
 
-        <div className="col-sm-6 col-lg-3">
+        <div className="col-12 col-sm-6 col-lg-3">
 
           <div className="card shadow-sm border-0 h-100">
 
@@ -620,10 +612,8 @@ export default function Financeiro() {
               </div>
 
               <div className="fs-4 fw-bold text-success mt-2">
-                {formatarMoeda(
-                  valoresCategorias[
-                    "Temporada"
-                  ]
+                {moeda(
+                  categorias["Temporada"]
                 )}
               </div>
 
@@ -635,7 +625,7 @@ export default function Financeiro() {
 
         {/* ADMINISTRAÇÃO */}
 
-        <div className="col-sm-6 col-lg-3">
+        <div className="col-12 col-sm-6 col-lg-3">
 
           <div className="card shadow-sm border-0 h-100">
 
@@ -646,10 +636,8 @@ export default function Financeiro() {
               </div>
 
               <div className="fs-4 fw-bold text-success mt-2">
-                {formatarMoeda(
-                  valoresCategorias[
-                    "Administração"
-                  ]
+                {moeda(
+                  categorias["Administração"]
                 )}
               </div>
 
@@ -661,9 +649,9 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ======================================================
+      {/* ==============================
           RESUMO
-      ====================================================== */}
+      ============================== */}
 
       <div className="card shadow-sm border-0">
 
@@ -675,35 +663,36 @@ export default function Financeiro() {
 
           <div className="table-responsive">
 
-            <table className="table align-middle mb-0">
+            <table className="table mb-0">
 
               <tbody>
 
                 <tr>
+
                   <td>
                     Total recebido
                   </td>
 
                   <td className="text-end fw-bold text-success">
-                    {formatarMoeda(
-                      totalRecebido
-                    )}
+                    {moeda(totalRecebido)}
                   </td>
+
                 </tr>
 
                 <tr>
+
                   <td>
                     Total de despesas
                   </td>
 
                   <td className="text-end fw-bold text-danger">
-                    {formatarMoeda(
-                      totalDespesas
-                    )}
+                    {moeda(totalDespesas)}
                   </td>
+
                 </tr>
 
                 <tr className="table-light">
+
                   <td className="fw-bold">
                     Saldo disponível
                   </td>
@@ -715,10 +704,9 @@ export default function Financeiro() {
                         : "text-danger"
                     }`}
                   >
-                    {formatarMoeda(
-                      saldoDisponivel
-                    )}
+                    {moeda(saldoDisponivel)}
                   </td>
+
                 </tr>
 
               </tbody>
@@ -731,9 +719,7 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ======================================================
-          CARREGANDO
-      ====================================================== */}
+      {/* CARREGANDO */}
 
       {carregando && (
         <div className="alert alert-info mt-4">
@@ -741,9 +727,7 @@ export default function Financeiro() {
         </div>
       )}
 
-      {/* ======================================================
-          ERRO
-      ====================================================== */}
+      {/* ERRO */}
 
       {erro && (
         <div className="alert alert-danger mt-4">
@@ -753,4 +737,4 @@ export default function Financeiro() {
 
     </div>
   )
-}
+    }
