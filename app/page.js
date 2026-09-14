@@ -907,4 +907,165 @@ export default function Financeiro() {
 
                               <span
                                 className={
-    
+                                      contrato.status ===
+                                  "Ativo"
+                                    ? "badge bg-success"
+             : "badge bg-secondary"
+                                }
+                              >
+                                {contrato.status ||
+                                  "-"}
+                              </span>
+
+                            </td>
+
+                          </tr>
+
+                        )
+                      )}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+              )}
+
+              <div className="mt-3">
+
+                <a
+                  href="/contratos"
+                  className="btn btn-outline-primary"
+                >
+                  Ver contratos
+                </a>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* TODOS OS LANÇAMENTOS DO MÊS */}
+
+          <div className="card shadow-sm">
+
+            <div className="card-header">
+
+              <h5 className="mb-0 fw-bold">
+                Todos os lançamentos do mês
+              </h5>
+
+            </div>
+
+            <div className="card-body">
+
+              <div className="table-responsive">
+
+                <table className="table table-hover align-middle">
+
+                  <thead>
+
+                    <tr>
+                      <th>Data</th>
+                      <th>Cliente</th>
+                      <th>Contrato</th>
+                      <th>Categoria</th>
+                      <th>Forma</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {recebimentosDoMes.length === 0 ? (
+
+                      <tr>
+
+                        <td
+                          colSpan="7"
+                          className="text-center text-muted py-5"
+                        >
+                          Nenhum lançamento encontrado neste mês.
+                        </td>
+
+                      </tr>
+
+                    ) : (
+
+                      recebimentosDoMes.map(
+                        (item) => (
+
+                          <tr key={item.id}>
+
+                            <td>
+                              {formatarData(
+                                item.data_recebimento
+                              )}
+                            </td>
+
+                            <td>
+                              {item.clientes?.nome ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {item.contratos?.numero ||
+                                "-"}
+                            </td>
+
+                            <td>
+                              {item.categoria}
+                            </td>
+
+                            <td>
+                              {item.forma_pagamento ||
+                                "-"}
+                            </td>
+
+                            <td className="fw-bold">
+                              {moeda(item.valor)}
+                            </td>
+
+                            <td>
+
+                              <span
+                                className={
+                                  item.status ===
+                                  "Pago"
+                                    ? "badge bg-success"
+                                    : "badge bg-warning text-dark"
+                                }
+                              >
+                                {item.status}
+                              </span>
+
+                            </td>
+
+                          </tr>
+
+                        )
+                      )
+
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </>
+
+      )}
+
+    </main>
+  )
+}
