@@ -231,17 +231,77 @@ export default function Contratos() {
   return (
     <main className="container py-4">
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      {/* TÍTULO */}
+
+      <div className="d-flex justify-content-between align-items-center mb-3">
+
         <div>
-          <h1 className="fw-bold">Contratos</h1>
+          <h1 className="fw-bold mb-1">
+            Contratos
+          </h1>
+
           <p className="text-muted mb-0">
             Administração dos contratos imobiliários
           </p>
         </div>
 
-        <a href="/" className="btn btn-outline-secondary">
-          ← Dashboard
-        </a>
+        <button
+          type="button"
+          className="btn btn-outline-primary"
+          onClick={buscarContratos}
+          disabled={carregando}
+        >
+          {carregando
+            ? "Atualizando..."
+            : "🔄 Atualizar"}
+        </button>
+
+      </div>
+
+      {/* ACESSO RÁPIDO */}
+
+      <div className="card shadow-sm mb-4">
+
+        <div className="card-body">
+
+          <h5 className="fw-bold mb-3">
+            ⚡ Acesso rápido
+          </h5>
+
+          <div className="d-flex gap-2 flex-wrap">
+
+            <a href="/" className="btn btn-primary">
+              🏠 Início
+            </a>
+
+            <a href="/clientes" className="btn btn-light border">
+              👥 Clientes
+            </a>
+
+            <a href="/imoveis" className="btn btn-light border">
+              🏢 Imóveis
+            </a>
+
+            <a href="/contratos" className="btn btn-light border">
+              📄 Contratos
+            </a>
+
+            <a href="/recebimentos" className="btn btn-light border">
+              💰 Recebimentos
+            </a>
+
+            <a href="/despesas" className="btn btn-light border">
+              💸 Despesas
+            </a>
+
+            <a href="/financeiro" className="btn btn-light border">
+              📊 Financeiro
+            </a>
+
+          </div>
+
+        </div>
+
       </div>
 
       {mensagem && (
