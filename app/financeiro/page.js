@@ -1,17 +1,41 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
+
+const acessos = [
+  ["🏠", "Início", "/"],
+  ["👥", "Clientes", "/clientes"],
+  ["🏢", "Imóveis", "/imoveis"],
+  ["📄", "Contratos", "/contratos"],
+  ["💰", "Recebimentos", "/recebimentos"],
+  ["💸", "Despesas", "/despesas"],
+  ["📊", "Financeiro", "/financeiro"],
+]
+
+const meses = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+]
 
 export default function Financeiro() {
   const hoje = new Date()
 
   const [mes, setMes] = useState(hoje.getMonth() + 1)
   const [ano, setAno] = useState(hoje.getFullYear())
-
   const [recebimentos, setRecebimentos] = useState([])
   const [despesas, setDespesas] = useState([])
-
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState("")
 
@@ -23,289 +47,199 @@ export default function Financeiro() {
     setLoading(true)
     setErro("")
 
-    const [recebimentosResult, despesasResult] = await Promise.all([
-      supabase
-        .from("recebimentos")
-        .select("*"),
-
-      supabase
-        .from("despesas")
-        .select("*"),
+    const [r, d] = await Promise.all([
+      supabase.from("recebimentos").select("*"),
+      supabase.from("despesas").select("*"),
     ])
 
-    if (recebimentosResult.error) {
-      console.error(recebimentosResult.error)
-      setErro("Não foi possível carregar os recebimentos.")
+    if (r.error) {
+      console.error(r.error)
+      setErro("Erro ao carregar recebimentos.")
       setLoading(false)
       return
     }
 
-    if (despesasResult.error) {
-      console.error(despesasResult.error)
-      setErro("Não foi possível carregar as despesas.")
+    if (d.error) {
+      console.error(d.error)
+      setErro("Erro ao carregar despesas.")
       setLoading(false)
       return
     }
 
-    setRecebimentos(recebimentosResult.data || [])
-    setDespesas(despesasResult.data || [])
+    setRecebimentos(r.data || [])
+    setDespesas(d.data || [])
     setLoading(false)
   }
 
-  function valorNumero(valor) {
-    const numero = Number(valor)
+  function numero(valor) {
+    const n = Number(valor)
+    return Number.isNaN(n) ? 0 : n
+  }
 
-    if (Number.isNaN(numero)) {
-      return 0
-    }
-
-    return numero
+  function pago(status) {
+    const s = String(status || "").trim().toLowerCase()
+    return ["pago", "recebido", "confirmado", "realizado"].includes(s)
   }
 
   function dataValida(data) {
     if (!data) return false
-
-    const dataObj = new Date(`${data}T00:00:00`)
-
-    return !Number.isNaN(dataObj.getTime())
+    const d = new Date(`${data}T00:00:00`)
+    return !Number.isNaN(d.getTime())
   }
 
-  function formatarData(data) {
+  function dataBR(data) {
     if (!dataValida(data)) return "-"
-
-    const dataObj = new Date(`${data}T00:00:00`)
-
-    return dataObj.toLocaleDateString("pt-BR")
+    return new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR")
   }
 
-  function formatarMoeda(valor) {
-    return valor.toLocaleString("pt-BR", {
+  function moeda(valor) {
+    return Number(valor).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     })
   }
 
-  function statusPago(status) {
-    const valor = String(status || "")
-      .trim()
-      .toLowerCase()
-
-    return (
-      valor === "pago" ||
-      valor === "recebido" ||
-      valor === "confirmado" ||
-      valor === "realizado"
-    )
-  }
-
-  /*
-   * Todas as movimentações realizadas.
-   * São utilizadas para calcular o saldo atual da conta.
-   */
-  const todasMovimentacoes = useMemo(() => {
+  const movimentos = useMemo(() => {
     const entradas = recebimentos
-      .filter((item) => statusPago(item.status))
-      .map((item) => ({
-        id: `entrada-${item.id}`,
+      .filter((x) => pago(x.status) && dataValida(x.data_recebimento))
+      .map((x) => ({
+        id: `e-${x.id}`,
         tipo: "entrada",
-        data: item.data_recebimento,
-        descricao:
-          item.descricao ||
-          item.observacoes ||
-          item["observações"] ||
-          "Recebimento",
-        categoria: item.categoria || "Recebimento",
-        forma:
-          item.forma_pagamento ||
-          item.formaPagamento ||
-          "-",
-        valor: valorNumero(item.valor),
-        createdAt: item.created_at || "",
+        data: x.data_recebimento,
+        descricao: x.descricao || x.observacoes || "Recebimento",
+        categoria: x.categoria || "Recebimento",
+        forma: x.forma_pagamento || "-",
+        valor: numero(x.valor),
+        criado: x.created_at || "",
       }))
 
     const saidas = despesas
-      .filter((item) => statusPago(item.status))
-      .map((item) => ({
-        id: `saida-${item.id}`,
+      .filter((x) => pago(x.status) && dataValida(x.data_despesa))
+      .map((x) => ({
+        id: `s-${x.id}`,
         tipo: "saida",
-        data: item.data_despesa,
+        data: x.data_despesa,
         descricao:
-          item.descricao ||
-          item.observacoes ||
-          item["observações"] ||
-          item.categoria ||
+          x.descricao ||
+          x.observacoes ||
+          x["observações"] ||
           "Despesa",
-        categoria: item.categoria || "Despesa",
-        forma:
-          item.forma_pagamento ||
-          item.formaPagamento ||
-          "-",
-        valor: valorNumero(item.valor),
-        createdAt: item.created_at || "",
+        categoria: x.categoria || "Despesa",
+        forma: x.forma_pagamento || "-",
+        valor: numero(x.valor),
+        criado: x.created_at || "",
       }))
 
-    return [...entradas, ...saidas].filter((item) => dataValida(item.data))
+    return [...entradas, ...saidas]
   }, [recebimentos, despesas])
 
-  /*
-   * Saldo atual geral.
-   * Não depende do filtro de mês.
-   */
   const saldoAtual = useMemo(() => {
-    return todasMovimentacoes.reduce((saldo, movimento) => {
-      if (movimento.tipo === "entrada") {
-        return saldo + movimento.valor
-      }
+    return movimentos.reduce(
+      (saldo, x) =>
+        x.tipo === "entrada"
+          ? saldo + x.valor
+          : saldo - x.valor,
+      0
+    )
+  }, [movimentos])
 
-      return saldo - movimento.valor
-    }, 0)
-  }, [todasMovimentacoes])
-
-  /*
-   * Extrato do mês selecionado.
-   */
-  const movimentacoesPeriodo = useMemo(() => {
-    return todasMovimentacoes.filter((item) => {
-      const data = new Date(`${item.data}T00:00:00`)
-
+  const periodo = useMemo(() => {
+    return movimentos.filter((x) => {
+      const d = new Date(`${x.data}T00:00:00`)
       return (
-        data.getMonth() + 1 === Number(mes) &&
-        data.getFullYear() === Number(ano)
+        d.getMonth() + 1 === mes &&
+        d.getFullYear() === ano
       )
     })
-  }, [todasMovimentacoes, mes, ano])
+  }, [movimentos, mes, ano])
 
-  /*
-   * Saldo existente antes do primeiro dia do período selecionado.
-   */
   const saldoAnterior = useMemo(() => {
-    return todasMovimentacoes.reduce((saldo, movimento) => {
-      const dataMovimento = new Date(`${movimento.data}T00:00:00`)
+    const inicio = new Date(ano, mes - 1, 1)
 
-      const primeiroDiaPeriodo = new Date(
-        Number(ano),
-        Number(mes) - 1,
-        1
-      )
+    return movimentos.reduce((saldo, x) => {
+      const d = new Date(`${x.data}T00:00:00`)
 
-      if (dataMovimento < primeiroDiaPeriodo) {
-        if (movimento.tipo === "entrada") {
-          return saldo + movimento.valor
-        }
-
-        return saldo - movimento.valor
+      if (d < inicio) {
+        return x.tipo === "entrada"
+          ? saldo + x.valor
+          : saldo - x.valor
       }
 
       return saldo
     }, 0)
-  }, [todasMovimentacoes, mes, ano])
+  }, [movimentos, mes, ano])
 
-  /*
-   * Ordena as movimentações em ordem cronológica
-   * para calcular corretamente o saldo de cada linha.
-   */
   const extrato = useMemo(() => {
-    const ordenadas = [...movimentacoesPeriodo].sort((a, b) => {
-      const dataA = new Date(`${a.data}T00:00:00`).getTime()
-      const dataB = new Date(`${b.data}T00:00:00`).getTime()
+    const lista = [...periodo].sort((a, b) => {
+      const da = new Date(`${a.data}T00:00:00`).getTime()
+      const db = new Date(`${b.data}T00:00:00`).getTime()
 
-      if (dataA !== dataB) {
-        return dataA - dataB
-      }
+      if (da !== db) return da - db
 
-      return String(a.createdAt).localeCompare(String(b.createdAt))
+      return String(a.criado).localeCompare(String(b.criado))
     })
 
     let saldo = saldoAnterior
 
-    return ordenadas.map((movimento) => {
-      if (movimento.tipo === "entrada") {
-        saldo += movimento.valor
-      } else {
-        saldo -= movimento.valor
-      }
+    return lista.map((x) => {
+      saldo =
+        x.tipo === "entrada"
+          ? saldo + x.valor
+          : saldo - x.valor
 
-      return {
-        ...movimento,
-        saldo,
-      }
-    })
-  }, [movimentacoesPeriodo, saldoAnterior])
+      return { ...x, saldo }
+    }).reverse()
+  }, [periodo, saldoAnterior])
 
-  /*
-   * Mostra o extrato do mais recente para o mais antigo.
-   */
-  const extratoExibicao = useMemo(() => {
-    return [...extrato].reverse()
-  }, [extrato])
+  const entradas = periodo
+    .filter((x) => x.tipo === "entrada")
+    .reduce((s, x) => s + x.valor, 0)
 
-  const totalEntradas = useMemo(() => {
-    return movimentacoesPeriodo
-      .filter((item) => item.tipo === "entrada")
-      .reduce((total, item) => total + item.valor, 0)
-  }, [movimentacoesPeriodo])
- const totalSaidas = useMemo(() => {
-    return movimentacoesPeriodo
-      .filter((item) => item.tipo === "saida")
-      .reduce((total, item) => total + item.valor, 0)
-  }, [movimentacoesPeriodo])
+  const saidas = periodo
+    .filter((x) => x.tipo === "saida")
+    .reduce((s, x) => s + x.valor, 0)
 
-  const saldoFinalPeriodo = saldoAnterior + totalEntradas - totalSaidas
-
-  const nomeMes = new Date(
-    Number(ano),
-    Number(mes) - 1,
-    1
-  ).toLocaleDateString("pt-BR", {
-    month: "long",
-  })
+  const saldoPeriodo = saldoAnterior + entradas - saidas
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f5f7fa",
-        padding: "24px",
-        fontFamily:
-          "Arial, Helvetica, sans-serif",
-        color: "#1f2937",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1400px",
-          margin: "0 auto",
-        }}
-      >
+    <main style={styles.main}>
+      <div style={styles.container}>
+
+        {/* ACESSO RÁPIDO */}
+        <section style={styles.acessoBox}>
+          <h2 style={styles.acessoTitulo}>
+            ⚡ Acesso rápido
+          </h2>
+
+          <div style={styles.acessos}>
+            {acessos.map(([icone, nome, caminho]) => {
+              const ativo = caminho === "/financeiro"
+
+              return (
+                <Link
+                  key={caminho}
+                  href={caminho}
+                  style={{
+                    ...styles.acesso,
+                    background: ativo ? "#2563eb" : "#f3f4f6",
+                    color: ativo ? "#fff" : "#374151",
+                  }}
+                >
+                  {icone} {nome}
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+
         {/* CABEÇALHO */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "16px",
-            flexWrap: "wrap",
-            marginBottom: "24px",
-          }}
-        >
+        <header style={styles.header}>
           <div>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "30px",
-                fontWeight: 700,
-              }}
-            >
-              Financeiro
+            <h1 style={styles.titulo}>
+              📊 Financeiro
             </h1>
 
-            <p
-              style={{
-                margin: "6px 0 0",
-                color: "#6b7280",
-                fontSize: "15px",
-              }}
-            >
+            <p style={styles.subtitulo}>
               Extrato financeiro da imobiliária
             </p>
           </div>
@@ -313,182 +247,71 @@ export default function Financeiro() {
           <button
             onClick={carregarDados}
             disabled={loading}
-            style={{
-              border: "none",
-              borderRadius: "8px",
-              padding: "11px 18px",
-              background: "#111827",
-              color: "#fff",
-              cursor: loading ? "not-allowed" : "pointer",
-              fontWeight: 600,
-            }}
+            style={styles.botaoAtualizar}
           >
             {loading ? "Atualizando..." : "↻ Atualizar"}
           </button>
-        </div>
+        </header>
 
-        {/* SALDO ATUAL */}
-        <section
-          style={{
-            background: "#ffffff",
-            borderRadius: "14px",
-            padding: "28px",
-            marginBottom: "20px",
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          }}
-        >
-          <div
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            Saldo atual
-          </div>
+        {/* SALDO */}
+        <section style={styles.saldoBox}>
+          <span style={styles.label}>
+            SALDO ATUAL
+          </span>
 
           <div
             style={{
-              fontSize: "38px",
-              fontWeight: 800,
-              marginTop: "8px",
+              ...styles.saldo,
               color: saldoAtual >= 0 ? "#111827" : "#dc2626",
             }}
           >
-            {formatarMoeda(saldoAtual)}
+            {moeda(saldoAtual)}
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "30px",
-              flexWrap: "wrap",
-              marginTop: "20px",
-            }}
-          >
+          <div style={styles.resumos}>
             <div>
-              <div
-                style={{
-                  color: "#6b7280",
-                  fontSize: "13px",
-                  marginBottom: "4px",
-                }}
-              >
+              <span style={styles.label}>
                 🟢 Entradas
-              </div>
-
-              <strong
-                style={{
-                  color: "#16a34a",
-                  fontSize: "18px",
-                }}
-              >
-                {formatarMoeda(totalEntradas)}
+              </span>
+              <strong style={{ color: "#16a34a" }}>
+                {moeda(entradas)}
               </strong>
             </div>
 
             <div>
-              <div
-                style={{
-                  color: "#6b7280",
-                  fontSize: "13px",
-                  marginBottom: "4px",
-                }}
-              >
+              <span style={styles.label}>
                 🔴 Saídas
-              </div>
-
-              <strong
-                style={{
-                  color: "#dc2626",
-                  fontSize: "18px",
-                }}
-              >
-                {formatarMoeda(totalSaidas)}
+              </span>
+              <strong style={{ color: "#dc2626" }}>
+                {moeda(saidas)}
               </strong>
             </div>
 
             <div>
-              <div
-                style={{
-                  color: "#6b7280",
-                  fontSize: "13px",
-                  marginBottom: "4px",
-                }}
-              >
+              <span style={styles.label}>
                 Saldo do período
-              </div>
-
-              <strong
-                style={{
-                  color:
-                    saldoFinalPeriodo >= 0
-                      ? "#111827"
-                      : "#dc2626",
-                  fontSize: "18px",
-                }}
-              >
-                {formatarMoeda(saldoFinalPeriodo)}
+              </span>
+              <strong>
+                {moeda(saldoPeriodo)}
               </strong>
             </div>
           </div>
         </section>
 
         {/* FILTROS */}
-        <section
-          style={{
-            background: "#ffffff",
-            borderRadius: "12px",
-            padding: "18px",
-            marginBottom: "20px",
-            border: "1px solid #e5e7eb",
-            display: "flex",
-            alignItems: "end",
-            gap: "14px",
-            flexWrap: "wrap",
-          }}
-        >
+        <section style={styles.filtros}>
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "13px",
-                fontWeight: 600,
-                marginBottom: "6px",
-              }}
-            >
+            <label style={styles.label}>
               Mês
             </label>
 
             <select
               value={mes}
               onChange={(e) => setMes(Number(e.target.value))}
-              style={{
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid #d1d5db",
-                background: "#fff",
-                minWidth: "150px",
-              }}
+              style={styles.select}
             >
-              {[
-                "Janeiro",
-                "Fevereiro",
-                "Março",
-                "Abril",
-                "Maio",
-                "Junho",
-                "Julho",
-                "Agosto",
-                "Setembro",
-                "Outubro",
-                "Novembro",
-                "Dezembro",
-              ].map((nome, index) => (
-                <option key={index + 1} value={index + 1}>
+              {meses.map((nome, i) => (
+                <option key={i + 1} value={i + 1}>
                   {nome}
                 </option>
               ))}
@@ -496,131 +319,55 @@ export default function Financeiro() {
           </div>
 
           <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "13px",
-                fontWeight: 600,
-                marginBottom: "6px",
-              }}
-            >
+            <label style={styles.label}>
               Ano
             </label>
 
             <select
               value={ano}
               onChange={(e) => setAno(Number(e.target.value))}
-              style={{
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid #d1d5db",
-                background: "#fff",
-                minWidth: "120px",
-              }}
+              style={styles.select}
             >
-              {Array.from(
-                { length: 7 },
-                (_, index) => hoje.getFullYear() - 3 + index
-              ).map((anoOpcao) => (
-                <option key={anoOpcao} value={anoOpcao}>
-                  {anoOpcao}
-                </option>
-              ))}
+              {Array.from({ length: 7 }, (_, i) => hoje.getFullYear() - 3 + i).map(
+                (a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                )
+              )}
             </select>
           </div>
 
-          <div
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              paddingBottom: "10px",
-            }}
-          >
+          <div style={styles.periodo}>
             Exibindo:{" "}
             <strong>
-              {nomeMes.charAt(0).toUpperCase() +
-                nomeMes.slice(1)}{" "}
-              de {ano}
+              {meses[mes - 1]} de {ano}
             </strong>
           </div>
         </section>
 
-        {/* ERRO */}
         {erro && (
-          <div
-            style={{
-              background: "#fef2f2",
-              color: "#b91c1c",
-              border: "1px solid #fecaca",
-              borderRadius: "10px",
-              padding: "14px 16px",
-              marginBottom: "20px",
-            }}
-          >
+          <div style={styles.erro}>
             {erro}
           </div>
         )}
 
         {/* EXTRATO */}
-        <section
-          style={{
-            background: "#ffffff",
-            borderRadius: "14px",
-            border: "1px solid #e5e7eb",
-            overflow: "hidden",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div
-            style={{
-              padding: "20px",
-              borderBottom: "1px solid #e5e7eb",
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontSize: "20px",
-              }}
-            >
-              Extrato
-            </h2>
-
-            <p
-              style={{
-                margin: "5px 0 0",
-                color: "#6b7280",
-                fontSize: "14px",
-              }}
-            >
+        <section style={styles.extratoBox}>
+          <div style={styles.extratoTitulo}>
+            <h2>Extrato</h2>
+            <p>
               Movimentações realizadas no período
             </p>
           </div>
 
           {loading ? (
-            <div
-              style={{
-                padding: "50px",
-                textAlign: "center",
-                color: "#6b7280",
-              }}
-            >
+            <div style={styles.vazio}>
               Carregando extrato...
             </div>
-          ) : extratoExibicao.length === 0 ? (
-            <div
-              style={{
-                padding: "50px 20px",
-                textAlign: "center",
-                color: "#6b7280",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "40px",
-                  marginBottom: "10px",
-                }}
-              >
+          ) : extrato.length === 0 ? (
+            <div style={styles.vazio}>
+              <div style={{ fontSize: 40 }}>
                 🧾
               </div>
 
@@ -628,171 +375,81 @@ export default function Financeiro() {
                 Nenhuma movimentação encontrada
               </strong>
 
-              <p style={{ marginTop: "6px" }}>
+              <p>
                 Não existem entradas ou saídas pagas
                 neste período.
               </p>
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  minWidth: "900px",
-                }}
-              >
+              <table style={styles.table}>
                 <thead>
-                  <tr
-                    style={{
-                      background: "#f9fafb",
-                      borderBottom: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <th style={thStyle}>
-                      Movimento
-                    </th>
-
-                    <th style={thStyle}>
-                      Data
-                    </th>
-
-                    <th style={thStyle}>
-                      Descrição
-                    </th>
-
-                    <th style={thStyle}>
-Categoria
-                    </th>
-
-                    <th style={thStyle}>
-                      Forma de pagamento
-                    </th>
-
-                    <th
-                      style={{
-                        ...thStyle,
-                        textAlign: "right",
-                      }}
-                    >
-                      Valor
-                    </th>
-
-                    <th
-                      style={{
-                        ...thStyle,
-                        textAlign: "right",
-                      }}
-                    >
-                      Saldo
-                    </th>
+                  <tr>
+                    <th style={styles.th}>Movimento</th>
+                    <th style={styles.th}>Data</th>
+                    <th style={styles.th}>Descrição</th>
+                    <th style={styles.th}>Categoria</th>
+                    <th style={styles.th}>Pagamento</th>
+                    <th style={styles.thRight}>Valor</th>
+                    <th style={styles.thRight}>Saldo</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {extratoExibicao.map((movimento) => {
-                    const entrada =
-                      movimento.tipo === "entrada"
+                  {extrato.map((x) => {
+                    const entrada = x.tipo === "entrada"
 
                     return (
-                      <tr
-                        key={movimento.id}
-                        style={{
-                          borderBottom:
-                            "1px solid #f0f0f0",
-                        }}
-                      >
-                        {/* MOVIMENTO */}
-                        <td style={tdStyle}>
-                          <div
+                      <tr key={x.id}>
+                        <td style={styles.td}>
+                          <strong
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "9px",
-                              fontWeight: 700,
                               color: entrada
                                 ? "#15803d"
                                 : "#dc2626",
                             }}
                           >
-                            <span
-                              style={{
-                                width: "30px",
-                                height: "30px",
-                                borderRadius: "50%",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent:
-                                  "center",
-                                background: entrada
-                                  ? "#dcfce7"
-                                  : "#fee2e2",
-                                fontSize: "16px",
-                              }}
-                            >
-                              {entrada ? "↓" : "↑"}
-                            </span>
-
-                            {entrada
-                              ? "ENTRADA"
-                              : "SAÍDA"}
-                          </div>
-                        </td>
-
-                        {/* DATA */}
-                        <td style={tdStyle}>
-                          {formatarData(
-                            movimento.data
-                          )}
-                        </td>
-
-                        {/* DESCRIÇÃO */}
-                        <td style={tdStyle}>
-                          <strong>
-                            {movimento.descricao}
+                            {entrada ? "🟢 ENTRADA" : "🔴 SAÍDA"}
                           </strong>
                         </td>
 
-                        {/* CATEGORIA */}
-                        <td style={tdStyle}>
-                          {movimento.categoria}
+                        <td style={styles.td}>
+                          {dataBR(x.data)}
                         </td>
 
-                        {/* FORMA */}
-                        <td style={tdStyle}>
-                          {movimento.forma}
+                        <td style={styles.td}>
+                          <strong>{x.descricao}</strong>
                         </td>
 
-                        {/* VALOR */}
+                        <td style={styles.td}>
+                          {x.categoria}
+                        </td>
+
+                        <td style={styles.td}>
+                          {x.forma}
+                        </td>
+
                         <td
                           style={{
-                            ...tdStyle,
+                            ...styles.td,
                             textAlign: "right",
                             fontWeight: 700,
                             color: entrada
                               ? "#16a34a"
                               : "#dc2626",
-                            whiteSpace: "nowrap",
                           }}
                         >
-                          {entrada ? "+" : "−"}{" "}
-                          {formatarMoeda(
-                            movimento.valor
-                          )}
+                          {entrada ? "+" : "-"} {moeda(x.valor)}
                         </td>
 
-                        {/* SALDO */}
                         <td
                           style={{
-                            ...tdStyle,
+                            ...styles.td,
                             textAlign: "right",
                             fontWeight: 700,
-                            whiteSpace: "nowrap",
                           }}
                         >
-                          {formatarMoeda(
-                            movimento.saldo
-                          )}
+                          {moeda(x.saldo)}
                         </td>
                       </tr>
                     )
@@ -802,81 +459,228 @@ Categoria
             </div>
           )}
 
-          {/* RODAPÉ DO EXTRATO */}
-          {!loading &&
-            extratoExibicao.length > 0 && (
-              <div
-                style={{
-                  padding: "18px 20px",
-                  borderTop: "1px solid #e5e7eb",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: "20px",
-                  flexWrap: "wrap",
-                  background: "#fafafa",
-                }}
-              >
-                <span
-                  style={{
-                    color: "#6b7280",
-                  }}
-                >
-                  Saldo anterior:{" "}
-                  <strong>
-                    {formatarMoeda(saldoAnterior)}
-                  </strong>
-                </span>
+          {!loading && extrato.length > 0 && (
+            <div style={styles.rodape}>
+              <span>
+                Saldo anterior:{" "}
+                <strong>{moeda(saldoAnterior)}</strong>
+              </span>
 
-                <span
-                  style={{
-                    color: "#15803d",
-                  }}
-                >
-                  🟢 Entradas:{" "}
-                  <strong>
-                    {formatarMoeda(totalEntradas)}
-                  </strong>
-                </span>
+              <span style={{ color: "#15803d" }}>
+                🟢 Entradas:{" "}
+                <strong>{moeda(entradas)}</strong>
+              </span>
 
-                <span
-                  style={{
-                    color: "#dc2626",
-                  }}
-                >
-                  🔴 Saídas:{" "}
-                  <strong>
-                    {formatarMoeda(totalSaidas)}
-                  </strong>
-                </span>
+              <span style={{ color: "#dc2626" }}>
+                🔴 Saídas:{" "}
+                <strong>{moeda(saidas)}</strong>
+              </span>
 
-                <span>
-                  Saldo final:{" "}
-                  <strong>
-                    {formatarMoeda(saldoFinalPeriodo)}
-                  </strong>
-                </span>
-              </div>
-            )}
+              <span>
+                Saldo final:{" "}
+                <strong>{moeda(saldoPeriodo)}</strong>
+              </span>
+            </div>
+          )}
         </section>
       </div>
     </main>
   )
 }
 
-const thStyle = {
-  padding: "14px 16px",
-  textAlign: "left",
-  fontSize: "12px",
-  textTransform: "uppercase",
-  letterSpacing: "0.4px",
-  color: "#6b7280",
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-}
+const styles = {
+  main: {
+    minHeight: "100vh",
+    background: "#f5f7fa",
+    padding: "24px",
+    fontFamily: "Arial, Helvetica, sans-serif",
+    color: "#1f2937",
+  },
 
-const tdStyle = {
-  padding: "15px 16px",
-  fontSize: "14px",
-  verticalAlign: "middle",
-  whiteSpace: "nowrap",
+  container: {
+    maxWidth: "1400px",
+    margin: "0 auto",
+  },
+
+  acessoBox: {
+    background: "#fff",
+    borderRadius: "14px",
+    padding: "18px",
+    marginBottom: "22px",
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+  },
+
+  acessoTitulo: {
+    margin: "0 0 14px",
+    fontSize: "16px",
+  },
+
+  acessos: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
+
+  acesso: {
+    padding: "10px 14px",
+    borderRadius: "9px",
+    textDecoration: "none",
+    fontSize: "14px",
+    fontWeight: 600,
+    border: "1px solid #e5e7eb",
+  },
+
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "16px",
+    flexWrap: "wrap",
+    marginBottom: "24px",
+  },
+
+  titulo: {
+    margin: 0,
+    fontSize: "30px",
+  },
+
+  subtitulo: {
+    margin: "5px 0 0",
+    color: "#6b7280",
+  },
+
+  botaoAtualizar: {
+    border: "none",
+    borderRadius: "9px",
+    padding: "11px 18px",
+    background: "#111827",
+    color: "#fff",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+
+  saldoBox: {
+    background: "#fff",
+    borderRadius: "14px",
+    padding: "28px",
+    marginBottom: "20px",
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+  },
+
+  label: {
+    display: "block",
+    color: "#6b7280",
+    fontSize: "13px",
+    fontWeight: 700,
+    marginBottom: "6px",
+  },
+
+  saldo: {
+    fontSize: "40px",
+    fontWeight: 800,
+    marginBottom: "22px",
+  },
+
+  resumos: {
+    display: "flex",
+    gap: "35px",
+    flexWrap: "wrap",
+  },
+
+  filtros: {
+    background: "#fff",
+    borderRadius: "12px",
+    padding: "18px",
+    marginBottom: "20px",
+    border: "1px solid #e5e7eb",
+    display: "flex",
+    alignItems: "flex-end",
+    gap: "14px",
+    flexWrap: "wrap",
+  },
+
+  select: {
+    padding: "10px 12px",
+    borderRadius: "8px",
+    border: "1px solid #d1d5db",
+    background: "#fff",
+    minWidth: "140px",
+  },
+
+  periodo: {
+    paddingBottom: "10px",
+    color: "#6b7280",
+  },
+
+  erro: {
+    background: "#fef2f2",
+    color: "#b91c1c",
+    border: "1px solid #fecaca",
+    borderRadius: "10px",
+    padding: "14px",
+    marginBottom: "20px",
+  },
+
+  extratoBox: {
+    background: "#fff",
+    borderRadius: "14px",
+    border: "1px solid #e5e7eb",
+    overflow: "hidden",
+  },
+
+  extratoTitulo: {
+    padding: "20px",
+    borderBottom: "1px solid #e5e7eb",
+  },
+
+  vazio: {
+    padding: "50px 20px",
+    textAlign: "center",
+    color: "#6b7280",
+  },
+
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    minWidth: "950px",
+  },
+
+  th: {
+    padding: "14px 16px",
+    textAlign: "left",
+    fontSize: "12px",
+    color: "#6b7280",
+    background: "#f9fafb",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+  },
+
+  thRight: {
+    padding: "14px 16px",
+    textAlign: "right",
+    fontSize: "12px",
+    color: "#6b7280",
+    background: "#f9fafb",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+  },
+
+  td: {
+    padding: "15px 16px",
+    borderBottom: "1px solid #f0f0f0",
+    fontSize: "14px",
+    whiteSpace: "nowrap",
+  },
+
+  rodape: {
+    padding: "18px 20px",
+    borderTop: "1px solid #e5e7eb",
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "20px",
+    flexWrap: "wrap",
+    background: "#fafafa",
+  },
 }
