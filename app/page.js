@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../lib/supabase"
 
 export default function Dashboard() {
+const hoje = new Date()
+
 const [clientes, setClientes] = useState([])
 const [contratos, setContratos] = useState([])
 const [recebimentos, setRecebimentos] = useState([])
@@ -11,8 +13,6 @@ const [despesas, setDespesas] = useState([])
 
 const [carregando, setCarregando] = useState(true)
 const [erro, setErro] = useState("")
-
-const hoje = new Date()
 
 const [mes, setMes] = useState(hoje.getMonth() + 1)
 const [ano, setAno] = useState(hoje.getFullYear())
@@ -112,9 +112,10 @@ try {
   setContratos(contratosResult.data || [])
   setRecebimentos(recebimentosResult.data || [])
   setDespesas(despesasResult.data || [])
+
 } catch (error) {
   console.error(error)
-  setErro(error.message)
+  setErro(error.message || "Erro ao carregar os dados.")
 } finally {
   setCarregando(false)
 }
@@ -153,19 +154,17 @@ if (!item.data_despesa) return false
 
 }, [despesas, mes, ano])
 
-const recebimentosPagos = useMemo(() => {
+const entradasPagas = useMemo(() => {
 return recebimentosDoMes.filter(
 (item) =>
-String(item.status || "").toLowerCase() ===
-"pago"
+String(item.status || "").toLowerCase() === "pago"
 )
 }, [recebimentosDoMes])
 
-const despesasPagas = useMemo(() => {
+const saidasPagas = useMemo(() => {
 return despesasDoMes.filter(
 (item) =>
-String(item.status || "").toLowerCase() ===
-"pago"
+String(item.status || "").toLowerCase() === "pago"
 )
 }, [despesasDoMes])
 
@@ -177,41 +176,28 @@ total + Number(item.valor || 0),
 )
 }
 
-const totalRecebido = somar(recebimentosPagos)
+const totalEntradas = somar(entradasPagas)
+const totalSaidas = somar(saidasPagas)
 
-const totalDespesas = somar(despesasPagas)
+const saldoDisponivel =
+totalEntradas - totalSaidas
 
-const saldoFinanceiro =
-totalRecebido - totalDespesas
-
-const quantidadeClientes = clientes.length
-
-const quantidadeContratos = contratos.length
-
-const quantidadeRecebimentos =
-recebimentosPagos.length
-
-const quantidadeDespesas =
-despesasPagas.length
-
-const ultimosRecebimentos = recebimentosPagos
+const ultimasEntradas = entradasPagas
 .slice()
-.sort((a, b) => {
-return (
+.sort(
+(a, b) =>
 new Date(b.data_recebimento) -
 new Date(a.data_recebimento)
 )
-})
 .slice(0, 5)
 
-const ultimasDespesas = despesasPagas
+const ultimasSaidas = saidasPagas
 .slice()
-.sort((a, b) => {
-return (
+.sort(
+(a, b) =>
 new Date(b.data_despesa) -
 new Date(a.data_despesa)
 )
-})
 .slice(0, 5)
 
 function moeda(valor) {
@@ -262,6 +248,7 @@ return (
   {/* CABEÇALHO */}
 
   <div className="d-flex justify-content-between align-items-center mb-4">
+
     <div>
       <h1 className="fw-bold mb-1">
         Dashboard
@@ -277,78 +264,84 @@ return (
       onClick={carregarDados}
       disabled={carregando}
     >
-      {carregando ? "Atualizando..." : "🔄 Atualizar"}
+      {carregando
+        ? "Atualizando..."
+        : "🔄 Atualizar"}
     </button>
+
   </div>
 
   {/* ACESSO RÁPIDO */}
 
-<div className="card shadow-sm mb-4">
-  <div className="card-body">
+  <div className="card shadow-sm mb-4">
 
-    <h5 className="fw-bold mb-3">
-      ⚡ Acesso rápido
-    </h5>
+    <div className="card-body">
 
-    <div className="d-flex gap-2 flex-wrap">
+      <h5 className="fw-bold mb-3">
+        ⚡ Acesso rápido
+      </h5>
 
-      <a
-        href="/"
-        className="btn btn-primary"
-      >
-        🏠 Início
-      </a>
+      <div className="d-flex gap-2 flex-wrap">
 
-      <a
-        href="/clientes"
-        className="btn btn-light border"
-      >
-        👥 Clientes
-      </a>
+        <a
+          href="/"
+          className="btn btn-primary"
+        >
+          🏠 Início
+        </a>
 
-      <a
-        href="/imoveis"
-        className="btn btn-light border"
-      >
-        🏢 Imóveis
-      </a>
+        <a
+          href="/clientes"
+          className="btn btn-light border"
+        >
+          👥 Clientes
+        </a>
 
-      <a
-        href="/contratos"
-        className="btn btn-light border"
-      >
-        📄 Contratos
-      </a>
+        <a
+          href="/imoveis"
+          className="btn btn-light border"
+        >
+          🏢 Imóveis
+        </a>
 
-      <a
-        href="/recebimentos"
-        className="btn btn-light border"
-      >
-        💰 Recebimentos
-      </a>
+        <a
+          href="/contratos"
+          className="btn btn-light border"
+        >
+          📄 Contratos
+        </a>
 
-      <a
-        href="/despesas"
-        className="btn btn-light border"
-      >
-        💸 Despesas
-      </a>
+        <a
+          href="/recebimentos"
+          className="btn btn-light border"
+        >
+          💰 Recebimentos
+        </a>
 
-      <a
-        href="/financeiro"
-        className="btn btn-light border"
-      >
-        📊 Financeiro
-      </a>
+        <a
+          href="/despesas"
+          className="btn btn-light border"
+        >
+          💸 Despesas
+        </a>
+
+        <a
+          href="/financeiro"
+          className="btn btn-light border"
+        >
+          📊 Financeiro
+        </a>
+
+      </div>
 
     </div>
 
   </div>
-</div>
 
-  {/* FILTRO */}
+  {/* FILTRO DE PERÍODO */}
 
   <div className="card shadow-sm mb-4">
+
     <div className="card-body">
 
       <div className="row align-items-end g-3">
@@ -366,6 +359,7 @@ return (
               setMes(Number(e.target.value))
             }
           >
+
             {nomesMeses.map((nome, index) => (
               <option
                 key={index + 1}
@@ -374,6 +368,7 @@ return (
                 {nome}
               </option>
             ))}
+
           </select>
 
         </div>
@@ -391,18 +386,22 @@ return (
               setAno(Number(e.target.value))
             }
           >
+
             {Array.from(
               { length: 11 },
               (_, index) =>
                 hoje.getFullYear() - 5 + index
             ).map((valorAno) => (
+
               <option
                 key={valorAno}
                 value={valorAno}
               >
                 {valorAno}
               </option>
+
             ))}
+
           </select>
 
         </div>
@@ -439,12 +438,15 @@ return (
       </div>
 
       <div className="text-center mt-3">
+
         <h4 className="fw-bold mb-0">
           {nomesMeses[Number(mes) - 1]} / {ano}
         </h4>
+
       </div>
 
     </div>
+
   </div>
 
   {/* ERRO */}
@@ -473,121 +475,114 @@ return (
   ) : (
 
     <>
-{/* SALDO */}
 
-      <div className="card shadow-sm mb-5">
+      {/* SALDO DISPONÍVEL */}
 
-        <div className="card-body text-center py-4">
+      <div className="card shadow-sm mb-4">
 
-          <h4 className="fw-bold">
-            Saldo financeiro de{" "}
-            {nomesMeses[Number(mes) - 1]} / {ano}
-          </h4>
+        <div className="card-body text-center py-5">
+
+          <p className="text-muted mb-2">
+            Saldo disponível
+          </p>
 
           <h1
-            className={`fw-bold ${
-              saldoFinanceiro >= 0
+            className={`display-4 fw-bold ${
+              saldoDisponivel >= 0
                 ? "text-success"
                 : "text-danger"
             }`}
           >
-            {moeda(saldoFinanceiro)}
+            {moeda(saldoDisponivel)}
           </h1>
 
           <p className="text-muted mb-0">
-            Total recebido: {moeda(totalRecebido)}
-            {"  "}−{"  "}
-            Total de despesas: {moeda(totalDespesas)}
+            Saldo de{" "}
+            {nomesMeses[Number(mes) - 1]} / {ano}
           </p>
 
         </div>
 
       </div>
 
-      {/* RESUMO */}
+      {/* ENTRADAS E SAÍDAS */}
 
-      <div className="row g-3 mb-4">
+      <div className="row g-3 mb-5">
 
-        <div className="col-md-3">
+        <div className="col-md-6">
+
           <div className="card shadow-sm h-100 border-success border-3">
+
             <div className="card-body">
+
               <p className="text-muted mb-1">
-                Valores recebidos
+                📈 Entradas
               </p>
 
-              <h3 className="fw-bold text-success">
-                {moeda(totalRecebido)}
-              </h3>
+              <h2 className="fw-bold text-success">
+                {moeda(totalEntradas)}
+              </h2>
 
               <small className="text-muted">
-                {quantidadeRecebimentos} recebimento(s)
+                {entradasPagas.length} entrada(s)
+                recebida(s)
               </small>
+
             </div>
+
           </div>
+
         </div>
 
-        <div className="col-md-3">
+        <div className="col-md-6">
+
           <div className="card shadow-sm h-100 border-danger border-3">
+
             <div className="card-body">
+
               <p className="text-muted mb-1">
-                Despesas
+                📉 Saídas
               </p>
 
-              <h3 className="fw-bold text-danger">
-                {moeda(totalDespesas)}
-              </h3>
+              <h2 className="fw-bold text-danger">
+                {moeda(totalSaidas)}
+              </h2>
 
               <small className="text-muted">
-                {quantidadeDespesas} despesa(s)
+                {saidasPagas.length} saída(s)
+                registrada(s)
               </small>
+
             </div>
+
           </div>
+
         </div>
 
-        <div className="col-md-3">
-          <div className="card shadow-sm h-100 border-primary border-3">
-            <div className="card-body">
-              <p className="text-muted mb-1">
-                Saldo financeiro
-              </p>
+      </div>
 
-              <h3
-                className={`fw-bold ${
-                  saldoFinanceiro >= 0
-                    ? "text-primary"
-                    : "text-danger"
-                }`}
-              >
-                {moeda(saldoFinanceiro)}
-              </h3>
-
-              <small className="text-muted">
-                Recebimentos - despesas
-              </small>
-            </div>
-          </div>
-        </div>
-
-      {/* RECEBIMENTOS */}
+      {/* RESUMO DAS 5 ÚLTIMAS ENTRADAS */}
 
       <div className="card shadow-sm mb-5">
 
         <div className="card-header d-flex justify-content-between align-items-center">
+
           <h5 className="fw-bold mb-0">
-            💰 Valores recebidos
+            💰 Últimas entradas
           </h5>
 
           <span className="badge bg-success">
-            {moeda(totalRecebido)}
+            {moeda(totalEntradas)}
           </span>
+
         </div>
 
         <div className="card-body">
 
-          {ultimosRecebimentos.length === 0 ? (
+          {ultimasEntradas.length === 0 ? (
 
             <p className="text-center text-muted py-3 mb-0">
-              Nenhum recebimento pago neste mês.
+              Nenhuma entrada paga neste mês.
             </p>
 
           ) : (
@@ -597,18 +592,22 @@ return (
               <table className="table table-hover align-middle">
 
                 <thead>
+
                   <tr>
                     <th>Data</th>
                     <th>Cliente</th>
                     <th>Contrato</th>
                     <th>Categoria</th>
-                    <th>Valor</th>
+                    <th className="text-end">
+                      Valor
+                    </th>
                   </tr>
+
                 </thead>
 
                 <tbody>
 
-                  {ultimosRecebimentos.map((item) => (
+                  {ultimasEntradas.map((item) => (
 
                     <tr key={item.id}>
 
@@ -630,7 +629,7 @@ return (
                         {item.categoria || "-"}
                       </td>
 
-                      <td className="fw-bold text-success">
+                      <td className="text-end fw-bold text-success">
                         {moeda(item.valor)}
                       </td>
 
@@ -643,38 +642,42 @@ return (
               </table>
 
             </div>
+
           )}
 
           <a
             href="/recebimentos"
             className="btn btn-outline-success"
           >
-            Ver recebimentos
+            Ver todas as entradas
           </a>
 
         </div>
+
       </div>
 
-      {/* DESPESAS */}
+      {/* RESUMO DAS 5 ÚLTIMAS SAÍDAS */}
 
       <div className="card shadow-sm mb-5">
 
         <div className="card-header d-flex justify-content-between align-items-center">
+
           <h5 className="fw-bold mb-0">
-            💸 Despesas
+            💸 Últimas saídas
           </h5>
 
           <span className="badge bg-danger">
-            {moeda(totalDespesas)}
+            {moeda(totalSaidas)}
           </span>
+
         </div>
 
         <div className="card-body">
 
-          {ultimasDespesas.length === 0 ? (
+          {ultimasSaidas.length === 0 ? (
 
             <p className="text-center text-muted py-3 mb-0">
-              Nenhuma despesa paga neste mês.
+              Nenhuma saída paga neste mês.
             </p>
 
           ) : (
@@ -684,18 +687,22 @@ return (
               <table className="table table-hover align-middle">
 
                 <thead>
+
                   <tr>
                     <th>Data</th>
                     <th>Categoria</th>
                     <th>Descrição</th>
                     <th>Forma de pagamento</th>
-                    <th>Valor</th>
+                    <th className="text-end">
+                      Valor
+                    </th>
                   </tr>
+
                 </thead>
 
                 <tbody>
 
-                  {ultimasDespesas.map((item) => (
+                  {ultimasSaidas.map((item) => (
 
                     <tr key={item.id}>
 
@@ -717,7 +724,7 @@ return (
                         {item.forma_pagamento || "-"}
                       </td>
 
-                      <td className="fw-bold text-danger">
+                      <td className="text-end fw-bold text-danger">
                         {moeda(item.valor)}
                       </td>
 
@@ -730,21 +737,22 @@ return (
               </table>
 
             </div>
+
           )}
 
           <a
             href="/despesas"
             className="btn btn-outline-danger"
           >
-            Ver despesas
+            Ver todas as saídas
           </a>
 
         </div>
+
       </div>
 
-      
-
     </>
+
   )}
 
 </main>
