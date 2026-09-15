@@ -13,14 +13,23 @@ export default function Recebimentos() {
 
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
+
   const [mensagem, setMensagem] = useState("")
   const [erro, setErro] = useState("")
 
-  const [mes, setMes] = useState(hoje.getMonth() + 1)
-  const [ano, setAno] = useState(hoje.getFullYear())
+  const [mes, setMes] = useState(
+    hoje.getMonth() + 1
+  )
 
-  const [modalAberto, setModalAberto] = useState(false)
-  const [modoModal, setModoModal] = useState("novo")
+  const [ano, setAno] = useState(
+    hoje.getFullYear()
+  )
+
+  const [modalAberto, setModalAberto] =
+    useState(false)
+
+  const [modoModal, setModoModal] =
+    useState("novo")
 
   const [tipoRecebimento, setTipoRecebimento] =
     useState("aluguel_mensal")
@@ -28,8 +37,11 @@ export default function Recebimentos() {
   const [contratoSelecionado, setContratoSelecionado] =
     useState(null)
 
-  const [clienteId, setClienteId] = useState("")
-  const [imovelId, setImovelId] = useState("")
+  const [clienteId, setClienteId] =
+    useState("")
+
+  const [imovelId, setImovelId] =
+    useState("")
 
   const [competencia, setCompetencia] =
     useState(
@@ -50,7 +62,8 @@ export default function Recebimentos() {
   const [valorUnitario, setValorUnitario] =
     useState("")
 
-  const [valor, setValor] = useState("")
+  const [valor, setValor] =
+    useState("")
 
   const [desconto, setDesconto] =
     useState("")
@@ -102,22 +115,30 @@ export default function Recebimentos() {
       supabase
         .from("contratos")
         .select("*")
-        .order("id", { ascending: false }),
+        .order("id", {
+          ascending: false,
+        }),
 
       supabase
         .from("recebimentos")
         .select("*")
-        .order("id", { ascending: false }),
+        .order("id", {
+          ascending: false,
+        }),
 
       supabase
         .from("clientes")
         .select("*")
-        .order("id", { ascending: false }),
+        .order("id", {
+          ascending: false,
+        }),
 
       supabase
         .from("imoveis")
         .select("*")
-        .order("id", { ascending: false }),
+        .order("id", {
+          ascending: false,
+        }),
     ])
 
     if (contratosResponse.error) {
@@ -172,7 +193,9 @@ export default function Recebimentos() {
   }
 
   function formatarValor(valor) {
-    return Number(valor || 0).toLocaleString(
+    return Number(
+      valor || 0
+    ).toLocaleString(
       "pt-BR",
       {
         style: "currency",
@@ -182,9 +205,12 @@ export default function Recebimentos() {
   }
 
   function formatarData(data) {
-    if (!data) return "-"
+    if (!data) {
+      return "-"
+    }
 
-    const partes = String(data).split("-")
+    const partes =
+      String(data).split("-")
 
     if (partes.length !== 3) {
       return data
@@ -194,51 +220,66 @@ export default function Recebimentos() {
   }
 
   function contratoEstaAtivo(contrato) {
-    if (!contrato) return false
-
-    if (
-      String(contrato.status).toLowerCase() !==
-      "ativo"
-    ) {
+    if (!contrato) {
       return false
     }
 
-    return true
+    return (
+      String(
+        contrato.status
+      ).toLowerCase() === "ativo"
+    )
   }
 
-  const contratosAtivos = useMemo(() => {
-    return contratos.filter(contratoEstaAtivo)
-  }, [contratos])
+  const contratosAtivos =
+    useMemo(() => {
+      return contratos.filter(
+        contratoEstaAtivo
+      )
+    }, [contratos])
 
-  function obterDataVencimento(contrato) {
-    if (!contrato?.inicio) return null
-
-    const inicio = new Date(
-      `${contrato.inicio}T00:00:00`
-    )
-
-    if (Number.isNaN(inicio.getTime())) {
+  function obterDataVencimento(
+    contrato
+  ) {
+    if (!contrato?.inicio) {
       return null
     }
 
-    const dia = inicio.getDate()
+    const inicio =
+      new Date(
+        `${contrato.inicio}T00:00:00`
+      )
 
-    const ultimoDia = new Date(
-      ano,
-      mes,
-      0
-    ).getDate()
+    if (
+      Number.isNaN(
+        inicio.getTime()
+      )
+    ) {
+      return null
+    }
 
-    const diaFinal = Math.min(
-      dia,
-      ultimoDia
-    )
+    const dia =
+      inicio.getDate()
 
-    const data = new Date(
-      ano,
-      mes - 1,
-      diaFinal
-    )
+    const ultimoDia =
+      new Date(
+        ano,
+        mes,
+        0
+      ).getDate()
+
+    const diaFinal =
+      Math.min(
+        dia,
+        ultimoDia
+      )
+
+    const data =
+      new Date(
+        ano,
+        mes - 1,
+        diaFinal
+      )
 
     return `${data.getFullYear()}-${String(
       data.getMonth() + 1
@@ -247,52 +288,67 @@ export default function Recebimentos() {
     ).padStart(2, "0")}`
   }
 
-  function buscarRecebimento(contratoId) {
+  function buscarRecebimento(
+    contratoId
+  ) {
     return recebimentos.find(
       (item) =>
-        String(item.contrato_id) ===
+        String(
+          item.contrato_id
+        ) ===
         String(contratoId)
     )
   }
 
-  const pendentes = useMemo(() => {
-    return contratosAtivos
-      .map((contrato) => {
-        const recebimento =
-          buscarRecebimento(contrato.id)
+  const pendentes =
+    useMemo(() => {
+      return contratosAtivos
+        .map((contrato) => {
+          const recebimento =
+            buscarRecebimento(
+              contrato.id
+            )
 
-        if (
-          recebimento &&
+          if (
+            recebimento &&
+            String(
+              recebimento.status
+            ).toLowerCase() ===
+              "recebido"
+          ) {
+            return null
+          }
+
+          return {
+            ...contrato,
+
+            vencimento:
+              recebimento?.data_vencimento ||
+              obterDataVencimento(
+                contrato
+              ),
+
+            recebimento,
+          }
+        })
+        .filter(Boolean)
+    }, [
+      contratosAtivos,
+      recebimentos,
+      mes,
+      ano,
+    ])
+
+  const recebidos =
+    useMemo(() => {
+      return recebimentos.filter(
+        (item) =>
           String(
-            recebimento.status
-          ).toLowerCase() === "recebido"
-        ) {
-          return null
-        }
-
-        return {
-          ...contrato,
-          vencimento:
-            recebimento?.data_vencimento ||
-            obterDataVencimento(contrato),
-          recebimento,
-        }
-      })
-      .filter(Boolean)
-  }, [
-    contratosAtivos,
-    recebimentos,
-    mes,
-    ano,
-  ])
-
-  const recebidos = useMemo(() => {
-    return recebimentos.filter(
-      (item) =>
-        String(item.status).toLowerCase() ===
-        "recebido"
-    )
-  }, [recebimentos])
+            item.status
+          ).toLowerCase() ===
+          "recebido"
+      )
+    }, [recebimentos])
 
   const quantidadePendentes =
     pendentes.length
@@ -301,7 +357,9 @@ export default function Recebimentos() {
     pendentes.reduce(
       (total, item) =>
         total +
-        Number(item.valor || 0),
+        Number(
+          item.valor || 0
+        ),
       0
     )
 
@@ -312,13 +370,20 @@ export default function Recebimentos() {
     recebidos.reduce(
       (total, item) =>
         total +
-        Number(item.valor || 0),
+        Number(
+          item.valor || 0
+        ),
       0
     )
 
   function limparFormulario() {
-    setTipoRecebimento("aluguel_mensal")
-    setContratoSelecionado(null)
+    setTipoRecebimento(
+      "aluguel_mensal"
+    )
+
+    setContratoSelecionado(
+      null
+    )
 
     setClienteId("")
     setImovelId("")
@@ -328,8 +393,11 @@ export default function Recebimentos() {
     )
 
     setDataVencimento("")
+
     setDataRecebimento(
-      hoje.toISOString().split("T")[0]
+      hoje
+        .toISOString()
+        .split("T")[0]
     )
 
     setQuantidade(1)
@@ -344,48 +412,64 @@ export default function Recebimentos() {
 
     setFormaPagamento("PIX")
     setStatus("Pendente")
+
     setDescricao("")
     setObservacoes("")
   }
 
   function abrirNovoRecebimento() {
     limparFormulario()
+
     setModoModal("novo")
     setMensagem("")
     setErro("")
     setModalAberto(true)
   }
 
-  function abrirModalRecebimento(contrato) {
+  function abrirModalRecebimento(
+    contrato
+  ) {
     limparFormulario()
 
     setModoModal("acusar")
-    setContratoSelecionado(contrato)
+
+    setContratoSelecionado(
+      contrato
+    )
 
     setClienteId(
       contrato.cliente_id
-        ? String(contrato.cliente_id)
+        ? String(
+            contrato.cliente_id
+          )
         : ""
     )
 
     setImovelId(
       contrato.imovel_id
-        ? String(contrato.imovel_id)
+        ? String(
+            contrato.imovel_id
+          )
         : ""
     )
 
     setTipoRecebimento(
-      contrato.tipo === "Temporada"
+      contrato.tipo ===
+        "Temporada"
         ? "diaria"
         : "aluguel_mensal"
     )
 
     setValor(
-      Number(contrato.valor || 0)
+      Number(
+        contrato.valor || 0
+      )
     )
 
     setDataVencimento(
-      obterDataVencimento(contrato) || ""
+      obterDataVencimento(
+        contrato
+      ) || ""
     )
 
     setStatus("Recebido")
@@ -396,22 +480,34 @@ export default function Recebimentos() {
   }
 
   function fecharModal() {
-    if (salvando) return
+    if (salvando) {
+      return
+    }
 
     setModalAberto(false)
-    setContratoSelecionado(null)
+
+    setContratoSelecionado(
+      null
+    )
+
     limparFormulario()
   }
 
   function obterNomeCliente(id) {
-    if (!id) return ""
+    if (!id) {
+      return ""
+    }
 
-    const cliente = clientes.find(
-      (item) =>
-        String(item.id) === String(id)
-    )
+    const cliente =
+      clientes.find(
+        (item) =>
+          String(item.id) ===
+          String(id)
+      )
 
-    if (!cliente) return ""
+    if (!cliente) {
+      return ""
+    }
 
     return (
       cliente.nome ||
@@ -423,14 +519,20 @@ export default function Recebimentos() {
   }
 
   function obterNomeImovel(id) {
-    if (!id) return ""
+    if (!id) {
+      return ""
+    }
 
-    const imovel = imoveis.find(
-      (item) =>
-        String(item.id) === String(id)
-    )
+    const imovel =
+      imoveis.find(
+        (item) =>
+          String(item.id) ===
+          String(id)
+      )
 
-    if (!imovel) return ""
+    if (!imovel) {
+      return ""
+    }
 
     return (
       imovel.nome ||
@@ -443,17 +545,27 @@ export default function Recebimentos() {
 
   function calcularTotalDiaria() {
     return (
-      Number(quantidade || 0) *
-      Number(valorUnitario || 0)
+      Number(
+        quantidade || 0
+      ) *
+      Number(
+        valorUnitario || 0
+      )
     )
   }
 
   function calcularTotalVenda() {
     return Math.max(
       0,
-      Number(quantidade || 0) *
-        Number(valorUnitario || 0) -
-        Number(desconto || 0)
+      Number(
+        quantidade || 0
+      ) *
+        Number(
+          valorUnitario || 0
+        ) -
+        Number(
+          desconto || 0
+        )
     )
   }
 
@@ -462,11 +574,12 @@ export default function Recebimentos() {
       Number(valor || 0) /
       Math.max(
         1,
-        Number(totalParcelas || 1)
+        Number(
+          totalParcelas || 1
+        )
       )
     )
   }
-
   async function salvarRecebimento() {
     setErro("")
     setMensagem("")
@@ -526,10 +639,10 @@ export default function Recebimentos() {
     let valorFinal = 0
 
     if (
-      tipoRecebimento ===
-      "aluguel_mensal"
+      tipoRecebimento === "aluguel_mensal"
     ) {
-      valorFinal = Number(valor || 0)
+      valorFinal =
+        Number(valor || 0)
     }
 
     if (
@@ -540,26 +653,28 @@ export default function Recebimentos() {
     }
 
     if (
-      tipoRecebimento ===
-      "venda_unitaria"
+      tipoRecebimento === "venda_unitaria"
     ) {
       valorFinal =
         calcularTotalVenda()
     }
 
     if (
-      tipoRecebimento ===
-      "venda_parcelada"
+      tipoRecebimento === "venda_parcelada"
     ) {
       valorFinal =
         calcularValorParcela()
     }
 
     const clienteNome =
-      obterNomeCliente(clienteId)
+      obterNomeCliente(
+        clienteId
+      )
 
     const imovelNome =
-      obterNomeImovel(imovelId)
+      obterNomeImovel(
+        imovelId
+      )
 
     const dadosBase = {
       tipo_recebimento:
@@ -591,16 +706,24 @@ export default function Recebimentos() {
           : null,
 
       quantidade:
-        Number(quantidade || 0),
+        Number(
+          quantidade || 0
+        ),
 
       valor_unitario:
-        Number(valorUnitario || 0),
+        Number(
+          valorUnitario || 0
+        ),
 
       valor:
-        Number(valorFinal || 0),
+        Number(
+          valorFinal || 0
+        ),
 
       desconto:
-        Number(desconto || 0),
+        Number(
+          desconto || 0
+        ),
 
       forma_pagamento:
         formaPagamento,
@@ -610,7 +733,8 @@ export default function Recebimentos() {
       descricao:
         descricao ||
         `${tipoRecebimento} - ${
-          clienteNome || "Cliente"
+          clienteNome ||
+          "Cliente"
         }${
           imovelNome
             ? ` - ${imovelNome}`
@@ -623,7 +747,9 @@ export default function Recebimentos() {
       parcela:
         tipoRecebimento ===
         "venda_parcelada"
-          ? Number(parcela || 1)
+          ? Number(
+              parcela || 1
+            )
           : null,
 
       total_parcelas:
@@ -659,14 +785,17 @@ export default function Recebimentos() {
       modoModal === "acusar" &&
       contratoSelecionado?.recebimento?.id
     ) {
-      resposta = await supabase
-        .from("recebimentos")
-        .update(dadosBase)
-        .eq(
-          "id",
-          contratoSelecionado
-            .recebimento.id
-        )
+      resposta =
+        await supabase
+          .from("recebimentos")
+          .update(
+            dadosBase
+          )
+          .eq(
+            "id",
+            contratoSelecionado
+              .recebimento.id
+          )
     } else if (
       tipoRecebimento ===
       "venda_parcelada"
@@ -674,7 +803,9 @@ export default function Recebimentos() {
       const quantidadeParcelas =
         Math.max(
           1,
-          Number(totalParcelas || 1)
+          Number(
+            totalParcelas || 1
+          )
         )
 
       const valorParcela =
@@ -709,9 +840,15 @@ export default function Recebimentos() {
           vencimento =
             `${data.getFullYear()}-${String(
               data.getMonth() + 1
-            ).padStart(2, "0")}-${String(
+            ).padStart(
+              2,
+              "0"
+            )}-${String(
               data.getDate()
-            ).padStart(2, "0")}`
+            ).padStart(
+              2,
+              "0"
+            )}`
         }
 
         registros.push({
@@ -724,7 +861,9 @@ export default function Recebimentos() {
 
           valor:
             Number(
-              valorParcela.toFixed(2)
+              valorParcela.toFixed(
+                2
+              )
             ),
 
           data_vencimento:
@@ -744,13 +883,19 @@ export default function Recebimentos() {
         })
       }
 
-      resposta = await supabase
-        .from("recebimentos")
-        .insert(registros)
+      resposta =
+        await supabase
+          .from("recebimentos")
+          .insert(
+            registros
+          )
     } else {
-      resposta = await supabase
-        .from("recebimentos")
-        .insert([dadosBase])
+      resposta =
+        await supabase
+          .from("recebimentos")
+          .insert([
+            dadosBase,
+          ])
     }
 
     if (resposta.error) {
@@ -768,7 +913,11 @@ export default function Recebimentos() {
     }
 
     setModalAberto(false)
-    setContratoSelecionado(null)
+
+    setContratoSelecionado(
+      null
+    )
+
     setSalvando(false)
 
     setMensagem(
@@ -781,8 +930,11 @@ export default function Recebimentos() {
   }
 
   function mudarMes(valor) {
-    let novoMes = mes + valor
-    let novoAno = ano
+    let novoMes =
+      mes + valor
+
+    let novoAno =
+      ano
 
     if (novoMes > 12) {
       novoMes = 1
@@ -814,7 +966,9 @@ export default function Recebimentos() {
       "Dezembro",
     ]
 
-    return nomes[numero - 1]
+    return nomes[
+      numero - 1
+    ]
   }
 
   function abrirWhatsAppLembrete(
@@ -849,7 +1003,9 @@ export default function Recebimentos() {
       `Obrigado!`
 
     const numero =
-      String(telefone).replace(
+      String(
+        telefone
+      ).replace(
         /\D/g,
         ""
       )
@@ -893,7 +1049,9 @@ export default function Recebimentos() {
       ""
 
     const numero =
-      String(telefone).replace(
+      String(
+        telefone
+      ).replace(
         /\D/g,
         ""
       )
@@ -914,7 +1072,6 @@ export default function Recebimentos() {
 
   return (
     <main className="container py-4">
-
       {/* TÍTULO */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
 
@@ -933,9 +1090,7 @@ export default function Recebimentos() {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={
-              abrirNovoRecebimento
-            }
+            onClick={abrirNovoRecebimento}
           >
             ➕ Novo recebimento
           </button>
@@ -952,7 +1107,6 @@ export default function Recebimentos() {
           </button>
 
         </div>
-
       </div>
 
       {/* ACESSO RÁPIDO */}
@@ -1018,7 +1172,6 @@ export default function Recebimentos() {
           </div>
 
         </div>
-
       </div>
 
       {/* MENSAGENS */}
@@ -1034,85 +1187,91 @@ export default function Recebimentos() {
         </div>
       )}
 
-            {/* PERÍODO */}
+      {/* PERÍODO */}
       <div className="card shadow-sm mb-4">
+
         <div className="card-body">
+
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
 
             <div>
               <h5 className="fw-bold mb-1">
-                Período dos recebimentos
+                📅 Período
               </h5>
 
               <span className="text-muted">
-                Visualizando {nomeMes(mes)} de {ano}
+                Visualização dos recebimentos
               </span>
             </div>
 
-            <div className="d-flex gap-2">
-              <button
-                type="button"
-                className="btn btn-light border"
-                onClick={() => mudarMes(-1)}
-              >
-                ← Anterior
-              </button>
+            <div className="d-flex align-items-center gap-2">
 
               <button
                 type="button"
-                className="btn btn-light border"
-                onClick={() => mudarMes(1)}
+                className="btn btn-outline-secondary"
+                onClick={() =>
+                  mudarMes(-1)
+                }
               >
-                Próximo →
+                ◀
               </button>
+
+              <div
+                className="fw-bold text-center"
+                style={{
+                  minWidth: "150px",
+                }}
+              >
+                {nomeMes(mes)}{" "}
+                {ano}
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() =>
+                  mudarMes(1)
+                }
+              >
+                ▶
+              </button>
+
             </div>
 
           </div>
+
         </div>
       </div>
 
       {/* RESUMO */}
       <div className="row g-3 mb-4">
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card shadow-sm border-0 h-100">
+        <div className="col-md-3">
+          <div className="card shadow-sm h-100 border-0">
             <div className="card-body">
+
               <div className="text-muted small">
                 Pendentes
               </div>
 
-              <div className="fs-3 fw-bold text-danger">
+              <div className="fs-3 fw-bold text-warning">
                 {quantidadePendentes}
               </div>
 
               <div className="small text-muted">
-                aguardando pagamento
+                {formatarValor(
+                  valorPendente
+                )}
               </div>
+
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card shadow-sm border-0 h-100">
+        <div className="col-md-3">
+          <div className="card shadow-sm h-100 border-0">
             <div className="card-body">
-              <div className="text-muted small">
-                Valor pendente
-              </div>
 
-              <div className="fs-4 fw-bold text-danger">
-                {formatarValor(valorPendente)}
-              </div>
-
-              <div className="small text-muted">
-                total a receber
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-body">
               <div className="text-muted small">
                 Recebidos
               </div>
@@ -1122,414 +1281,357 @@ export default function Recebimentos() {
               </div>
 
               <div className="small text-muted">
-                pagamentos confirmados
+                {formatarValor(
+                  valorRecebido
+                )}
               </div>
+
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card shadow-sm border-0 h-100">
+        <div className="col-md-3">
+          <div className="card shadow-sm h-100 border-0">
             <div className="card-body">
+
               <div className="text-muted small">
-                Total recebido
+                Total previsto
               </div>
 
-              <div className="fs-4 fw-bold text-success">
-                {formatarValor(valorRecebido)}
+              <div className="fs-3 fw-bold text-primary">
+                {formatarValor(
+                  valorPendente +
+                    valorRecebido
+                )}
               </div>
 
               <div className="small text-muted">
-                pagamentos confirmados
+                Pendentes + recebidos
               </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-3">
+          <div className="card shadow-sm h-100 border-0">
+            <div className="card-body">
+
+              <div className="text-muted small">
+                Contratos ativos
+              </div>
+
+              <div className="fs-3 fw-bold">
+                {contratosAtivos.length}
+              </div>
+
+              <div className="small text-muted">
+                Contratos em andamento
+              </div>
+
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* PENDENTES E RECEBIDOS */}
-      <div className="row g-4">
+      {/* RECEBIMENTOS PENDENTES */}
+      <div className="card shadow-sm mb-4">
 
-        {/* PENDENTES */}
-        <div className="col-12 col-md-6">
+        <div className="card-header bg-white">
 
-          <div className="card shadow-sm border-0 h-100">
+          <div className="d-flex justify-content-between align-items-center">
 
-            <div className="card-header bg-white border-0 pt-4 px-4">
+            <h5 className="fw-bold mb-0">
+              💰 Recebimentos pendentes
+            </h5>
 
-              <div className="d-flex justify-content-between align-items-center">
-
-                <div>
-                  <h4 className="fw-bold text-danger mb-1">
-                    🔴 Pendentes
-                  </h4>
-
-                  <small className="text-muted">
-                    Pagamentos aguardando recebimento
-                  </small>
-                </div>
-
-                <span className="badge rounded-pill bg-danger">
-                  {quantidadePendentes}
-                </span>
-
-              </div>
-
-            </div>
-
-            <div className="card-body px-4">
-
-              {carregando ? (
-
-                <div className="text-center py-5">
-
-                  <div className="spinner-border text-primary" />
-
-                  <p className="text-muted mt-3 mb-0">
-                    Carregando recebimentos...
-                  </p>
-
-                </div>
-
-              ) : pendentes.length === 0 ? (
-
-                <div className="text-center py-5">
-
-                  <div className="fs-1">
-                    🎉
-                  </div>
-
-                  <h5 className="fw-bold mt-3">
-                    Nenhum pagamento pendente
-                  </h5>
-
-                  <p className="text-muted mb-0">
-                    Não existem pagamentos pendentes.
-                  </p>
-
-                </div>
-
-              ) : (
-
-                <div className="d-flex flex-column gap-3">
-
-                  {pendentes.map((contrato) => (
-
-                    <div
-                      key={contrato.id}
-                      className="border rounded-4 p-3 bg-light"
-                    >
-
-                      <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
-
-                        <div>
-
-                          <h5 className="fw-bold mb-1">
-                            {contrato.cliente ||
-                              "Cliente não informado"}
-                          </h5>
-
-                          <div className="text-muted">
-                            🏢{" "}
-                            {contrato.imovel ||
-                              "Imóvel não informado"}
-                          </div>
-
-                        </div>
-
-                        <span className="badge bg-danger">
-                          Pendente
-                        </span>
-
-                      </div>
-
-                      <div className="row g-2 mb-3">
-
-                        <div className="col-6">
-                          <div className="bg-white rounded-3 p-2">
-
-                            <small className="text-muted d-block">
-                              Vencimento
-                            </small>
-
-                            <strong>
-                              {formatarData(
-                                contrato.vencimento
-                              )}
-                            </strong>
-
-                          </div>
-                        </div>
-
-                        <div className="col-6">
-                          <div className="bg-white rounded-3 p-2">
-
-                            <small className="text-muted d-block">
-                              Valor
-                            </small>
-
-                            <strong className="text-primary">
-                              {formatarValor(
-                                contrato.valor
-                              )}
-                            </strong>
-
-                          </div>
-                        </div>
-
-                      </div>
-
-                      <div className="d-grid gap-2">
-
-                        <button
-                          type="button"
-                          className="btn btn-success"
-                          onClick={() =>
-                            abrirModalRecebimento(
-                              contrato
-                            )
-                          }
-                        >
-                          💰 Acusar recebimento
-                        </button>
-
-                        <button
-                          type="button"
-                          className="btn btn-outline-success"
-                          onClick={() =>
-                            abrirWhatsAppLembrete(
-                              contrato
-                            )
-                          }
-                        >
-                          📱 Lembrar do pagamento
-                        </button>
-
-                      </div>
-
-                    </div>
-
-                  ))}
-
-                </div>
-
-              )}
-
-            </div>
+            <span className="badge bg-warning text-dark">
+              {pendentes.length}
+            </span>
 
           </div>
 
         </div>
 
-        {/* RECEBIDOS */}
-        <div className="col-12 col-md-6">
+        <div className="card-body p-0">
 
-          <div className="card shadow-sm border-0 h-100">
-
-            <div className="card-header bg-white border-0 pt-4 px-4">
-
-              <div className="d-flex justify-content-between align-items-center">
-
-                <div>
-
-                  <h4 className="fw-bold text-success mb-1">
-                    🟢 Recebidos
-                  </h4>
-
-                  <small className="text-muted">
-                    Pagamentos confirmados
-                  </small>
-
-                </div>
-
-                <span className="badge rounded-pill bg-success">
-                  {quantidadeRecebidos}
-                </span>
-
-              </div>
-
+          {carregando ? (
+            <div className="p-4 text-center text-muted">
+              Carregando recebimentos...
             </div>
+          ) : pendentes.length === 0 ? (
+            <div className="p-4 text-center text-muted">
+              Nenhum recebimento pendente encontrado.
+            </div>
+          ) : (
+            <div className="table-responsive">
 
-            <div className="card-body px-4">
+              <table className="table table-hover align-middle mb-0">
 
-              {carregando ? (
+                <thead className="table-light">
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Imóvel</th>
+                    <th>Vencimento</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th className="text-end">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
 
-                <div className="text-center py-5">
+                <tbody>
 
-                  <div className="spinner-border text-primary" />
+                  {pendentes.map(
+                    (item) => {
 
-                  <p className="text-muted mt-3 mb-0">
-                    Carregando recebimentos...
-                  </p>
+                      const cliente =
+                        obterNomeCliente(
+                          item.cliente_id
+                        ) ||
+                        item.cliente ||
+                        "Cliente"
 
-                </div>
+                      const imovel =
+                        obterNomeImovel(
+                          item.imovel_id
+                        ) ||
+                        item.imovel ||
+                        "Imóvel"
 
-              ) : recebidos.length === 0 ? (
+                      return (
+                        <tr
+                          key={
+                            item.id
+                          }
+                        >
 
-                <div className="text-center py-5">
-
-                  <div className="fs-1">
-                    💰
-                  </div>
-
-                  <h5 className="fw-bold mt-3">
-                    Nenhum pagamento recebido
-                  </h5>
-
-                  <p className="text-muted mb-0">
-                    Ainda não existem recebimentos.
-                  </p>
-
-                </div>
-
-              ) : (
-
-                <div className="d-flex flex-column gap-3">
-
-                  {recebidos.map((recebimento) => (
-
-                    <div
-                      key={recebimento.id}
-                      className="border rounded-4 p-3"
-                    >
-
-                      <div className="d-flex justify-content-between align-items-start gap-2 mb-3">
-
-                        <div>
-
-                          <h5 className="fw-bold mb-1">
-                            {recebimento.descricao ||
-                              "Pagamento recebido"}
-                          </h5>
-
-                          <div className="text-muted">
-
-                            {recebimento.tipo_recebimento ===
-                            "aluguel_mensal"
-                              ? "🏠 Aluguel mensal"
-                              : recebimento.tipo_recebimento ===
-                                "diaria"
-                              ? "📅 Diária"
-                              : recebimento.tipo_recebimento ===
-                                "venda_unitaria"
-                              ? "🏷️ Venda unitária"
-                              : "📑 Venda parcelada"}
-
-                          </div>
-
-                        </div>
-
-                        <span className="badge bg-success">
-                          Recebido
-                        </span>
-
-                      </div>
-
-                      <div className="row g-2 mb-3">
-
-                        <div className="col-6">
-                          <div className="bg-light rounded-3 p-2">
-
-                            <small className="text-muted d-block">
-                              Data
-                            </small>
-
+                          <td>
                             <strong>
-                              {formatarData(
-                                recebimento.data_recebimento
-                              )}
+                              {cliente}
                             </strong>
+                          </td>
 
-                          </div>
-                        </div>
+                          <td>
+                            {imovel}
+                          </td>
 
-                        <div className="col-6">
-                          <div className="bg-light rounded-3 p-2">
+                          <td>
+                            {formatarData(
+                              item.vencimento
+                            )}
+                          </td>
 
-                            <small className="text-muted d-block">
-                              Valor
-                            </small>
+                          <td className="fw-semibold">
+                            {formatarValor(
+                              item.recebimento?.valor ||
+                                item.valor
+                            )}
+                          </td>
 
-                            <strong className="text-success">
-                              {formatarValor(
-                                recebimento.valor
-                              )}
-                            </strong>
+                          <td>
+                            <span className="badge bg-warning text-dark">
+                              Pendente
+                            </span>
+                          </td>
 
-                          </div>
-                        </div>
+                          <td>
+                            <div className="d-flex justify-content-end gap-2 flex-wrap">
 
-                      </div>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-success"
+                                onClick={() =>
+                                  abrirModalRecebimento(
+                                    item
+                                  )
+                                }
+                              >
+                                ✓ Acusar recebimento
+                              </button>
 
-                      {recebimento.forma_pagamento && (
-                        <div className="small text-muted mb-3">
-                          💳 Forma de pagamento:{" "}
-                          {recebimento.forma_pagamento}
-                        </div>
-                      )}
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-success"
+                                onClick={() =>
+                                  abrirWhatsAppLembrete(
+                                    item
+                                  )
+                                }
+                              >
+                                WhatsApp
+                              </button>
 
-                      <button
-                        type="button"
-                        className="btn btn-outline-success w-100"
-                        onClick={() =>
-                          abrirWhatsAppConfirmacao(
-                            recebimento
-                          )
-                        }
-                      >
-                        📱 Confirmação de pagamento
-                      </button>
+                            </div>
+                          </td>
 
-                    </div>
+                        </tr>
+                      )
+                    }
+                  )}
 
-                  ))}
+                </tbody>
 
-                </div>
-
-              )}
+              </table>
 
             </div>
-
-          </div>
+          )}
 
         </div>
-
       </div>
 
-      {/* MODAL NOVO RECEBIMENTO / ACUSAR RECEBIMENTO */}
+      {/* RECEBIMENTOS REALIZADOS */}
+      <div className="card shadow-sm mb-4">
+
+        <div className="card-header bg-white">
+
+          <div className="d-flex justify-content-between align-items-center">
+
+            <h5 className="fw-bold mb-0">
+              ✅ Recebimentos realizados
+            </h5>
+
+            <span className="badge bg-success">
+              {recebidos.length}
+            </span>
+
+          </div>
+
+        </div>
+
+        <div className="card-body p-0">
+
+          {recebidos.length === 0 ? (
+            <div className="p-4 text-center text-muted">
+              Nenhum recebimento realizado.
+            </div>
+          ) : (
+            <div className="table-responsive">
+
+              <table className="table table-hover align-middle mb-0">
+
+                <thead className="table-light">
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Descrição</th>
+                    <th>Vencimento</th>
+                    <th>Recebimento</th>
+                    <th>Valor</th>
+                    <th>Pagamento</th>
+                    <th className="text-end">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  {recebidos.map(
+                    (item) => {
+
+                      const cliente =
+                        obterNomeCliente(
+                          item.cliente_id
+                        ) ||
+                        item.cliente ||
+                        "Cliente"
+
+                      return (
+                        <tr
+                          key={
+                            item.id
+                          }
+                        >
+
+                          <td>
+                            <strong>
+                              {cliente}
+                            </strong>
+                          </td>
+
+                          <td>
+                            {item.descricao ||
+                              "-"}
+                          </td>
+
+                          <td>
+                            {formatarData(
+                              item.data_vencimento
+                            )}
+                          </td>
+
+                          <td>
+                            {formatarData(
+                              item.data_recebimento
+                            )}
+                          </td>
+
+                          <td className="fw-semibold text-success">
+                            {formatarValor(
+                              item.valor
+                            )}
+                          </td>
+
+                          <td>
+                            {item.forma_pagamento ||
+                              "-"}
+                          </td>
+
+                          <td>
+                            <div className="d-flex justify-content-end">
+
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-success"
+                                onClick={() =>
+                                  abrirWhatsAppConfirmacao(
+                                    item
+                                  )
+                                }
+                              >
+                                WhatsApp
+                              </button>
+
+                            </div>
+                          </td>
+
+                        </tr>
+                      )
+                    }
+                  )}
+
+                </tbody>
+
+              </table>
+
+            </div>
+          )}
+
+        </div>
+      </div>
+      {/* MODAL */}
       {modalAberto && (
-
         <div
           className="modal d-block"
           tabIndex="-1"
           style={{
-            backgroundColor: "rgba(0,0,0,0.5)",
+            backgroundColor:
+              "rgba(0,0,0,0.5)",
           }}
         >
-
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-
+          <div className="modal-dialog modal-xl modal-dialog-scrollable">
             <div className="modal-content">
 
-              {/* CABEÇALHO DO MODAL */}
+              {/* CABEÇALHO */}
               <div className="modal-header">
 
-                <div>
-
-                  <h5 className="modal-title fw-bold">
-                    {modoModal === "acusar"
-                      ? "💰 Acusar recebimento"
-                      : "➕ Novo recebimento"}
-                  </h5>
-
-                  <small className="text-muted">
-                    {modoModal === "acusar"
-                      ? "Confirme os dados do pagamento."
-                      : "Cadastre um novo recebimento."}
-                  </small>
-
-                </div>
+                <h5 className="modal-title fw-bold">
+                  {modoModal === "acusar"
+                    ? "✓ Acusar recebimento"
+                    : "➕ Novo recebimento"}
+                </h5>
 
                 <button
                   type="button"
@@ -1543,18 +1645,25 @@ export default function Recebimentos() {
               {/* CORPO */}
               <div className="modal-body">
 
-                {erro && (
-                  <div className="alert alert-danger">
-                    {erro}
+                {modoModal === "acusar" && (
+                  <div className="alert alert-info">
+                    <strong>
+                      Registro de pagamento
+                    </strong>
+
+                    <br />
+
+                    Informe os dados do recebimento
+                    e confirme para registrar o pagamento.
                   </div>
                 )}
 
-                {/* TIPO */}
-                {modoModal === "novo" && (
+                <div className="row g-3">
 
-                  <div className="mb-4">
+                  {/* TIPO */}
+                  <div className="col-md-6">
 
-                    <label className="form-label fw-bold">
+                    <label className="form-label fw-semibold">
                       Tipo de recebimento
                     </label>
 
@@ -1566,201 +1675,209 @@ export default function Recebimentos() {
                           e.target.value
                         )
                       }
+                      disabled={
+                        modoModal === "acusar"
+                      }
                     >
 
                       <option value="aluguel_mensal">
-                        🏠 Aluguel mês a mês
+                        Aluguel mensal
                       </option>
 
                       <option value="diaria">
-                        📅 Por diária
+                        Diária
                       </option>
 
                       <option value="venda_unitaria">
-                        🏷️ Venda unitária
+                        Venda unitária
                       </option>
 
                       <option value="venda_parcelada">
-                        📑 Venda parcelada
+                        Venda parcelada
                       </option>
 
                     </select>
 
                   </div>
 
-                )}
+                  {/* CLIENTE */}
+                  <div className="col-md-6">
 
-                {/* DADOS DO CONTRATO */}
-                {modoModal === "acusar" && (
+                    <label className="form-label fw-semibold">
+                      Cliente
+                    </label>
 
-                  <div className="alert alert-light border">
+                    <select
+                      className="form-select"
+                      value={clienteId}
+                      onChange={(e) =>
+                        setClienteId(
+                          e.target.value
+                        )
+                      }
+                    >
 
-                    <div className="fw-bold">
-                      {contratoSelecionado?.cliente ||
-                        "Cliente não informado"}
-                    </div>
+                      <option value="">
+                        Selecione o cliente
+                      </option>
 
-                    <div className="text-muted">
-                      🏢{" "}
-                      {contratoSelecionado?.imovel ||
-                        "Imóvel não informado"}
-                    </div>
-
-                    <div className="mt-2">
-                      Valor:{" "}
-                      <strong>
-                        {formatarValor(
-                          contratoSelecionado?.valor
-                        )}
-                      </strong>
-                    </div>
-
-                  </div>
-
-                )}
-
-                {/* CLIENTE / IMÓVEL */}
-                {modoModal === "novo" && (
-
-                  <div className="row g-3">
-
-                    <div className="col-12 col-md-6">
-
-                      <label className="form-label">
-                        Cliente
-                      </label>
-
-                      <select
-                        className="form-select"
-                        value={clienteId}
-                        onChange={(e) =>
-                          setClienteId(
-                            e.target.value
-                          )
-                        }
-                      >
-
-                        <option value="">
-                          Selecione o cliente
-                        </option>
-
-                        {clientes.map((cliente) => (
-
+                      {clientes.map(
+                        (cliente) => (
                           <option
-                            key={cliente.id}
-                            value={cliente.id}
+                            key={
+                              cliente.id
+                            }
+                            value={
+                              cliente.id
+                            }
                           >
                             {cliente.nome ||
                               cliente.name ||
                               cliente.razao_social ||
-                              `Cliente ${cliente.id}`}
+                              cliente.nome_completo ||
+                              `Cliente #${cliente.id}`}
                           </option>
+                        )
+                      )}
 
-                        ))}
+                    </select>
 
-                      </select>
+                  </div>
 
-                    </div>
+                  {/* IMÓVEL */}
+                  <div className="col-md-6">
 
-                    <div className="col-12 col-md-6">
+                    <label className="form-label fw-semibold">
+                      Imóvel
+                    </label>
 
-                      <label className="form-label">
-                        Imóvel
-                      </label>
+                    <select
+                      className="form-select"
+                      value={imovelId}
+                      onChange={(e) =>
+                        setImovelId(
+                          e.target.value
+                        )
+                      }
+                    >
 
-                      <select
-                        className="form-select"
-                        value={imovelId}
-                        onChange={(e) =>
-                          setImovelId(
-                            e.target.value
-                          )
-                        }
-                      >
+                      <option value="">
+                        Selecione o imóvel
+                      </option>
 
-                        <option value="">
-                          Selecione o imóvel
-                        </option>
-
-                        {imoveis.map((imovel) => (
-
+                      {imoveis.map(
+                        (imovel) => (
                           <option
-                            key={imovel.id}
-                            value={imovel.id}
+                            key={
+                              imovel.id
+                            }
+                            value={
+                              imovel.id
+                            }
                           >
                             {imovel.nome ||
                               imovel.titulo ||
                               imovel.endereco ||
-                              `Imóvel ${imovel.id}`}
+                              imovel.descricao ||
+                              `Imóvel #${imovel.id}`}
                           </option>
+                        )
+                      )}
 
-                        ))}
-
-                      </select>
-
-                    </div>
+                    </select>
 
                   </div>
 
-                )}
+                  {/* COMPETÊNCIA */}
+                  <div className="col-md-6">
 
-                {/* ALUGUEL MENSAL */}
-                {tipoRecebimento ===
-                  "aluguel_mensal" && (
+                    <label className="form-label fw-semibold">
+                      Competência
+                    </label>
 
-                  <div className="row g-3 mt-1">
+                    <input
+                      type="month"
+                      className="form-control"
+                      value={
+                        competencia
+                          ? competencia.substring(
+                              0,
+                              7
+                            )
+                          : ""
+                      }
+                      onChange={(e) =>
+                        setCompetencia(
+                          `${e.target.value}-01`
+                        )
+                      }
+                    />
 
-                    <div className="col-12 col-md-6">
+                  </div>
 
-                      <label className="form-label">
-                        Competência
-                      </label>
-
-                      <input
-                        type="month"
-                        className="form-control"
-                        value={competencia.substring(0, 7)}
-                        onChange={(e) =>
-                          setCompetencia(
-                            `${e.target.value}-01`
-                          )
-                        }
-                      />
-
-                    </div>
-
-                    <div className="col-12 col-md-6">
-
-                                            <label className="form-label fw-semibold">
-                        Data de vencimento
-                      </label>
-
-                      <input
-                        type="date"
-                        className="form-control"
-                        value={dataVencimento}
-                        onChange={(e) => setDataVencimento(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  {/* DIÁRIA */}
-                  {tipoRecebimento === "diaria" && (
+                  {/* ALUGUEL MENSAL */}
+                  {tipoRecebimento ===
+                    "aluguel_mensal" && (
                     <>
-                      <div className="col-md-4">
+                      <div className="col-md-6">
+
                         <label className="form-label fw-semibold">
-                          Data
+                          Valor do aluguel
+                        </label>
+
+                        <div className="input-group">
+
+                          <span className="input-group-text">
+                            R$
+                          </span>
+
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            className="form-control"
+                            value={valor}
+                            onChange={(e) =>
+                              setValor(
+                                e.target.value
+                              )
+                            }
+                            placeholder="0,00"
+                          />
+
+                        </div>
+
+                      </div>
+
+                      <div className="col-md-6">
+
+                        <label className="form-label fw-semibold">
+                          Data de vencimento
                         </label>
 
                         <input
                           type="date"
                           className="form-control"
-                          value={dataDiaria}
-                          onChange={(e) => setDataDiaria(e.target.value)}
+                          value={
+                            dataVencimento
+                          }
+                          onChange={(e) =>
+                            setDataVencimento(
+                              e.target.value
+                            )
+                          }
                         />
-                      </div>
 
+                      </div>
+                    </>
+                  )}
+
+                  {/* DIÁRIA */}
+                  {tipoRecebimento ===
+                    "diaria" && (
+                    <>
                       <div className="col-md-4">
+
                         <label className="form-label fw-semibold">
                           Quantidade de diárias
                         </label>
@@ -1768,34 +1885,96 @@ export default function Recebimentos() {
                         <input
                           type="number"
                           min="1"
-                          step="1"
                           className="form-control"
-                          value={quantidade}
-                          onChange={(e) => setQuantidade(e.target.value)}
+                          value={
+                            quantidade
+                          }
+                          onChange={(e) =>
+                            setQuantidade(
+                              e.target.value
+                            )
+                          }
                         />
+
                       </div>
 
                       <div className="col-md-4">
+
                         <label className="form-label fw-semibold">
                           Valor por diária
                         </label>
 
+                        <div className="input-group">
+
+                          <span className="input-group-text">
+                            R$
+                          </span>
+
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control"
+                            value={
+                              valorUnitario
+                            }
+                            onChange={(e) =>
+                              setValorUnitario(
+                                e.target.value
+                              )
+                            }
+                          />
+
+                        </div>
+
+                      </div>
+
+                      <div className="col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Total
+                        </label>
+
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
                           className="form-control"
-                          value={valorUnitario}
-                          onChange={(e) => setValorUnitario(e.target.value)}
+                          value={formatarValor(
+                            calcularTotalDiaria()
+                          )}
+                          readOnly
                         />
+
+                      </div>
+
+                      <div className="col-md-6">
+
+                        <label className="form-label fw-semibold">
+                          Data de vencimento
+                        </label>
+
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={
+                            dataVencimento
+                          }
+                          onChange={(e) =>
+                            setDataVencimento(
+                              e.target.value
+                            )
+                          }
+                        />
+
                       </div>
                     </>
                   )}
 
                   {/* VENDA UNITÁRIA */}
-                  {tipoRecebimento === "venda_unitaria" && (
+                  {tipoRecebimento ===
+                    "venda_unitaria" && (
                     <>
                       <div className="col-md-4">
+
                         <label className="form-label fw-semibold">
                           Quantidade
                         </label>
@@ -1803,100 +1982,195 @@ export default function Recebimentos() {
                         <input
                           type="number"
                           min="1"
-                          step="1"
                           className="form-control"
-                          value={quantidade}
-                          onChange={(e) => setQuantidade(e.target.value)}
+                          value={
+                            quantidade
+                          }
+                          onChange={(e) =>
+                            setQuantidade(
+                              e.target.value
+                            )
+                          }
                         />
+
                       </div>
 
                       <div className="col-md-4">
+
                         <label className="form-label fw-semibold">
                           Valor unitário
                         </label>
 
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="form-control"
-                          value={valorUnitario}
-                          onChange={(e) => setValorUnitario(e.target.value)}
-                        />
+                        <div className="input-group">
+
+                          <span className="input-group-text">
+                            R$
+                          </span>
+
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control"
+                            value={
+                              valorUnitario
+                            }
+                            onChange={(e) =>
+                              setValorUnitario(
+                                e.target.value
+                              )
+                            }
+                          />
+
+                        </div>
+
                       </div>
 
                       <div className="col-md-4">
+
                         <label className="form-label fw-semibold">
                           Desconto
                         </label>
 
+                        <div className="input-group">
+
+                          <span className="input-group-text">
+                            R$
+                          </span>
+
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control"
+                            value={
+                              desconto
+                            }
+                            onChange={(e) =>
+                              setDesconto(
+                                e.target.value
+                              )
+                            }
+                          />
+
+                        </div>
+
+                      </div>
+
+                      <div className="col-md-6">
+
+                        <label className="form-label fw-semibold">
+                          Total da venda
+                        </label>
+
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
                           className="form-control"
-                          value={desconto}
-                          onChange={(e) => setDesconto(e.target.value)}
+                          value={formatarValor(
+                            calcularTotalVenda()
+                          )}
+                          readOnly
                         />
+
+                      </div>
+
+                      <div className="col-md-6">
+
+                        <label className="form-label fw-semibold">
+                          Data de vencimento
+                        </label>
+
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={
+                            dataVencimento
+                          }
+                          onChange={(e) =>
+                            setDataVencimento(
+                              e.target.value
+                            )
+                          }
+                        />
+
                       </div>
                     </>
                   )}
 
                   {/* VENDA PARCELADA */}
-                  {tipoRecebimento === "venda_parcelada" && (
+                  {tipoRecebimento ===
+                    "venda_parcelada" && (
                     <>
                       <div className="col-md-4">
+
                         <label className="form-label fw-semibold">
-                          Valor total da venda
+                          Valor total
                         </label>
 
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="form-control"
-                          value={valorTotalVenda}
-                          onChange={(e) =>
-                            setValorTotalVenda(e.target.value)
-                          }
-                        />
+                        <div className="input-group">
+
+                          <span className="input-group-text">
+                            R$
+                          </span>
+
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="form-control"
+                            value={valor}
+                            onChange={(e) =>
+                              setValor(
+                                e.target.value
+                              )
+                            }
+                          />
+
+                        </div>
+
                       </div>
 
                       <div className="col-md-4">
+
                         <label className="form-label fw-semibold">
-                          Quantidade de parcelas
+                          Total de parcelas
                         </label>
 
                         <input
                           type="number"
                           min="1"
-                          step="1"
                           className="form-control"
-                          value={totalParcelas}
+                          value={
+                            totalParcelas
+                          }
                           onChange={(e) =>
-                            setTotalParcelas(e.target.value)
+                            setTotalParcelas(
+                              e.target.value
+                            )
                           }
                         />
+
                       </div>
 
                       <div className="col-md-4">
+
                         <label className="form-label fw-semibold">
                           Valor da parcela
                         </label>
 
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
                           className="form-control"
-                          value={valorParcela}
-                          onChange={(e) =>
-                            setValorParcela(e.target.value)
-                          }
+                          value={formatarValor(
+                            calcularValorParcela()
+                          )}
+                          readOnly
                         />
+
                       </div>
 
                       <div className="col-md-6">
+
                         <label className="form-label fw-semibold">
                           Primeira data de vencimento
                         </label>
@@ -1904,57 +2178,86 @@ export default function Recebimentos() {
                         <input
                           type="date"
                           className="form-control"
-                          value={primeiraDataVencimento}
+                          value={
+                            primeiraDataVencimento
+                          }
                           onChange={(e) =>
-                            setPrimeiraDataVencimento(e.target.value)
+                            setPrimeiraDataVencimento(
+                              e.target.value
+                            )
                           }
                         />
+
                       </div>
 
                       <div className="col-md-6">
+
                         <label className="form-label fw-semibold">
                           Intervalo entre parcelas
                         </label>
 
                         <select
                           className="form-select"
-                          value={intervaloParcelas}
+                          value={
+                            intervaloParcelas
+                          }
                           onChange={(e) =>
-                            setIntervaloParcelas(e.target.value)
+                            setIntervaloParcelas(
+                              e.target.value
+                            )
                           }
                         >
-                          <option value="1">Mensal</option>
-                          <option value="2">A cada 2 meses</option>
-                          <option value="3">A cada 3 meses</option>
-                          <option value="6">A cada 6 meses</option>
-                          <option value="12">Anual</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
 
-                  {/* VALOR */}
-                  {tipoRecebimento !== "venda_parcelada" &&
-                    tipoRecebimento !== "diaria" &&
-                    tipoRecebimento !== "venda_unitaria" && (
-                      <div className="col-md-4">
+                          <option value="1">
+                            Mensal
+                          </option>
+
+                          <option value="2">
+                            A cada 2 meses
+                          </option>
+
+                          <option value="3">
+                            A cada 3 meses
+                          </option>
+
+                          <option value="6">
+                            A cada 6 meses
+                          </option>
+
+                          <option value="12">
+                            Anual
+                          </option>
+
+                        </select>
+
+                      </div>
+
+                      <div className="col-md-6">
+
                         <label className="form-label fw-semibold">
-                          Valor
+                          Parcela atual
                         </label>
 
                         <input
                           type="number"
-                          min="0"
-                          step="0.01"
+                          min="1"
                           className="form-control"
-                          value={valor}
-                          onChange={(e) => setValor(e.target.value)}
+                          value={parcela}
+                          onChange={(e) =>
+                            setParcela(
+                              e.target.value
+                            )
+                          }
                         />
+
                       </div>
-                    )}
+
+                    </>
+                  )}
 
                   {/* DATA DO RECEBIMENTO */}
-                  <div className="col-md-4">
+                  <div className="col-md-6">
+
                     <label className="form-label fw-semibold">
                       Data do recebimento
                     </label>
@@ -1962,46 +2265,71 @@ export default function Recebimentos() {
                     <input
                       type="date"
                       className="form-control"
-                      value={dataRecebimento}
+                      value={
+                        dataRecebimento
+                      }
                       onChange={(e) =>
-                        setDataRecebimento(e.target.value)
+                        setDataRecebimento(
+                          e.target.value
+                        )
                       }
                     />
+
                   </div>
 
                   {/* FORMA DE PAGAMENTO */}
-                  <div className="col-md-4">
+                  <div className="col-md-6">
+
                     <label className="form-label fw-semibold">
                       Forma de pagamento
                     </label>
 
                     <select
                       className="form-select"
-                      value={formaPagamento}
+                      value={
+                        formaPagamento
+                      }
                       onChange={(e) =>
-                        setFormaPagamento(e.target.value)
+                        setFormaPagamento(
+                          e.target.value
+                        )
                       }
                     >
-                      <option value="">Selecione</option>
-                      <option value="Pix">Pix</option>
-                      <option value="Dinheiro">Dinheiro</option>
-                      <option value="Transferência">
-                        Transferência
+
+                      <option value="PIX">
+                        PIX
                       </option>
-                      <option value="Boleto">Boleto</option>
+
+                      <option value="Dinheiro">
+                        Dinheiro
+                      </option>
+
                       <option value="Cartão de crédito">
                         Cartão de crédito
                       </option>
+
                       <option value="Cartão de débito">
                         Cartão de débito
                       </option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Outro">Outro</option>
-                    </select>
-                  </div>
 
-                  {/* STATUS */}
-                  <div className="col-md-4">
+                      <option value="Transferência">
+                        Transferência
+                      </option>
+
+                      <option value="Boleto">
+                        Boleto
+                      </option>
+
+                      <option value="Outro">
+                        Outro
+                      </option>
+
+                    </select>
+
+                  </div>
+{/* STATUS */}
+                  <div className="col-md-6">
+
                     <label className="form-label fw-semibold">
                       Status
                     </label>
@@ -2009,17 +2337,55 @@ export default function Recebimentos() {
                     <select
                       className="form-select"
                       value={status}
-                      onChange={(e) => setStatus(e.target.value)}
+                      onChange={(e) =>
+                        setStatus(
+                          e.target.value
+                        )
+                      }
                     >
-                      <option value="Pendente">Pendente</option>
-                      <option value="Recebido">Recebido</option>
-                      <option value="Atrasado">Atrasado</option>
-                      <option value="Cancelado">Cancelado</option>
+
+                      <option value="Pendente">
+                        Pendente
+                      </option>
+
+                      <option value="Recebido">
+                        Recebido
+                      </option>
+
+                      <option value="Cancelado">
+                        Cancelado
+                      </option>
+
                     </select>
+
+                  </div>
+
+                  {/* DESCRIÇÃO */}
+                  <div className="col-md-6">
+
+                    <label className="form-label fw-semibold">
+                      Descrição
+                    </label>
+
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={
+                        descricao
+                      }
+                      onChange={(e) =>
+                        setDescricao(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Descrição do recebimento"
+                    />
+
                   </div>
 
                   {/* OBSERVAÇÕES */}
                   <div className="col-12">
+
                     <label className="form-label fw-semibold">
                       Observações
                     </label>
@@ -2027,83 +2393,30 @@ export default function Recebimentos() {
                     <textarea
                       className="form-control"
                       rows="3"
-                      value={observacoes}
-                      onChange={(e) =>
-                        setObservacoes(e.target.value)
+                      value={
+                        observacoes
                       }
-                      placeholder="Digite alguma observação..."
+                      onChange={(e) =>
+                        setObservacoes(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Observações adicionais"
                     />
+
                   </div>
 
-                  {/* RESUMO */}
-                  <div className="col-12">
-                    <div className="alert alert-light border mb-0">
-                      <strong>Resumo do recebimento</strong>
-
-                      <div className="mt-2">
-                        {tipoRecebimento === "diaria" && (
-                          <>
-                            Quantidade:{" "}
-                            <strong>{quantidade || 0}</strong>
-                            {" × "}
-                            R${" "}
-                            <strong>
-                              {Number(valorUnitario || 0).toFixed(2)}
-                            </strong>
-                          </>
-                        )}
-
-                        {tipoRecebimento === "venda_unitaria" && (
-                          <>
-                            Quantidade:{" "}
-                            <strong>{quantidade || 0}</strong>
-                            {" × "}
-                            R${" "}
-                            <strong>
-                              {Number(valorUnitario || 0).toFixed(2)}
-                            </strong>
-                            {" − desconto de R$ "}
-                            <strong>
-                              {Number(desconto || 0).toFixed(2)}
-                            </strong>
-                          </>
-                        )}
-
-                        {tipoRecebimento === "venda_parcelada" && (
-                          <>
-                            Venda de R${" "}
-                            <strong>
-                              {Number(valorTotalVenda || 0).toFixed(2)}
-                            </strong>
-                            {" em "}
-                            <strong>{totalParcelas || 0}</strong>
-                            {" parcelas de R$ "}
-                            <strong>
-                              {Number(valorParcela || 0).toFixed(2)}
-                            </strong>
-                          </>
-                        )}
-
-                        {tipoRecebimento === "aluguel_mensal" && (
-                          <>
-                            Valor mensal: R${" "}
-                            <strong>
-                              {Number(valor || 0).toFixed(2)}
-                            </strong>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              </div>
 
+              </div>
               {/* RODAPÉ DO MODAL */}
               <div className="modal-footer">
+
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setMostrarModal(false)}
+                  onClick={fecharModal}
+                  disabled={salvando}
                 >
                   Cancelar
                 </button>
@@ -2114,9 +2427,15 @@ export default function Recebimentos() {
                   onClick={salvarRecebimento}
                   disabled={salvando}
                 >
-                  {salvando ? "Salvando..." : "💾 Salvar recebimento"}
+                  {salvando
+                    ? "Salvando..."
+                    : modoModal === "acusar"
+                    ? "✓ Confirmar recebimento"
+                    : "💾 Salvar recebimento"}
                 </button>
+
               </div>
+
             </div>
           </div>
         </div>
@@ -2125,4 +2444,4 @@ export default function Recebimentos() {
     </main>
   )
 }
-           
+      
