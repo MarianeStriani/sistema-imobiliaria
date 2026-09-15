@@ -1,667 +1,1315 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
 export default function Contratos() {
-  const contratoInicial = {
-    numero: "",
-    imovel: "",
-    cliente: "",
-    tipo: "Locação",
-    inicio: "",
-    termino: "",
-    valor: "",
-    status: "Ativo",
-    periodicidade: "Mensal",
-    quantidade_dias: "",
-    observacoes: "",
-  }
-
   const [contratos, setContratos] = useState([])
-  const [form, setForm] = useState(contratoInicial)
+  const [clientes, setClientes] = useState([])
+  const [imoveis, setImoveis] = useState([])
+
+  const [loading, setLoading] = useState(true)
+  const [salvando, setSalvando] = useState(false)
+
+  const [erro, setErro] = useState("")
+  const [sucesso, setSucesso] = useState("")
+
+  const [busca, setBusca] = useState("")
+  const [filtroStatus, setFiltroStatus] = useState("todos")
+
+  const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState(null)
-  const [visualizando, setVisualizando] = useState(null)
-  const [carregando, setCarregando] = useState(true)
-  const [mensagem, setMensagem] = useState("")
+
+  const [form, setForm] = useState({
+    cliente_id: "",
+    imovel_id: "",
+    data_inicio: "",
+    data_fim: "",
+    valor_aluguel: "",
+    dia_vencimento: "",
+    valor_caucao: "",
+    status: "ativo",
+    observacoes: "",
+  })
+
+  async function carregarDados() {
+    setLoading(true)
+    setErro("")
+
+    try {
+      const [
+        contratosResponse,
+        clientesResponse,
+        imoveisResponse,
+      ] = await Promise.all([
+        supabase
+          .from("contratos")
+          .select("*")
+          .order("data_inicio", {
+            ascending: false,
+          }),
+
+        supabase
+          .from("clientes")
+          .select("*")
+          .order("nome", {
+            ascending: true,
+          }),
+
+        supabase
+          .from("imoveis")
+          .select("*")
+          .order("id", {
+            ascending: false,
+          }),
+      ])
+
+      if (contratosResponse.error) {
+        throw contratosResponse.error
+      }
+
+      if (clientesResponse.error) {
+        throw clientesResponse.error
+      }
+
+      if (imoveisResponse.error) {
+        throw imoveisResponse.error
+      }
+
+      setContratos(contratosResponse.data || [])
+      setClientes(clientesResponse.data || [])
+      setImoveis(imoveisResponse.data || [])
+    } catch (error) {
+      console.error(
+        "Erro ao carregar contratos:",
+        error
+      )
+
+      setErro(
+        error?.message ||
+          "Não foi possível carregar os contratos."
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    buscarContratos()
+    carregarDados()
   }, [])
 
-  async function buscarContratos() {
-    setCarregando(true)
-
-    const { data, error } = await supabase
-      .from("contratos")
-      .select("*")
-      .order("id", { ascending: false })
-
-    if (error) {
-      console.error(error)
-      setMensagem("Erro ao carregar contratos.")
-    } else {
-      setContratos(data || [])
-    }
-
-    setCarregando(false)
+  function limparMensagens() {
+    setErro("")
+    setSucesso("")
   }
 
-  function alterarCampo(e) {
-    const { name, value } = e.target
-
-    setForm((anterior) => ({
-      ...anterior,
-      [name]: value,
-    }))
+  function acessarPagina(url) {
+    window.location.href = url
   }
 
-  function alterarTipo(e) {
-    const tipo = e.target.value
+  function abrirNovoContrato() {
+    limparMensagens()
 
-    let periodicidade = "Mensal"
-
-    if (tipo === "Compra e Venda") {
-      periodicidade = "Única"
-    }
-
-    if (tipo === "Temporada") {
-      periodicidade = "Diária"
-    }
-
-    if (tipo === "Administração") {
-      periodicidade = "Mensal"
-    }
-
-    setForm((anterior) => ({
-      ...anterior,
-      tipo,
-      periodicidade,
-      quantidade_dias: tipo === "Temporada" ? anterior.quantidade_dias : "",
-    }))
-  }
-
-  async function salvarContrato(e) {
-    e.preventDefault()
-
-    setMensagem("")
-
-    if (!form.numero || !form.imovel || !form.cliente || !form.valor) {
-      setMensagem("Preencha os campos obrigatórios.")
-      return
-    }
-
-    if (
-      form.tipo === "Temporada" &&
-      (!form.quantidade_dias || Number(form.quantidade_dias) <= 0)
-    ) {
-      setMensagem("Informe a quantidade de dias da temporada.")
-      return
-    }
-
-    const dados = {
-      numero: form.numero,
-      imovel: form.imovel,
-      cliente: form.cliente,
-      tipo: form.tipo,
-      inicio: form.inicio || null,
-      termino: form.termino || null,
-      valor: Number(form.valor),
-      status: form.status,
-      periodicidade: form.periodicidade,
-      quantidade_dias:
-        form.tipo === "Temporada"
-          ? Number(form.quantidade_dias)
-          : null,
-      observacoes: form.observacoes,
-    }
-
-    if (editando) {
-      const { error } = await supabase
-        .from("contratos")
-        .update(dados)
-        .eq("id", editando)
-
-      if (error) {
-        console.error(error)
-        setMensagem("Erro ao atualizar contrato.")
-        return
-      }
-
-      setMensagem("Contrato atualizado com sucesso.")
-    } else {
-      const { error } = await supabase
-        .from("contratos")
-        .insert([dados])
-
-      if (error) {
-        console.error(error)
-        setMensagem("Erro ao cadastrar contrato.")
-        return
-      }
-
-      setMensagem("Contrato cadastrado com sucesso.")
-    }
-
-    limparFormulario()
-    buscarContratos()
-  }
-
-  function editarContrato(contrato) {
-    setEditando(contrato.id)
+    setEditando(null)
 
     setForm({
-      numero: contrato.numero || "",
-      imovel: contrato.imovel || "",
-      cliente: contrato.cliente || "",
-      tipo: contrato.tipo || "Locação",
-      inicio: contrato.inicio || "",
-      termino: contrato.termino || "",
-      valor: contrato.valor || "",
-      status: contrato.status || "Ativo",
-      periodicidade: contrato.periodicidade || "Mensal",
-      quantidade_dias: contrato.quantidade_dias || "",
-      observacoes: contrato.observacoes || "",
+      cliente_id: "",
+      imovel_id: "",
+      data_inicio: "",
+      data_fim: "",
+      valor_aluguel: "",
+      dia_vencimento: "",
+      valor_caucao: "",
+      status: "ativo",
+      observacoes: "",
     })
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
+    setModalAberto(true)
+  }
+
+  function abrirEditarContrato(contrato) {
+    limparMensagens()
+
+    setEditando(contrato)
+
+    setForm({
+      cliente_id: contrato.cliente_id || "",
+      imovel_id: contrato.imovel_id || "",
+      data_inicio: contrato.data_inicio || "",
+      data_fim: contrato.data_fim || "",
+      valor_aluguel:
+        contrato.valor_aluguel ?? "",
+      dia_vencimento:
+        contrato.dia_vencimento ?? "",
+      valor_caucao:
+        contrato.valor_caucao ?? "",
+      status: contrato.status || "ativo",
+      observacoes:
+        contrato.observacoes || "",
     })
+
+    setModalAberto(true)
   }
 
-  async function excluirContrato(id) {
-    const confirmar = window.confirm(
-      "Tem certeza que deseja excluir este contrato?"
-    )
+  function fecharModal() {
+    if (salvando) return
 
-    if (!confirmar) return
-
-    const { error } = await supabase
-      .from("contratos")
-      .delete()
-      .eq("id", id)
-
-    if (error) {
-      console.error(error)
-      setMensagem("Erro ao excluir contrato.")
-      return
-    }
-
-    setMensagem("Contrato excluído com sucesso.")
-    buscarContratos()
-  }
-
-  function limparFormulario() {
-    setForm(contratoInicial)
+    setModalAberto(false)
     setEditando(null)
   }
 
-  function formatarValor(valor) {
-    return Number(valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
+  function alterarCampo(campo, valor) {
+    setForm((anterior) => ({
+      ...anterior,
+      [campo]: valor,
+    }))
+  }
+
+  const contratosFiltrados = useMemo(() => {
+    const termo = busca
+      .trim()
+      .toLowerCase()
+
+    return contratos.filter((contrato) => {
+      const cliente = clientes.find(
+        (item) =>
+          String(item.id) ===
+          String(contrato.cliente_id)
+      )
+
+      const imovel = imoveis.find(
+        (item) =>
+          String(item.id) ===
+          String(contrato.imovel_id)
+      )
+
+      const nomeCliente = String(
+        cliente?.nome || ""
+      ).toLowerCase()
+
+      const identificacaoImovel =
+        String(
+          imovel?.nome ||
+            imovel?.titulo ||
+            imovel?.endereco ||
+            imovel?.codigo ||
+            ""
+        ).toLowerCase()
+
+      const status = String(
+        contrato.status || ""
+      ).toLowerCase()
+
+      const correspondeBusca =
+        !termo ||
+        nomeCliente.includes(termo) ||
+        identificacaoImovel.includes(termo) ||
+        status.includes(termo)
+
+      const correspondeStatus =
+        filtroStatus === "todos" ||
+        status === filtroStatus
+
+      return (
+        correspondeBusca &&
+        correspondeStatus
+      )
     })
+  }, [
+    contratos,
+    clientes,
+    imoveis,
+    busca,
+    filtroStatus,
+  ])
+  async function salvarContrato(e) {
+    e.preventDefault()
+
+    limparMensagens()
+
+    if (!form.cliente_id) {
+      setErro("Selecione o cliente.")
+      return
+    }
+
+    if (!form.imovel_id) {
+      setErro("Selecione o imóvel.")
+      return
+    }
+
+    if (!form.data_inicio) {
+      setErro("Informe a data de início do contrato.")
+      return
+    }
+
+    if (!form.valor_aluguel) {
+      setErro("Informe o valor do aluguel.")
+      return
+    }
+
+    setSalvando(true)
+
+    try {
+      const dados = {
+        cliente_id: form.cliente_id,
+        imovel_id: form.imovel_id,
+        data_inicio: form.data_inicio,
+        data_fim: form.data_fim || null,
+        valor_aluguel:
+          form.valor_aluguel === ""
+            ? null
+            : Number(form.valor_aluguel),
+        dia_vencimento:
+          form.dia_vencimento === ""
+            ? null
+            : Number(form.dia_vencimento),
+        valor_caucao:
+          form.valor_caucao === ""
+            ? null
+            : Number(form.valor_caucao),
+        status: form.status,
+        observacoes:
+          form.observacoes.trim(),
+      }
+
+      if (editando?.id) {
+        const { error } = await supabase
+          .from("contratos")
+          .update(dados)
+          .eq("id", editando.id)
+
+        if (error) {
+          throw error
+        }
+
+        setSucesso(
+          "Contrato atualizado com sucesso."
+        )
+      } else {
+        const { error } = await supabase
+          .from("contratos")
+          .insert([dados])
+
+        if (error) {
+          throw error
+        }
+
+        setSucesso(
+          "Contrato cadastrado com sucesso."
+        )
+      }
+
+      await carregarDados()
+
+      setModalAberto(false)
+      setEditando(null)
+
+      setForm({
+        cliente_id: "",
+        imovel_id: "",
+        data_inicio: "",
+        data_fim: "",
+        valor_aluguel: "",
+        dia_vencimento: "",
+        valor_caucao: "",
+        status: "ativo",
+        observacoes: "",
+      })
+    } catch (error) {
+      console.error(
+        "Erro ao salvar contrato:",
+        error
+      )
+
+      setErro(
+        error?.message ||
+          "Não foi possível salvar o contrato."
+      )
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  async function excluirContrato(contrato) {
+    const confirmar = window.confirm(
+      "Deseja realmente excluir este contrato?"
+    )
+
+    if (!confirmar) {
+      return
+    }
+
+    limparMensagens()
+
+    try {
+      const { error } = await supabase
+        .from("contratos")
+        .delete()
+        .eq("id", contrato.id)
+
+      if (error) {
+        throw error
+      }
+
+      setSucesso(
+        "Contrato excluído com sucesso."
+      )
+
+      await carregarDados()
+    } catch (error) {
+      console.error(
+        "Erro ao excluir contrato:",
+        error
+      )
+
+      setErro(
+        error?.message ||
+          "Não foi possível excluir o contrato."
+      )
+    }
   }
 
   function formatarData(data) {
-    if (!data) return "-"
+    if (!data) {
+      return "-"
+    }
 
-    const [ano, mes, dia] = data.split("-")
+    const partes = String(data).split("-")
 
-    return `${dia}/${mes}/${ano}`
+    if (partes.length !== 3) {
+      return data
+    }
+
+    return `${partes[2]}/${partes[1]}/${partes[0]}`
   }
 
-  function descricaoVencimento(contrato) {
-    if (contrato.tipo === "Locação") {
-      return "Mensal"
+  function formatarMoeda(valor) {
+    if (
+      valor === null ||
+      valor === undefined ||
+      valor === ""
+    ) {
+      return "-"
     }
 
-    if (contrato.tipo === "Administração") {
-      return contrato.periodicidade || "Mensal"
-    }
-
-    if (contrato.tipo === "Temporada") {
-      return `${contrato.quantidade_dias || "-"} dias`
-    }
-
-    return "Única"
+    return Number(valor).toLocaleString(
+      "pt-BR",
+      {
+        style: "currency",
+        currency: "BRL",
+      }
+    )
   }
+
+  function obterCliente(id) {
+    return clientes.find(
+      (cliente) =>
+        String(cliente.id) === String(id)
+    )
+  }
+
+  function obterImovel(id) {
+    return imoveis.find(
+      (imovel) =>
+        String(imovel.id) === String(id)
+    )
+  }
+
+  function nomeCliente(id) {
+    const cliente = obterCliente(id)
+
+    return cliente?.nome || "Cliente não encontrado"
+  }
+
+  function nomeImovel(id) {
+    const imovel = obterImovel(id)
+
+    if (!imovel) {
+      return "Imóvel não encontrado"
+    }
+
+    return (
+      imovel.nome ||
+      imovel.titulo ||
+      imovel.codigo ||
+      imovel.endereco ||
+      `Imóvel #${imovel.id}`
+    )
+  }
+
+  function classeStatus(status) {
+    switch (
+      String(status || "").toLowerCase()
+    ) {
+      case "ativo":
+        return "bg-success"
+
+      case "encerrado":
+        return "bg-secondary"
+
+      case "vencendo":
+        return "bg-warning text-dark"
+
+      case "cancelado":
+        return "bg-danger"
+
+      default:
+        return "bg-secondary"
+    }
+  }
+
+  function textoStatus(status) {
+    switch (
+      String(status || "").toLowerCase()
+    ) {
+      case "ativo":
+        return "Ativo"
+
+      case "encerrado":
+        return "Encerrado"
+
+      case "vencendo":
+        return "Vencendo"
+
+      case "cancelado":
+        return "Cancelado"
+
+      default:
+        return status || "-"
+    }
+  }
+
+  const totalContratos = contratos.length
+
+  const contratosAtivos = contratos.filter(
+    (contrato) =>
+      String(contrato.status).toLowerCase() ===
+      "ativo"
+  ).length
+
+  const contratosVencendo = contratos.filter(
+    (contrato) =>
+      String(contrato.status).toLowerCase() ===
+      "vencendo"
+  ).length
+
+  const contratosEncerrados = contratos.filter(
+    (contrato) =>
+      String(contrato.status).toLowerCase() ===
+      "encerrado"
+  ).length
 
   return (
-    <main className="container py-4">
+    <div className="container-fluid py-4">
 
-      {/* TÍTULO */}
-
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      {/* CABEÇALHO */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
         <div>
-          <h1 className="fw-bold mb-1">
+          <h2 className="fw-bold mb-1">
             Contratos
-          </h1>
+          </h2>
 
           <p className="text-muted mb-0">
-            Administração dos contratos imobiliários
+            Gerencie os contratos de locação da imobiliária
           </p>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-outline-primary"
-          onClick={buscarContratos}
-          disabled={carregando}
-        >
-          {carregando
-            ? "Atualizando..."
-            : "🔄 Atualizar"}
-        </button>
+        <div className="d-flex gap-2 mt-3 mt-md-0">
+
+          <button
+            className="btn btn-outline-primary"
+            onClick={carregarDados}
+            disabled={loading}
+          >
+            <i className="bi bi-arrow-clockwise me-2"></i>
+            Atualizar
+          </button>
+
+          <button
+            className="btn btn-primary"
+            onClick={abrirNovoContrato}
+          >
+            <i className="bi bi-file-earmark-plus me-2"></i>
+            Novo contrato
+          </button>
+
+        </div>
 
       </div>
 
-      {/* ACESSO RÁPIDO */}
+      {/* ERRO */}
+      {erro && (
+        <div
+          className="alert alert-danger alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-triangle me-2"></i>
 
-      <div className="card shadow-sm mb-4">
+          {erro}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setErro("")}
+          ></button>
+        </div>
+      )}
+
+      {/* SUCESSO */}
+      {sucesso && (
+        <div
+          className="alert alert-success alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-check-circle me-2"></i>
+
+          {sucesso}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setSucesso("")}
+          ></button>
+        </div>
+      )}
+
+      {/* ACESSO RÁPIDO */}
+      <div className="card shadow-sm border-0 mb-4">
 
         <div className="card-body">
 
-          <h5 className="fw-bold mb-3">
-            ⚡ Acesso rápido
-          </h5>
+          <div className="d-flex align-items-center mb-3">
 
-          <div className="d-flex gap-2 flex-wrap">
+            <div
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+              style={{
+                width: "38px",
+                height: "38px",
+              }}
+            >
+              <i className="bi bi-lightning-charge text-primary"></i>
+            </div>
 
-            <a href="/" className="btn btn-primary">
-              🏠 Início
-            </a>
+            <div>
+              <h5 className="fw-bold mb-0">
+                Acesso rápido
+              </h5>
 
-            <a href="/clientes" className="btn btn-light border">
-              👥 Clientes
-            </a>
+              <small className="text-muted">
+                Acesse rapidamente as principais áreas
+              </small>
+            </div>
 
-            <a href="/imoveis" className="btn btn-light border">
-              🏢 Imóveis
-            </a>
+          </div>
 
-            <a href="/contratos" className="btn btn-light border">
-              📄 Contratos
-            </a>
+          <div className="row g-2">
 
-            <a href="/recebimentos" className="btn btn-light border">
-              💰 Recebimentos
-            </a>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/")}
+              >
+                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
+                Dashboard
+              </button>
+            </div>
 
-            <a href="/despesas" className="btn btn-light border">
-              💸 Despesas
-            </a>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/clientes")
+                }
+              >
+                <i className="bi bi-people d-block fs-5 mb-1"></i>
+                Clientes
+              </button>
+            </div>
 
-            <a href="/financeiro" className="btn btn-light border">
-              📊 Financeiro
-            </a>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/imoveis")
+                }
+              >
+                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
+                Imóveis
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/contratos")
+                }
+              >
+                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
+                Contratos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/recebimentos")
+                }
+              >
+                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
+                Recebimentos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/despesas")
+                }
+              >
+                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
+                Despesas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/financeiro")
+                }
+              >
+                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
+                Financeiro
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/manutencoes")
+                }
+              >
+                <i className="bi bi-tools d-block fs-5 mb-1"></i>
+                Manutenções
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/visitas")
+                }
+              >
+                <i className="bi bi-calendar-check d-block fs-5 mb-1"></i>
+                Visitas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/comunicacao")
+                }
+              >
+                <i className="bi bi-whatsapp d-block fs-5 mb-1"></i>
+                Comunicação
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/relatorios")
+                }
+              >
+                <i className="bi bi-file-earmark-bar-graph d-block fs-5 mb-1"></i>
+                Relatórios
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/configuracoes")
+                }
+              >
+                <i className="bi bi-gear d-block fs-5 mb-1"></i>
+                Configurações
+              </button>
+            </div>
 
           </div>
 
         </div>
 
       </div>
+      {/* RESUMO DOS CONTRATOS */}
+      <div className="row g-3 mb-4">
 
-      {mensagem && (
-        <div className="alert alert-info">
-          {mensagem}
-        </div>
-      )}
+        {/* TOTAL */}
+        <div className="col-12 col-md-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
 
-      {/* FORMULÁRIO */}
+              <div className="d-flex justify-content-between align-items-start">
 
-      <div className="card shadow-sm mb-4">
-        <div className="card-body">
+                <div>
+                  <p className="text-muted mb-1">
+                    Total de contratos
+                  </p>
 
-          <h4 className="mb-4">
-            {editando ? "Editar contrato" : "Cadastrar contrato"}
-          </h4>
-
-          <form onSubmit={salvarContrato}>
-
-            <div className="row g-3">
-
-              <div className="col-md-3">
-                <label className="form-label">
-                  Nº do contrato *
-                </label>
-
-                <input
-                  type="text"
-                  name="numero"
-                  value={form.numero}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  required
-                />
-              </div>
-
-              <div className="col-md-5">
-                <label className="form-label">
-                  Imóvel *
-                </label>
-
-                <input
-                  type="text"
-                  name="imovel"
-                  value={form.imovel}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  placeholder="Ex.: Casa 01 - Centro"
-                  required
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Cliente *
-                </label>
-
-                <input
-                  type="text"
-                  name="cliente"
-                  value={form.cliente}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  placeholder="Nome do cliente"
-                  required
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Tipo de contrato *
-                </label>
-
-                <select
-                  name="tipo"
-                  value={form.tipo}
-                  onChange={alterarTipo}
-                  className="form-select"
-                >
-                  <option>Locação</option>
-                  <option>Compra e Venda</option>
-                  <option>Administração</option>
-                  <option>Temporada</option>
-                </select>
-              </div>
-
-              {/* PERIODICIDADE */}
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Periodicidade
-                </label>
-
-                <select
-                  name="periodicidade"
-                  value={form.periodicidade}
-                  onChange={alterarCampo}
-                  className="form-select"
-                  disabled={
-                    form.tipo === "Locação" ||
-                    form.tipo === "Temporada" ||
-                    form.tipo === "Compra e Venda"
-                  }
-                >
-                  {form.tipo === "Administração" ? (
-                    <>
-                      <option value="Mensal">Mensal</option>
-                      <option value="Anual">Anual</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value={form.periodicidade}>
-                        {form.periodicidade}
-                      </option>
-                    </>
-                  )}
-                </select>
-              </div>
-
-              {/* DIAS DA TEMPORADA */}
-
-              {form.tipo === "Temporada" && (
-                <div className="col-md-4">
-                  <label className="form-label">
-                    Quantidade de dias *
-                  </label>
-
-                  <input
-                    type="number"
-                    name="quantidade_dias"
-                    value={form.quantidade_dias}
-                    onChange={alterarCampo}
-                    className="form-control"
-                    min="1"
-                    placeholder="Ex.: 7"
-                    required
-                  />
+                  <h3 className="fw-bold mb-0">
+                    {totalContratos}
+                  </h3>
                 </div>
-              )}
 
-              <div className="col-md-4">
-                <label className="form-label">
-                  Data de início
-                </label>
-
-                <input
-                  type="date"
-                  name="inicio"
-                  value={form.inicio}
-                  onChange={alterarCampo}
-                  className="form-control"
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Data de término
-                </label>
-
-                <input
-                  type="date"
-                  name="termino"
-                  value={form.termino}
-                  onChange={alterarCampo}
-                  className="form-control"
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Valor *
-                </label>
-
-                <input
-                  type="number"
-                  name="valor"
-                  value={form.valor}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-
-              <div className="col-md-4">
-                <label className="form-label">
-                  Status
-                </label>
-
-                <select
-                  name="status"
-                  value={form.status}
-                  onChange={alterarCampo}
-                  className="form-select"
+                <div
+                  className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
                 >
-                  <option>Ativo</option>
-                  <option>Encerrado</option>
-                  <option>Cancelado</option>
-                  <option>Pendente</option>
-                </select>
+                  <i className="bi bi-file-earmark-text text-primary fs-4"></i>
+                </div>
+
               </div>
 
-              <div className="col-12">
-                <label className="form-label">
-                  Observações
-                </label>
-
-                <textarea
-                  name="observacoes"
-                  value={form.observacoes}
-                  onChange={alterarCampo}
-                  className="form-control"
-                  rows="3"
-                />
-              </div>
+              <small className="text-muted d-block mt-3">
+                Contratos cadastrados
+              </small>
 
             </div>
-
-            <div className="mt-4 d-flex gap-2">
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-              >
-                {editando
-                  ? "Salvar alterações"
-                  : "Cadastrar contrato"}
-              </button>
-
-              {editando && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={limparFormulario}
-                >
-                  Cancelar
-                </button>
-              )}
-
-            </div>
-
-          </form>
+          </div>
         </div>
+
+        {/* ATIVOS */}
+        <div className="col-12 col-md-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Contratos ativos
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {contratosAtivos}
+                  </h3>
+                </div>
+
+                <div
+                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-check-circle text-success fs-4"></i>
+                </div>
+
+              </div>
+
+              <small className="text-muted d-block mt-3">
+                Contratos em andamento
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+        {/* VENCENDO */}
+        <div className="col-12 col-md-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Vencendo
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {contratosVencendo}
+                  </h3>
+                </div>
+
+                <div
+                  className="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-exclamation-circle text-warning fs-4"></i>
+                </div>
+
+              </div>
+
+              <small className="text-muted d-block mt-3">
+                Contratos próximos do vencimento
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+        {/* ENCERRADOS */}
+        <div className="col-12 col-md-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Encerrados
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {contratosEncerrados}
+                  </h3>
+                </div>
+
+                <div
+                  className="bg-secondary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-file-earmark-x text-secondary fs-4"></i>
+                </div>
+
+              </div>
+
+              <small className="text-muted d-block mt-3">
+                Contratos finalizados
+              </small>
+
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* TABELA */}
-
-      <div className="card shadow-sm">
+      {/* LISTA DE CONTRATOS */}
+      <div className="card shadow-sm border-0 mb-4">
 
         <div className="card-body">
 
-          <h4 className="mb-3">
-            Contratos cadastrados
-          </h4>
+          {/* CABEÇALHO */}
+          <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
-          {carregando ? (
-            <p>Carregando...</p>
-          ) : contratos.length === 0 ? (
-            <p className="text-muted">
-              Nenhum contrato cadastrado.
-            </p>
+            <div>
+              <h5 className="fw-bold mb-1">
+                Contratos cadastrados
+              </h5>
+
+              <small className="text-muted">
+                Consulte, edite ou exclua contratos
+              </small>
+            </div>
+
+            <button
+              className="btn btn-primary mt-3 mt-md-0"
+              onClick={abrirNovoContrato}
+            >
+              <i className="bi bi-file-earmark-plus me-2"></i>
+              Novo contrato
+            </button>
+
+          </div>
+
+          {/* BUSCA E FILTROS */}
+          <div className="row g-2 mb-4">
+
+            <div className="col-12 col-lg-7">
+
+              <div className="input-group">
+
+                <span className="input-group-text bg-white">
+                  <i className="bi bi-search"></i>
+                </span>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Buscar por cliente, imóvel ou status..."
+                  value={busca}
+                  onChange={(e) =>
+                    setBusca(e.target.value)
+                  }
+                />
+
+                {busca && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setBusca("")}
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                )}
+
+              </div>
+
+            </div>
+
+            <div className="col-12 col-md-6 col-lg-3">
+
+              <select
+                className="form-select"
+                value={filtroStatus}
+                onChange={(e) =>
+                  setFiltroStatus(e.target.value)
+                }
+              >
+                <option value="todos">
+                  Todos os status
+                </option>
+
+                <option value="ativo">
+                  Ativos
+                </option>
+
+                <option value="vencendo">
+                  Vencendo
+                </option>
+
+                <option value="encerrado">
+                  Encerrados
+                </option>
+
+                <option value="cancelado">
+                  Cancelados
+                </option>
+              </select>
+
+            </div>
+
+            <div className="col-12 col-md-6 col-lg-2">
+
+              <button
+                className="btn btn-outline-primary w-100"
+                onClick={carregarDados}
+                disabled={loading}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Atualizar
+              </button>
+
+            </div>
+
+          </div>
+
+          {/* RESULTADOS */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+
+            <small className="text-muted">
+              Exibindo{" "}
+              <strong>
+                {contratosFiltrados.length}
+              </strong>{" "}
+              de{" "}
+              <strong>
+                {contratos.length}
+              </strong>{" "}
+              contratos
+            </small>
+
+          </div>
+
+          {/* CARREGANDO */}
+          {loading ? (
+
+            <div className="text-center py-5">
+
+              <div
+                className="spinner-border text-primary"
+                role="status"
+              >
+                <span className="visually-hidden">
+                  Carregando...
+                </span>
+              </div>
+
+              <p className="text-muted mt-3 mb-0">
+                Carregando contratos...
+              </p>
+
+            </div>
+
+          ) : contratosFiltrados.length === 0 ? (
+
+            /* SEM RESULTADOS */
+            <div className="text-center py-5">
+
+              <div
+                className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                style={{
+                  width: "70px",
+                  height: "70px",
+                }}
+              >
+                <i className="bi bi-file-earmark-text text-primary fs-2"></i>
+              </div>
+
+              <h5 className="fw-bold mt-3">
+                Nenhum contrato encontrado
+              </h5>
+
+              <p className="text-muted mb-3">
+                {busca || filtroStatus !== "todos"
+                  ? "Tente alterar os filtros utilizados."
+                  : "Comece cadastrando o primeiro contrato."}
+              </p>
+
+              {!busca &&
+                filtroStatus === "todos" && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={abrirNovoContrato}
+                  >
+                    <i className="bi bi-file-earmark-plus me-2"></i>
+                    Cadastrar contrato
+                  </button>
+                )}
+
+            </div>
+
           ) : (
 
+            /* TABELA */
             <div className="table-responsive">
 
-              <table className="table table-hover align-middle">
+              <table className="table table-hover align-middle mb-0">
 
-                <thead>
+                <thead className="table-light">
+
                   <tr>
-                    <th>Nº</th>
-                    <th>Imóvel</th>
-                    <th>Cliente</th>
-                    <th>Tipo</th>
-                    <th>Periodicidade</th>
-                    <th>Vencimento</th>
-                    <th>Valor</th>
-                    <th>Status</th>
-                    <th>Ações</th>
+
+                    <th>
+                      Cliente
+                    </th>
+
+                    <th>
+                      Imóvel
+                    </th>
+
+                    <th>
+                      Período
+                    </th>
+
+                    <th>
+                      Aluguel
+                    </th>
+
+                    <th>
+                      Vencimento
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+
+                    <th className="text-end">
+                      Ações
+                    </th>
+
                   </tr>
+
                 </thead>
 
                 <tbody>
 
-                  {contratos.map((contrato) => (
+                  {contratosFiltrados.map(
+                    (contrato) => (
+                      <tr key={contrato.id}>
 
-                    <tr key={contrato.id}>
+                        {/* CLIENTE */}
+                        <td>
 
-                      <td>{contrato.numero}</td>
+                          <div className="d-flex align-items-center">
 
-                      <td>{contrato.imovel}</td>
+                            <div
+                              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                              }}
+                            >
+                              <i className="bi bi-person text-primary"></i>
+                            </div>
 
-                      <td>{contrato.cliente}</td>
+                            <div>
 
-                      <td>{contrato.tipo}</td>
+                              <div className="fw-semibold">
+                                {nomeCliente(
+                                  contrato.cliente_id
+                                )}
+                              </div>
 
-                      <td>
-                        {descricaoVencimento(contrato)}
-                      </td>
+                              {obterCliente(
+                                contrato.cliente_id
+                              )?.telefone && (
+                                <small className="text-muted">
+                                  {
+                                    obterCliente(
+                                      contrato.cliente_id
+                                    )?.telefone
+                                  }
+                                </small>
+                              )}
 
-                      <td>
-                        {formatarData(contrato.termino)}
-                      </td>
+                            </div>
 
-                      <td>
-                        {formatarValor(contrato.valor)}
-                      </td>
+                          </div>
 
-                      <td>
-                        <span
-                          className={`badge ${
-                            contrato.status === "Ativo"
-                              ? "bg-success"
-                              : contrato.status === "Pendente"
-                              ? "bg-warning text-dark"
-                              : "bg-secondary"
-                          }`}
-                        >
-                          {contrato.status}
-                        </span>
-                      </td>
+                        </td>
 
-                      <td>
+                        {/* IMÓVEL */}
+                        <td>
 
-                        <div className="d-flex gap-1">
+                          <div className="d-flex align-items-center">
 
-                          <button
-                            className="btn btn-sm btn-info text-white"
-                            onClick={() =>
-                              setVisualizando(contrato)
-                            }
+                            <i className="bi bi-house-door text-primary me-2"></i>
+
+                            <span>
+                              {nomeImovel(
+                                contrato.imovel_id
+                              )}
+                            </span>
+
+                          </div>
+
+                        </td>
+
+                        {/* PERÍODO */}
+                        <td>
+
+                          <div>
+                            <small className="text-muted">
+                              Início
+                            </small>
+
+                            <div className="fw-semibold">
+                              {formatarData(
+                                contrato.data_inicio
+                              )}
+                            </div>
+                          </div>
+
+                          {contrato.data_fim && (
+                            <div className="mt-1">
+
+                              <small className="text-muted">
+                                Fim
+                              </small>
+
+                              <div>
+                                {formatarData(
+                                  contrato.data_fim
+                                )}
+                              </div>
+
+                            </div>
+                          )}
+
+                        </td>
+
+                        {/* ALUGUEL */}
+                        <td>
+
+                          <span className="fw-semibold">
+                            {formatarMoeda(
+                              contrato.valor_aluguel
+                            )}
+                          </span>
+
+                        </td>
+
+                        {/* VENCIMENTO */}
+                        <td>
+
+                          {contrato.dia_vencimento ? (
+                            <span>
+                              Dia{" "}
+                              <strong>
+                                {contrato.dia_vencimento}
+                              </strong>
+                            </span>
+                          ) : (
+                            "-"
+                          )}
+
+                        </td>
+
+                        {/* STATUS */}
+                        <td>
+
+                          <span
+                            className={`badge ${classeStatus(
+                              contrato.status
+                            )}`}
                           >
-                            Visualizar
-                          </button>
+                            {textoStatus(
+                              contrato.status
+                            )}
+                          </span>
 
-                          <button
-                            className="btn btn-sm btn-warning"
-                            onClick={() =>
-                              editarContrato(contrato)
-                            }
-                          >
-                            Editar
-                          </button>
+                        </td>
 
-                          <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() =>
-                              excluirContrato(contrato.id)
-                            }
-                          >
-                            Excluir
-                          </button>
+                        {/* AÇÕES */}
+                        <td className="text-end">
 
-                        </div>
+                          <div className="btn-group">
 
-                      </td>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary"
+                              title="Editar contrato"
+                              onClick={() =>
+                                abrirEditarContrato(
+                                  contrato
+                                )
+                              }
+                            >
+                              <i className="bi bi-pencil"></i>
+                            </button>
 
-                    </tr>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger"
+                              title="Excluir contrato"
+                              onClick={() =>
+                                excluirContrato(
+                                  contrato
+                                )
+                              }
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
 
-                  ))}
+                          </div>
+
+                        </td>
+
+                      </tr>
+                    )
+                  )}
 
                 </tbody>
 
@@ -674,120 +1322,529 @@ export default function Contratos() {
         </div>
 
       </div>
-
-      {/* MODAL */}
-
-      {visualizando && (
-
+      {/* MODAL - NOVO / EDITAR CONTRATO */}
+      {modalAberto && (
         <div
           className="modal fade show d-block"
+          tabIndex="-1"
+          role="dialog"
           style={{
-            backgroundColor: "rgba(0,0,0,0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
           }}
         >
+          <div
+            className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
+            role="document"
+          >
+            <div className="modal-content border-0 shadow">
 
-          <div className="modal-dialog modal-lg">
-
-            <div className="modal-content">
-
+              {/* CABEÇALHO */}
               <div className="modal-header">
 
-                <h5 className="modal-title">
-                  Contrato {visualizando.numero}
-                </h5>
+                <div>
+                  <h5 className="modal-title fw-bold">
+                    {editando
+                      ? "Editar contrato"
+                      : "Novo contrato"}
+                  </h5>
+
+                  <small className="text-muted">
+                    {editando
+                      ? "Atualize os dados do contrato"
+                      : "Cadastre um novo contrato de locação"}
+                  </small>
+                </div>
 
                 <button
+                  type="button"
                   className="btn-close"
-                  onClick={() =>
-                    setVisualizando(null)
-                  }
-                />
+                  onClick={fecharModal}
+                  disabled={salvando}
+                ></button>
 
               </div>
 
-              <div className="modal-body">
+              {/* FORMULÁRIO */}
+              <form onSubmit={salvarContrato}>
 
-                <div className="row g-3">
+                <div className="modal-body">
 
-                  <div className="col-md-6">
-                    <strong>Imóvel:</strong>
-                    <br />
-                    {visualizando.imovel}
+                  {/* CLIENTE E IMÓVEL */}
+                  <div className="mb-4">
+
+                    <div className="d-flex align-items-center mb-3">
+
+                      <div
+                        className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                        }}
+                      >
+                        <i className="bi bi-file-earmark-text text-primary"></i>
+                      </div>
+
+                      <div>
+                        <h6 className="fw-bold mb-0">
+                          Dados do contrato
+                        </h6>
+
+                        <small className="text-muted">
+                          Cliente e imóvel relacionados ao contrato
+                        </small>
+                      </div>
+
+                    </div>
+
+                    <div className="row g-3">
+
+                      {/* CLIENTE */}
+                      <div className="col-12 col-md-6">
+
+                        <label className="form-label fw-semibold">
+                          Cliente
+                          <span className="text-danger ms-1">
+                            *
+                          </span>
+                        </label>
+
+                        <select
+                          className="form-select"
+                          value={form.cliente_id}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "cliente_id",
+                              e.target.value
+                            )
+                          }
+                          required
+                        >
+                          <option value="">
+                            Selecione o cliente
+                          </option>
+
+                          {clientes.map((cliente) => (
+                            <option
+                              key={cliente.id}
+                              value={cliente.id}
+                            >
+                              {cliente.nome}
+                            </option>
+                          ))}
+                        </select>
+
+                      </div>
+
+                      {/* IMÓVEL */}
+                      <div className="col-12 col-md-6">
+
+                        <label className="form-label fw-semibold">
+                          Imóvel
+                          <span className="text-danger ms-1">
+                            *
+                          </span>
+                        </label>
+
+                        <select
+                          className="form-select"
+                          value={form.imovel_id}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "imovel_id",
+                              e.target.value
+                            )
+                          }
+                          required
+                        >
+                          <option value="">
+                            Selecione o imóvel
+                          </option>
+
+                          {imoveis.map((imovel) => (
+                            <option
+                              key={imovel.id}
+                              value={imovel.id}
+                            >
+                              {imovel.nome ||
+                                imovel.titulo ||
+                                imovel.codigo ||
+                                imovel.endereco ||
+                                `Imóvel #${imovel.id}`}
+                            </option>
+                          ))}
+                        </select>
+
+                      </div>
+
+                    </div>
+
                   </div>
 
-                  <div className="col-md-6">
-                    <strong>Cliente:</strong>
-                    <br />
-                    {visualizando.cliente}
+                  <hr className="my-4" />
+
+                  {/* PERÍODO */}
+                  <div className="mb-4">
+
+                    <div className="d-flex align-items-center mb-3">
+
+                      <div
+                        className="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                        }}
+                      >
+                        <i className="bi bi-calendar-range text-info"></i>
+                      </div>
+
+                      <div>
+                        <h6 className="fw-bold mb-0">
+                          Período do contrato
+                        </h6>
+
+                        <small className="text-muted">
+                          Defina as datas de início e término
+                        </small>
+                      </div>
+
+                    </div>
+
+                    <div className="row g-3">
+
+                      {/* DATA INÍCIO */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Data de início
+                          <span className="text-danger ms-1">
+                            *
+                          </span>
+                        </label>
+
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={form.data_inicio}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "data_inicio",
+                              e.target.value
+                            )
+                          }
+                          required
+                        />
+
+                      </div>
+
+                      {/* DATA FIM */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Data de término
+                        </label>
+
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={form.data_fim}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "data_fim",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* STATUS */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Status
+                        </label>
+
+                        <select
+                          className="form-select"
+                          value={form.status}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "status",
+                              e.target.value
+                            )
+                          }
+                        >
+                          <option value="ativo">
+                            Ativo
+                          </option>
+
+                          <option value="vencendo">
+                            Vencendo
+                          </option>
+
+                          <option value="encerrado">
+                            Encerrado
+                          </option>
+
+                          <option value="cancelado">
+                            Cancelado
+                          </option>
+                        </select>
+
+                      </div>
+
+                    </div>
+
                   </div>
 
-                  <div className="col-md-4">
-                    <strong>Tipo:</strong>
-                    <br />
-                    {visualizando.tipo}
+                  <hr className="my-4" />
+
+                  {/* VALORES */}
+                  <div className="mb-4">
+
+                    <div className="d-flex align-items-center mb-3">
+
+                      <div
+                        className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                        }}
+                      >
+                        <i className="bi bi-cash-coin text-success"></i>
+                      </div>
+
+                      <div>
+                        <h6 className="fw-bold mb-0">
+                          Valores financeiros
+                        </h6>
+
+                        <small className="text-muted">
+                          Informações financeiras da locação
+                        </small>
+                      </div>
+
+                    </div>
+
+                    <div className="row g-3">
+
+                      {/* ALUGUEL */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Valor do aluguel
+                          <span className="text-danger ms-1">
+                            *
+                          </span>
+                        </label>
+
+                        <div className="input-group">
+
+                          <span className="input-group-text">
+                            R$
+                          </span>
+
+                          <input
+                            type="number"
+                            className="form-control"
+                            placeholder="0,00"
+                            min="0"
+                            step="0.01"
+                            value={form.valor_aluguel}
+                            onChange={(e) =>
+                              alterarCampo(
+                                "valor_aluguel",
+                                e.target.value
+                              )
+                            }
+                            required
+                          />
+
+                        </div>
+
+                      </div>
+
+                      {/* VENCIMENTO */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Dia de vencimento
+                        </label>
+
+                        <select
+                          className="form-select"
+                          value={form.dia_vencimento}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "dia_vencimento",
+                              e.target.value
+                            )
+                          }
+                        >
+                          <option value="">
+                            Selecione
+                          </option>
+
+                          {Array.from(
+                            { length: 31 },
+                            (_, index) =>
+                              index + 1
+                          ).map((dia) => (
+                            <option
+                              key={dia}
+                              value={dia}
+                            >
+                              Dia {dia}
+                            </option>
+                          ))}
+                        </select>
+
+                      </div>
+
+                      {/* CAUÇÃO */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Valor da caução
+                        </label>
+
+                        <div className="input-group">
+
+                          <span className="input-group-text">
+                            R$
+                          </span>
+
+                          <input
+                            type="number"
+                            className="form-control"
+                            placeholder="0,00"
+                            min="0"
+                            step="0.01"
+                            value={form.valor_caucao}
+                            onChange={(e) =>
+                              alterarCampo(
+                                "valor_caucao",
+                                e.target.value
+                              )
+                            }
+                          />
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
                   </div>
 
-                  <div className="col-md-4">
-                    <strong>Periodicidade:</strong>
-                    <br />
-                    {descricaoVencimento(visualizando)}
-                  </div>
+                  <hr className="my-4" />
 
-                  <div className="col-md-4">
-                    <strong>Valor:</strong>
-                    <br />
-                    {formatarValor(visualizando.valor)}
-                  </div>
+                  {/* OBSERVAÇÕES */}
+                  <div>
 
-                  <div className="col-md-4">
-                    <strong>Início:</strong>
-                    <br />
-                    {formatarData(visualizando.inicio)}
-                  </div>
+                    <div className="d-flex align-items-center mb-3">
 
-                  <div className="col-md-4">
-                    <strong>Término:</strong>
-                    <br />
-                    {formatarData(visualizando.termino)}
-                  </div>
+                      <div
+                        className="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                        }}
+                      >
+                        <i className="bi bi-chat-left-text text-warning"></i>
+                      </div>
 
-                  <div className="col-md-4">
-                    <strong>Status:</strong>
-                    <br />
-                    {visualizando.status}
-                  </div>
+                      <div>
+                        <h6 className="fw-bold mb-0">
+                          Observações
+                        </h6>
 
-                  <div className="col-12">
-                    <strong>Observações:</strong>
-                    <br />
-                    {visualizando.observacoes || "-"}
+                        <small className="text-muted">
+                          Informações adicionais do contrato
+                        </small>
+                      </div>
+
+                    </div>
+
+                    <textarea
+                      className="form-control"
+                      rows="4"
+                      placeholder="Digite observações ou informações adicionais..."
+                      value={form.observacoes}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "observacoes",
+                          e.target.value
+                        )
+                      }
+                    ></textarea>
+
                   </div>
 
                 </div>
 
-              </div>
+                {/* RODAPÉ DO MODAL */}
+                <div className="modal-footer">
 
-              <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={fecharModal}
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
 
-                <button
-                  className="btn btn-secondary"
-                  onClick={() =>
-                    setVisualizando(null)
-                  }
-                >
-                  Fechar
-                </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={salvando}
+                  >
 
-              </div>
+                    {salvando ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                        ></span>
+
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-lg me-2"></i>
+
+                        {editando
+                          ? "Salvar alterações"
+                          : "Cadastrar contrato"}
+                      </>
+                    )}
+
+                  </button>
+
+                </div>
+
+              </form>
 
             </div>
-
           </div>
+        </div>
+      )}
+      {/* RODAPÉ DA PÁGINA */}
+      <div className="text-center text-muted py-3">
 
+        <small>
+          Sistema de Gestão Imobiliária
+        </small>
+
+        <div className="mt-1">
+          <small>
+            Gestão de contratos e locações
+          </small>
         </div>
 
-      )}
+      </div>
 
-    </main>
+    </div>
   )
 }
