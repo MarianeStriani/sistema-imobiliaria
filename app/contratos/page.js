@@ -1922,7 +1922,7 @@ return imoveis.filter((imovel) => {
     </div>
   )
 }
-      {/* RODAPÉ DA PÁGINA */}
+            {/* RODAPÉ DA PÁGINA */}
       <div className="text-center text-muted py-3">
 
         <small>
@@ -1931,7 +1931,7 @@ return imoveis.filter((imovel) => {
 
         <div className="mt-1">
           <small>
-            Gestão de imóveis
+            Gestão de contratos
           </small>
         </div>
 
