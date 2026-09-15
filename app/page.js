@@ -219,13 +219,16 @@ export default function Dashboard() {
       )
     }).length
   }, [imoveis])
+  const totalImoveis = useMemo(() => {
+    return imoveis.length
+  }, [imoveis])
 
   const recebimentosMes = useMemo(() => {
     return recebimentos.filter((item) => {
       return mesmaCompetencia(
         item.data_recebimento ||
           item.data_pagamento ||
-          item.data ||
+          item.data_vencimento ||
           item.created_at
       )
     })
@@ -236,7 +239,7 @@ export default function Dashboard() {
       return mesmaCompetencia(
         item.data_despesa ||
           item.data_pagamento ||
-          item.data ||
+          item.data_vencimento ||
           item.created_at
       )
     })
@@ -249,8 +252,8 @@ export default function Dashboard() {
         numero(
           item.valor ||
             item.valor_recebido ||
-            item.valor_pagamento ||
-            0
+            item.valor_pago ||
+            item.total
         )
       )
     }, 0)
@@ -262,14 +265,14 @@ export default function Dashboard() {
         total +
         numero(
           item.valor ||
-            item.valor_despesa ||
-            0
+            item.valor_pago ||
+            item.total
         )
       )
     }, 0)
   }, [despesasMes])
 
-  const saldo = totalRecebimentos - totalDespesas
+  const saldoMes = totalRecebimentos - totalDespesas
 
   const recebimentosPendentes = useMemo(() => {
     return recebimentos.filter((item) => {
@@ -282,27 +285,33 @@ export default function Dashboard() {
       return (
         status.includes("pendente") ||
         status.includes("aberto") ||
-        status.includes("vencido")
+        status.includes("atras")
       )
     }).length
   }, [recebimentos])
 
   const contratosVencendo = useMemo(() => {
     const limite = new Date()
+
     limite.setDate(limite.getDate() + 30)
 
     return contratos.filter((contrato) => {
-      const dataFim =
+      const data =
         contrato.data_fim ||
         contrato.data_final ||
-        contrato.fim_contrato ||
-        contrato.vencimento
+        contrato.vencimento ||
+        contrato.data_vencimento
 
-      const data = dataValida(dataFim)
+      const dataVencimento = dataValida(data)
 
-      if (!data) return false
+      if (!dataVencimento) {
+        return false
+      }
 
-      return data >= hoje && data <= limite
+      return (
+        dataVencimento >= hoje &&
+        dataVencimento <= limite
+      )
     }).length
   }, [contratos])
 
@@ -312,14 +321,14 @@ export default function Dashboard() {
         const dataA = dataValida(
           a.data_recebimento ||
             a.data_pagamento ||
-            a.data ||
+            a.data_vencimento ||
             a.created_at
         )
 
         const dataB = dataValida(
           b.data_recebimento ||
             b.data_pagamento ||
-            b.data ||
+            b.data_vencimento ||
             b.created_at
         )
 
@@ -331,620 +340,1273 @@ export default function Dashboard() {
       .slice(0, 5)
   }, [recebimentos])
 
-  const totalImoveis =
-    imoveisAlugados +
-    imoveisDisponiveis +
-    imoveisManutencao
+  const percentualAlugados =
+    totalImoveis > 0
+      ? Math.round(
+          (imoveisAlugados / totalImoveis) * 100
+        )
+      : 0
 
-  function percentual(valor) {
-    if (totalImoveis === 0) {
-      return 0
-    }
+  const percentualDisponiveis =
+    totalImoveis > 0
+      ? Math.round(
+          (imoveisDisponiveis / totalImoveis) * 100
+        )
+      : 0
 
-    return (valor / totalImoveis) * 100
+  const percentualManutencao =
+    totalImoveis > 0
+      ? Math.round(
+          (imoveisManutencao / totalImoveis) * 100
+        )
+      : 0
+
+  function acessarPagina(url) {
+    window.location.href = url
+  }
+
+  if (loading) {
+    return (
+      <div className="container-fluid py-4">
+        <div className="d-flex justify-content-center align-items-center py-5">
+          <div
+            className="spinner-border text-primary"
+            role="status"
+          >
+            <span className="visually-hidden">
+              Carregando...
+            </span>
+          </div>
+
+          <span className="ms-3">
+            Carregando dashboard...
+          </span>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <main className="container-fluid py-4">
-      <div className="container">
+    <div className="container-fluid py-4">
 
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      {/* CABEÇALHO */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="fw-bold mb-1">
+            Dashboard
+          </h2>
 
-          <div>
-            <h1 className="fw-bold mb-1">
-              Dashboard
-            </h1>
+          <p className="text-muted mb-0">
+            Visão geral da gestão imobiliária
+          </p>
+        </div>
 
-            <p className="text-muted mb-0">
-              Visão geral da administração imobiliária
-            </p>
-          </div>
+        <button
+          className="btn btn-outline-primary"
+          onClick={carregarDados}
+        >
+          <i className="bi bi-arrow-clockwise me-2"></i>
+          Atualizar
+        </button>
+      </div>
+
+      {/* ERRO */}
+      {erro && (
+        <div
+          className="alert alert-danger d-flex justify-content-between align-items-center"
+          role="alert"
+        >
+          <span>
+            {erro}
+          </span>
 
           <button
             type="button"
-            className="btn btn-outline-primary"
-            onClick={carregarDados}
-            disabled={loading}
-          >
-            {loading
-              ? "Atualizando..."
-              : "🔄 Atualizar"}
-          </button>
+            className="btn-close"
+            onClick={() => setErro("")}
+          ></button>
+        </div>
+      )}
 
+      {/* ACESSO RÁPIDO */}
+      <div className="card shadow-sm border-0 mb-4">
+        <div className="card-body">
+
+          <div className="d-flex align-items-center mb-3">
+            <div
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+              style={{
+                width: "38px",
+                height: "38px",
+              }}
+            >
+              <i className="bi bi-lightning-charge text-primary"></i>
+            </div>
+
+            <div>
+              <h5 className="fw-bold mb-0">
+                Acesso rápido
+              </h5>
+
+              <small className="text-muted">
+                Acesse rapidamente as principais áreas
+              </small>
+            </div>
+          </div>
+
+          <div className="row g-2">
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/")}
+              >
+                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
+                Dashboard
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/clientes")}
+              >
+                <i className="bi bi-people d-block fs-5 mb-1"></i>
+                Clientes
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/imoveis")}
+              >
+                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
+                Imóveis
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/contratos")}
+              >
+                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
+                Contratos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/recebimentos")}
+              >
+                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
+                Recebimentos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/despesas")}
+              >
+                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
+                Despesas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/financeiro")}
+              >
+                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
+                Financeiro
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/manutencoes")}
+              >
+                <i className="bi bi-tools d-block fs-5 mb-1"></i>
+                Manutenções
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/visitas")}
+              >
+                <i className="bi bi-calendar-check d-block fs-5 mb-1"></i>
+                Visitas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/comunicacao")}
+              >
+                <i className="bi bi-whatsapp d-block fs-5 mb-1"></i>
+                Comunicação
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/relatorios")}
+              >
+                <i className="bi bi-file-earmark-bar-graph d-block fs-5 mb-1"></i>
+                Relatórios
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/configuracoes")}
+              >
+                <i className="bi bi-gear d-block fs-5 mb-1"></i>
+                Configurações
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      {/* CARDS PRINCIPAIS */}
+      <div className="row g-3 mb-4">
+
+        {/* CLIENTES */}
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted mb-1">
+                    Clientes
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {clientes.length}
+                  </h3>
+                </div>
+
+                <div
+                  className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-people text-primary fs-4"></i>
+                </div>
+              </div>
+
+              <button
+                className="btn btn-sm btn-link text-decoration-none p-0 mt-3"
+                onClick={() => acessarPagina("/clientes")}
+              >
+                Ver clientes
+                <i className="bi bi-arrow-right ms-1"></i>
+              </button>
+
+            </div>
+          </div>
         </div>
 
-        {erro && (
-          <div className="alert alert-warning">
-            <strong>Atenção:</strong>{" "}
-            {erro}
-          </div>
-        )}
+        {/* CONTRATOS */}
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
 
-        <div className="row g-3 mb-4">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted mb-1">
+                    Contratos ativos
+                  </p>
 
-          <div className="col-12 col-md-6 col-xl-3">
-            <div className="card shadow-sm h-100 border-0">
-              <div className="card-body">
-
-                <div className="text-muted small mb-2">
-                  Clientes
+                  <h3 className="fw-bold mb-0">
+                    {contratosAtivos.length}
+                  </h3>
                 </div>
 
-                <div className="fs-2 fw-bold">
-                  {clientes.length}
+                <div
+                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-file-earmark-check text-success fs-4"></i>
                 </div>
-
-                <div className="small text-muted">
-                  Clientes cadastrados
-                </div>
-
               </div>
+
+              <button
+                className="btn btn-sm btn-link text-decoration-none p-0 mt-3"
+                onClick={() => acessarPagina("/contratos")}
+              >
+                Ver contratos
+                <i className="bi bi-arrow-right ms-1"></i>
+              </button>
+
             </div>
           </div>
-
-          <div className="col-12 col-md-6 col-xl-3">
-            <div className="card shadow-sm h-100 border-0">
-              <div className="card-body">
-
-                <div className="text-muted small mb-2">
-                  Contratos
-                </div>
-
-                <div className="fs-2 fw-bold">
-                  {contratosAtivos.length}
-                </div>
-
-                <div className="small text-muted">
-                  Contratos ativos
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          <div className="col-12 col-md-6 col-xl-3">
-            <div className="card shadow-sm h-100 border-0">
-              <div className="card-body">
-
-                <div className="text-muted small mb-2">
-                  Recebimentos
-                </div>
-
-                <div className="fs-4 fw-bold">
-                  {formatarMoeda(
-                    totalRecebimentos
-                  )}
-                </div>
-
-                <div className="small text-muted">
-                  Recebidos neste mês
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          <div className="col-12 col-md-6 col-xl-3">
-            <div className="card shadow-sm h-100 border-0">
-              <div className="card-body">
-
-                <div className="text-muted small mb-2">
-                  Saldo
-                </div>
-
-                <div className="fs-4 fw-bold">
-                  {formatarMoeda(saldo)}
-                </div>
-
-                <div className="small text-muted">
-                  Recebimentos − despesas
-                </div>
-
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        <div className="row g-3 mb-4">
+        {/* RECEBIMENTOS */}
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
 
-          <div className="col-12 col-md-4">
-            <div className="card shadow-sm border-0 h-100">
-              <div className="card-body">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted mb-1">
+                    Recebimentos do mês
+                  </p>
 
-                <div className="text-muted small">
-                  Recebimentos pendentes
+                  <h3 className="fw-bold mb-0">
+                    {formatarMoeda(totalRecebimentos)}
+                  </h3>
                 </div>
 
-                <div className="fs-2 fw-bold mt-2">
-                  {recebimentosPendentes}
+                <div
+                  className="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-cash-stack text-info fs-4"></i>
                 </div>
-
-                <div className="small text-muted">
-                  Aguardando pagamento
-                </div>
-
               </div>
+
+              <button
+                className="btn btn-sm btn-link text-decoration-none p-0 mt-3"
+                onClick={() => acessarPagina("/recebimentos")}
+              >
+                Ver recebimentos
+                <i className="bi bi-arrow-right ms-1"></i>
+              </button>
+
             </div>
           </div>
-
-          <div className="col-12 col-md-4">
-            <div className="card shadow-sm border-0 h-100">
-              <div className="card-body">
-
-                <div className="text-muted small">
-                  Contratos vencendo
-                </div>
-
-                <div className="fs-2 fw-bold mt-2">
-                  {contratosVencendo}
-                </div>
-
-                <div className="small text-muted">
-                  Próximos 30 dias
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          <div className="col-12 col-md-4">
-            <div className="card shadow-sm border-0 h-100">
-              <div className="card-body">
-
-                <div className="text-muted small">
-                  Despesas do mês
-                </div>
-
-                <div className="fs-4 fw-bold mt-2">
-                  {formatarMoeda(
-                    totalDespesas
-                  )}
-                </div>
-
-                <div className="small text-muted">
-                  Total registrado
-                </div>
-
-              </div>
-            </div>
-          </div>
-
         </div>
-        <div className="row g-4 mb-4">
 
-          {/* SITUAÇÃO DOS IMÓVEIS */}
+        {/* DESPESAS */}
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
 
-          <div className="col-12 col-lg-6">
-            <div className="card shadow-sm border-0 h-100">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted mb-1">
+                    Despesas do mês
+                  </p>
 
-              <div className="card-body">
+                  <h3 className="fw-bold mb-0">
+                    {formatarMoeda(totalDespesas)}
+                  </h3>
+                </div>
 
-                <h5 className="fw-bold mb-4">
-                  Situação dos imóveis
-                </h5>
+                <div
+                  className="bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-wallet2 text-danger fs-4"></i>
+                </div>
+              </div>
 
-                {totalImoveis === 0 ? (
-                  <div className="text-center text-muted py-5">
-                    Nenhum imóvel cadastrado.
-                  </div>
-                ) : (
-                  <div>
+              <button
+                className="btn btn-sm btn-link text-decoration-none p-0 mt-3"
+                onClick={() => acessarPagina("/despesas")}
+              >
+                Ver despesas
+                <i className="bi bi-arrow-right ms-1"></i>
+              </button>
 
-                    <div
-                      className="mx-auto mb-4"
-                      style={{
-                        width: "220px",
-                        height: "220px",
-                        borderRadius: "50%",
-                        background: `conic-gradient(
-                          #198754 0% ${percentual(imoveisAlugados)}%,
-                          #0d6efd ${percentual(imoveisAlugados)}% ${percentual(
-                            imoveisAlugados +
-                              imoveisDisponiveis
-                          )}%,
-                          #ffc107 ${percentual(
-                            imoveisAlugados +
-                              imoveisDisponiveis
-                          )}% 100%
-                        )`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
+            </div>
+          </div>
+        </div>
 
+      </div>
+
+      {/* FINANCEIRO */}
+      <div className="row g-3 mb-4">
+
+        {/* RECEITAS */}
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex align-items-center mb-3">
+                <div
+                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style={{
+                    width: "45px",
+                    height: "45px",
+                  }}
+                >
+                  <i className="bi bi-arrow-down-left text-success fs-5"></i>
+                </div>
+
+                <div>
+                  <small className="text-muted">
+                    Receitas
+                  </small>
+
+                  <h5 className="fw-bold mb-0">
+                    {formatarMoeda(totalRecebimentos)}
+                  </h5>
+                </div>
+              </div>
+
+              <div className="progress" style={{ height: "6px" }}>
+                <div
+                  className="progress-bar bg-success"
+                  role="progressbar"
+                  style={{
+                    width:
+                      totalRecebimentos > 0
+                        ? "100%"
+                        : "0%",
+                  }}
+                ></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* DESPESAS */}
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex align-items-center mb-3">
+                <div
+                  className="bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                  style={{
+                    width: "45px",
+                    height: "45px",
+                  }}
+                >
+                  <i className="bi bi-arrow-up-right text-danger fs-5"></i>
+                </div>
+
+                <div>
+                  <small className="text-muted">
+                    Despesas
+                  </small>
+
+                  <h5 className="fw-bold mb-0">
+                    {formatarMoeda(totalDespesas)}
+                  </h5>
+                </div>
+              </div>
+
+              <div className="progress" style={{ height: "6px" }}>
+                <div
+                  className="progress-bar bg-danger"
+                  role="progressbar"
+                  style={{
+                    width:
+                      totalDespesas > 0
+                        ? "100%"
+                        : "0%",
+                  }}
+                ></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* SALDO */}
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex align-items-center mb-3">
+                <div
+                  className={`bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3 ${
+                    saldoMes >= 0
+                      ? "bg-primary"
+                      : "bg-warning"
+                  }`}
+                  style={{
+                    width: "45px",
+                    height: "45px",
+                  }}
+                >
+                  <i
+                    className={`fs-5 ${
+                      saldoMes >= 0
+                        ? "bi bi-graph-up-arrow text-primary"
+                        : "bi bi-exclamation-triangle text-warning"
+                    }`}
+                  ></i>
+                </div>
+
+                <div>
+                  <small className="text-muted">
+                    Saldo do mês
+                  </small>
+
+                  <h5 className="fw-bold mb-0">
+                    {formatarMoeda(saldoMes)}
+                  </h5>
+                </div>
+              </div>
+
+              <small
+                className={
+                  saldoMes >= 0
+                    ? "text-success"
+                    : "text-danger"
+                }
+              >
+                {saldoMes >= 0
+                  ? "Saldo positivo"
+                  : "Saldo negativo"}
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* STATUS DOS IMÓVEIS */}
+      <div className="row g-3 mb-4">
+
+        <div className="col-12 col-lg-7">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h5 className="fw-bold mb-1">
+                    Status dos imóveis
+                  </h5>
+
+                  <small className="text-muted">
+                    Distribuição atual da carteira
+                  </small>
+                </div>
+
+                <button
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => acessarPagina("/imoveis")}
+                >
+                  Ver imóveis
+                </button>
+              </div>
+
+              <div className="row g-3">
+
+                <div className="col-12 col-md-4">
+                  <div className="border rounded-3 p-3 text-center h-100">
+
+                    <div className="mb-2">
+                      <i className="bi bi-house-check text-success fs-2"></i>
+                    </div>
+
+                    <h3 className="fw-bold mb-1">
+                      {imoveisAlugados}
+                    </h3>
+
+                    <p className="text-muted mb-2">
+                      Alugados
+                    </p>
+
+                    <div className="progress" style={{ height: "5px" }}>
                       <div
-                        className="bg-white rounded-circle d-flex align-items-center justify-content-center"
+                        className="progress-bar bg-success"
                         style={{
-                          width: "125px",
-                          height: "125px",
+                          width: `${percentualAlugados}%`,
                         }}
-                      >
-
-                        <div className="text-center">
-
-                          <div className="fs-3 fw-bold">
-                            {totalImoveis}
-                          </div>
-
-                          <div className="small text-muted">
-                            imóveis
-                          </div>
-
-                        </div>
-
-                      </div>
-
+                      ></div>
                     </div>
 
-                    <div className="row text-center g-3">
-
-                      <div className="col-4">
-
-                        <div className="fw-bold fs-4">
-                          {imoveisAlugados}
-                        </div>
-
-                        <div className="small text-muted">
-                          🟢 Alugados
-                        </div>
-
-                      </div>
-
-                      <div className="col-4">
-
-                        <div className="fw-bold fs-4">
-                          {imoveisDisponiveis}
-                        </div>
-
-                        <div className="small text-muted">
-                          🔵 Disponíveis
-                        </div>
-
-                      </div>
-
-                      <div className="col-4">
-
-                        <div className="fw-bold fs-4">
-                          {imoveisManutencao}
-                        </div>
-
-                        <div className="small text-muted">
-                          🟡 Manutenção
-                        </div>
-
-                      </div>
-
-                    </div>
+                    <small className="text-muted">
+                      {percentualAlugados}%
+                    </small>
 
                   </div>
-                )}
+                </div>
+
+                <div className="col-12 col-md-4">
+                  <div className="border rounded-3 p-3 text-center h-100">
+
+                    <div className="mb-2">
+                      <i className="bi bi-house text-primary fs-2"></i>
+                    </div>
+
+                    <h3 className="fw-bold mb-1">
+                      {imoveisDisponiveis}
+                    </h3>
+
+                    <p className="text-muted mb-2">
+                      Disponíveis
+                    </p>
+
+                    <div className="progress" style={{ height: "5px" }}>
+                      <div
+                        className="progress-bar bg-primary"
+                        style={{
+                          width: `${percentualDisponiveis}%`,
+                        }}
+                      ></div>
+                    </div>
+
+                    <small className="text-muted">
+                      {percentualDisponiveis}%
+                    </small>
+
+                  </div>
+                </div>
+
+                <div className="col-12 col-md-4">
+                  <div className="border rounded-3 p-3 text-center h-100">
+
+                    <div className="mb-2">
+                      <i className="bi bi-tools text-warning fs-2"></i>
+                    </div>
+
+                    <h3 className="fw-bold mb-1">
+                      {imoveisManutencao}
+                    </h3>
+
+                    <p className="text-muted mb-2">
+                      Manutenção
+                    </p>
+
+                    <div className="progress" style={{ height: "5px" }}>
+                      <div
+                        className="progress-bar bg-warning"
+                        style={{
+                          width: `${percentualManutencao}%`,
+                        }}
+                      ></div>
+                    </div>
+
+                    <small className="text-muted">
+                      {percentualManutencao}%
+                    </small>
+
+                  </div>
+                </div>
 
               </div>
 
             </div>
           </div>
+        </div>
 
-          {/* RESUMO FINANCEIRO */}
+        {/* ALERTAS */}
+        <div className="col-12 col-lg-5">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
 
-          <div className="col-12 col-lg-6">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 className="fw-bold mb-1">
+                    Alertas
+                  </h5>
 
-            <div className="card shadow-sm border-0 h-100">
+                  <small className="text-muted">
+                    Itens que precisam de atenção
+                  </small>
+                </div>
 
-              <div className="card-body">
+                <i className="bi bi-bell text-warning fs-4"></i>
+              </div>
 
-                <h5 className="fw-bold mb-4">
-                  Resumo financeiro
-                </h5>
+              <div className="list-group list-group-flush">
 
-                <div className="mb-4">
+                <button
+                  className="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0"
+                  onClick={() => acessarPagina("/recebimentos")}
+                >
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-cash-coin text-danger me-3"></i>
 
-                  <div className="d-flex justify-content-between mb-2">
+                    <div>
+                      <div className="fw-semibold">
+                        Recebimentos pendentes
+                      </div>
 
-                    <span>
-                      Recebimentos
-                    </span>
-
-                    <strong>
-                      {formatarMoeda(
-                        totalRecebimentos
-                      )}
-                    </strong>
-
+                      <small className="text-muted">
+                        Verificar pagamentos
+                      </small>
+                    </div>
                   </div>
 
-                  <div
-                    className="progress"
-                    style={{
-                      height: "10px",
-                    }}
-                  >
+                  <span className="badge bg-danger rounded-pill">
+                    {recebimentosPendentes}
+                  </span>
+                </button>
 
-                    <div
-                      className="progress-bar bg-success"
-                      style={{
-                        width:
-                          totalRecebimentos > 0
-                            ? "100%"
-                            : "0%",
-                      }}
-                    />
+                <button
+                  className="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0"
+                  onClick={() => acessarPagina("/contratos")}
+                >
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-calendar-event text-warning me-3"></i>
+
+                    <div>
+                      <div className="fw-semibold">
+                        Contratos vencendo
+                      </div>
+
+                      <small className="text-muted">
+                        Próximos 30 dias
+                      </small>
+                    </div>
+                  </div>
+
+                  <span className="badge bg-warning text-dark rounded-pill">
+                    {contratosVencendo}
+                  </span>
+                </button>
+
+                <button
+                  className="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0"
+                  onClick={() => acessarPagina("/manutencoes")}
+                >
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-tools text-primary me-3"></i>
+
+                    <div>
+                      <div className="fw-semibold">
+                        Imóveis em manutenção
+                      </div>
+
+                      <small className="text-muted">
+                        Acompanhar serviços
+                      </small>
+                    </div>
+                  </div>
+
+                  <span className="badge bg-primary rounded-pill">
+                    {imoveisManutencao}
+                  </span>
+                </button>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+      {/* ÚLTIMOS RECEBIMENTOS */}
+      <div className="card shadow-sm border-0 mb-4">
+        <div className="card-body">
+
+          <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+              <h5 className="fw-bold mb-1">
+                Últimos recebimentos
+              </h5>
+
+              <small className="text-muted">
+                Acompanhe os recebimentos mais recentes
+              </small>
+            </div>
+
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => acessarPagina("/recebimentos")}
+            >
+              Ver todos
+              <i className="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+
+          {ultimosRecebimentos.length === 0 ? (
+            <div className="text-center py-5">
+
+              <i className="bi bi-cash-stack text-muted fs-1"></i>
+
+              <p className="text-muted mt-3 mb-0">
+                Nenhum recebimento encontrado.
+              </p>
+
+            </div>
+          ) : (
+            <div className="table-responsive">
+
+              <table className="table table-hover align-middle mb-0">
+
+                <thead>
+                  <tr>
+                    <th>
+                      Data
+                    </th>
+
+                    <th>
+                      Cliente
+                    </th>
+
+                    <th>
+                      Descrição
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+
+                    <th className="text-end">
+                      Valor
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  {ultimosRecebimentos.map((item, index) => {
+
+                    const status = String(
+                      item.status ||
+                        item.situacao ||
+                        "Recebido"
+                    )
+
+                    const statusLower =
+                      status.toLowerCase()
+
+                    const statusRecebido =
+                      statusLower.includes("receb") ||
+                      statusLower.includes("pago") ||
+                      statusLower.includes("quit")
+
+                    const cliente =
+                      item.cliente_nome ||
+                      item.nome_cliente ||
+                      item.cliente ||
+                      "-"
+
+                    const descricao =
+                      item.descricao ||
+                      item.tipo ||
+                      item.referencia ||
+                      "Recebimento"
+
+                    const valor =
+                      item.valor ||
+                      item.valor_recebido ||
+                      item.valor_pago ||
+                      item.total ||
+                      0
+
+                    const data =
+                      item.data_recebimento ||
+                      item.data_pagamento ||
+                      item.data_vencimento ||
+                      item.created_at
+
+                    return (
+                      <tr key={item.id || index}>
+
+                        <td>
+                          {formatarData(data)}
+                        </td>
+
+                        <td>
+                          <div className="fw-semibold">
+                            {cliente}
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className="text-muted">
+                            {descricao}
+                          </span>
+                        </td>
+
+                        <td>
+                          <span
+                            className={`badge ${
+                              statusRecebido
+                                ? "bg-success"
+                                : "bg-warning text-dark"
+                            }`}
+                          >
+                            {status}
+                          </span>
+                        </td>
+
+                        <td className="text-end fw-semibold">
+                          {formatarMoeda(valor)}
+                        </td>
+
+                      </tr>
+                    )
+                  })}
+
+                </tbody>
+
+              </table>
+
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* RESUMO FINANCEIRO */}
+      <div className="row g-3 mb-4">
+
+        <div className="col-12 col-lg-8">
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-center mb-4">
+
+                <div>
+                  <h5 className="fw-bold mb-1">
+                    Resumo financeiro
+                  </h5>
+
+                  <small className="text-muted">
+                    Movimentação financeira do mês atual
+                  </small>
+                </div>
+
+                <button
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => acessarPagina("/financeiro")}
+                >
+                  Financeiro
+                  <i className="bi bi-arrow-right ms-1"></i>
+                </button>
+
+              </div>
+
+              <div className="row g-3">
+
+                <div className="col-12 col-md-4">
+
+                  <div className="p-3 border rounded-3 h-100">
+
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+
+                      <span className="text-muted">
+                        Recebimentos
+                      </span>
+
+                      <i className="bi bi-arrow-down-circle text-success fs-5"></i>
+
+                    </div>
+
+                    <h4 className="fw-bold mb-1">
+                      {formatarMoeda(totalRecebimentos)}
+                    </h4>
+
+                    <small className="text-success">
+                      Entradas
+                    </small>
 
                   </div>
 
                 </div>
 
-                <div className="mb-4">
+                <div className="col-12 col-md-4">
 
-                  <div className="d-flex justify-content-between mb-2">
+                  <div className="p-3 border rounded-3 h-100">
 
-                    <span>
-                      Despesas
-                    </span>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
 
-                    <strong>
-                      {formatarMoeda(
-                        totalDespesas
-                      )}
-                    </strong>
+                      <span className="text-muted">
+                        Despesas
+                      </span>
+
+                      <i className="bi bi-arrow-up-circle text-danger fs-5"></i>
+
+                    </div>
+
+                    <h4 className="fw-bold mb-1">
+                      {formatarMoeda(totalDespesas)}
+                    </h4>
+
+                    <small className="text-danger">
+                      Saídas
+                    </small>
 
                   </div>
 
+                </div>
+
+                <div className="col-12 col-md-4">
+
+                  <div className="p-3 border rounded-3 h-100">
+
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+
+                      <span className="text-muted">
+                        Saldo
+                      </span>
+
+                      <i
+                        className={`bi ${
+                          saldoMes >= 0
+                            ? "bi-wallet2 text-primary"
+                            : "bi-exclamation-circle text-danger"
+                        } fs-5`}
+                      ></i>
+
+                    </div>
+
+                    <h4 className="fw-bold mb-1">
+                      {formatarMoeda(saldoMes)}
+                    </h4>
+
+                    <small
+                      className={
+                        saldoMes >= 0
+                          ? "text-success"
+                          : "text-danger"
+                      }
+                    >
+                      {saldoMes >= 0
+                        ? "Resultado positivo"
+                        : "Resultado negativo"}
+                    </small>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        {/* TOTAL DE IMÓVEIS */}
+        <div className="col-12 col-lg-4">
+
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body d-flex flex-column justify-content-between">
+
+              <div>
+
+                <div className="d-flex justify-content-between align-items-start">
+
+                  <div>
+                    <small className="text-muted">
+                      Total de imóveis
+                    </small>
+
+                    <h2 className="fw-bold mt-1">
+                      {totalImoveis}
+                    </h2>
+                  </div>
+
                   <div
-                    className="progress"
+                    className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
                     style={{
-                      height: "10px",
+                      width: "50px",
+                      height: "50px",
                     }}
                   >
-
-                    <div
-                      className="progress-bar bg-danger"
-                      style={{
-                        width:
-                          totalDespesas > 0
-                            ? Math.min(
-                                (totalDespesas /
-                                  Math.max(
-                                    totalRecebimentos,
-                                    totalDespesas
-                                  )) *
-                                  100,
-                                100
-                              ) + "%"
-                            : "0%",
-                      }}
-                    />
-
+                    <i className="bi bi-buildings text-primary fs-4"></i>
                   </div>
 
                 </div>
 
                 <hr />
 
-                <div className="d-flex justify-content-between align-items-center">
+                <div className="d-flex justify-content-between mb-2">
 
-                  <span className="fw-bold">
-                    Saldo do mês
+                  <span className="text-muted">
+                    Alugados
                   </span>
 
-                  <span className="fs-4 fw-bold">
-                    {formatarMoeda(saldo)}
+                  <strong>
+                    {imoveisAlugados}
+                  </strong>
+
+                </div>
+
+                <div className="d-flex justify-content-between mb-2">
+
+                  <span className="text-muted">
+                    Disponíveis
                   </span>
+
+                  <strong>
+                    {imoveisDisponiveis}
+                  </strong>
+
+                </div>
+
+                <div className="d-flex justify-content-between">
+
+                  <span className="text-muted">
+                    Em manutenção
+                  </span>
+
+                  <strong>
+                    {imoveisManutencao}
+                  </strong>
 
                 </div>
 
               </div>
 
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* ÚLTIMOS RECEBIMENTOS */}
-
-        <div className="card shadow-sm border-0 mb-4">
-
-          <div className="card-body">
-
-            <div className="d-flex justify-content-between align-items-center mb-3">
-
-              <h5 className="fw-bold mb-0">
-                Últimos recebimentos
-              </h5>
-
-              <a
-                href="/recebimentos"
-                className="btn btn-sm btn-outline-primary"
+              <button
+                className="btn btn-primary w-100 mt-4"
+                onClick={() => acessarPagina("/imoveis")}
               >
-                Ver todos
-              </a>
-
-            </div>
-
-            {ultimosRecebimentos.length === 0 ? (
-
-              <div className="text-muted text-center py-4">
-                Nenhum recebimento cadastrado.
-              </div>
-
-            ) : (
-
-              <div className="table-responsive">
-
-                <table className="table table-hover align-middle mb-0">
-
-                  <thead>
-
-                    <tr>
-                      <th>Cliente</th>
-                      <th>Descrição</th>
-                      <th>Data</th>
-                      <th className="text-end">
-                        Valor
-                      </th>
-                    </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    {ultimosRecebimentos.map(
-                      (item, index) => (
-
-                        <tr
-                          key={
-                            item.id || index
-                          }
-                        >
-
-                          <td>
-                            {item.cliente_nome ||
-                              item.cliente ||
-                              item.nome_cliente ||
-                              "-"}
-                          </td>
-
-                          <td>
-                            {item.descricao ||
-                              item.observacoes ||
-                              item.observacao ||
-                              "-"}
-                          </td>
-
-                          <td>
-                            {formatarData(
-                              item.data_recebimento ||
-                                item.data_pagamento ||
-                                item.data ||
-                                item.created_at
-                            )}
-                          </td>
-
-                          <td className="text-end fw-bold">
-
-                            {formatarMoeda(
-                              item.valor ||
-                                item.valor_recebido ||
-                                item.valor_pagamento ||
-                                0
-                            )}
-
-                          </td>
-
-                        </tr>
-
-                      )
-                    )}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-
-            )}
-
-          </div>
-
-        </div>
-
-        {/* ACESSO RÁPIDO */}
-
-        <div className="card shadow-sm border-0">
-
-          <div className="card-body">
-
-            <h5 className="fw-bold mb-4">
-              Acesso rápido
-            </h5>
-
-            <div className="row g-3">
-
-              <div className="col-6 col-md-3">
-
-                <a
-                  href="/clientes"
-                  className="btn btn-outline-primary w-100 py-3"
-                >
-                  👥
-                  <br />
-                  Clientes
-                </a>
-
-              </div>
-
-              <div className="col-6 col-md-3">
-
-                <a
-                  href="/contratos"
-                  className="btn btn-outline-primary w-100 py-3"
-                >
-                  📄
-                  <br />
-                  Contratos
-                </a>
-
-              </div>
-
-              <div className="col-6 col-md-3">
-
-                <a
-                  href="/recebimentos"
-                  className="btn btn-outline-success w-100 py-3"
-                >
-                  💰
-                  <br />
-                  Recebimentos
-                </a>
-
-              </div>
-
-              <div className="col-6 col-md-3">
-
-                <a
-                  href="/despesas"
-                  className="btn btn-outline-danger w-100 py-3"
-                >
-                  💸
-                  <br />
-                  Despesas
-                </a>
-
-              </div>
+                <i className="bi bi-house-door me-2"></i>
+                Gerenciar imóveis
+              </button>
 
             </div>
 
           </div>
 
-        </div>
-
-        <div className="text-center text-muted small mt-4">
-          Sistema de Gestão Imobiliária
         </div>
 
       </div>
-    </main>
+
+      {/* ACESSOS ADMINISTRATIVOS */}
+      <div className="card shadow-sm border-0 mb-4">
+
+        <div className="card-body">
+
+          <div className="mb-4">
+            <h5 className="fw-bold mb-1">
+              Gestão do sistema
+            </h5>
+
+            <small className="text-muted">
+              Acesse outras ferramentas da administração imobiliária
+            </small>
+          </div>
+
+          <div className="row g-3">
+
+            <div className="col-12 col-md-4 col-lg-3">
+
+              <button
+                className="btn btn-light border w-100 text-start p-3 h-100"
+                onClick={() => acessarPagina("/manutencoes")}
+              >
+
+                <i className="bi bi-tools text-warning fs-4 d-block mb-2"></i>
+
+                <span className="fw-semibold d-block">
+                  Manutenções
+                </span>
+
+                <small className="text-muted">
+                  Controle de serviços
+                </small>
+
+              </button>
+
+            </div>
+
+            <div className="col-12 col-md-4 col-lg-3">
+
+              <button
+                className="btn btn-light border w-100 text-start p-3 h-100"
+                onClick={() => acessarPagina("/visitas")}
+              >
+
+                <i className="bi bi-calendar-check text-primary fs-4 d-block mb-2"></i>
+
+                <span className="fw-semibold d-block">
+                  Visitas
+                </span>
+
+                <small className="text-muted">
+                  Agendamento de visitas
+                </small>
+
+              </button>
+
+            </div>
+
+            <div className="col-12 col-md-4 col-lg-3">
+
+              <button
+                className="btn btn-light border w-100 text-start p-3 h-100"
+                onClick={() => acessarPagina("/comunicacao")}
+              >
+
+                <i className="bi bi-chat-dots text-success fs-4 d-block mb-2"></i>
+
+                <span className="fw-semibold d-block">
+                  Comunicação
+                </span>
+
+                <small className="text-muted">
+                  Mensagens aos clientes
+                </small>
+
+              </button>
+
+            </div>
+
+            <div className="col-12 col-md-4 col-lg-3">
+
+              <button
+                className="btn btn-light border w-100 text-start p-3 h-100"
+                onClick={() => acessarPagina("/relatorios")}
+              >
+
+                <i className="bi bi-file-earmark-bar-graph text-info fs-4 d-block mb-2"></i>
+
+                <span className="fw-semibold d-block">
+                  Relatórios
+                </span>
+
+                <small className="text-muted">
+                  Relatórios do sistema
+                </small>
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+      {/* RODAPÉ */}
+      <div className="text-center text-muted py-3">
+
+        <small>
+          Sistema de Gestão Imobiliária
+        </small>
+
+        <br />
+
+        <small>
+          Dashboard atualizado em{" "}
+          {hoje.toLocaleDateString("pt-BR")}
+        </small>
+
+      </div>
+
+    </div>
   )
 }
