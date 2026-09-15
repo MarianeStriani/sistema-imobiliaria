@@ -1,669 +1,1418 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
-const formularioInicial = {
-nome: "",
-tipo: "Pessoa Física",
-documento: "",
-telefone: "",
-email: "",
-endereco: "",
-cidade: ""
-}
+export default function Clientes() {
+  const [clientes, setClientes] = useState([])
 
-export default function ClientesPage() {
-const [clientes, setClientes] = useState([])
-const [form, setForm] = useState(formularioInicial)
-const [editandoId, setEditandoId] = useState(null)
-const [carregando, setCarregando] = useState(true)
-const [salvando, setSalvando] = useState(false)
-const [visualizando, setVisualizando] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [salvando, setSalvando] = useState(false)
 
-useEffect(() => {
-carregarClientes()
-}, [])
+  const [erro, setErro] = useState("")
+  const [sucesso, setSucesso] = useState("")
 
-async function carregarClientes() {
-setCarregando(true)
+  const [busca, setBusca] = useState("")
 
-const { data, error } = await supabase
-  .from("clientes")
-  .select("*")
-  .order("id", { ascending: false })
+  const [modalAberto, setModalAberto] = useState(false)
+  const [editando, setEditando] = useState(null)
 
-if (error) {
-  console.error(error)
-  alert("Erro ao carregar clientes.")
-} else {
-  setClientes(data || [])
-}
+  const [form, setForm] = useState({
+    nome: "",
+    cpf: "",
+    rg: "",
+    telefone: "",
+    email: "",
+    endereco: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+    cep: "",
+    observacoes: "",
+  })
 
-setCarregando(false)
+  async function carregarClientes() {
+    setLoading(true)
+    setErro("")
 
-}
+    try {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .order("nome", { ascending: true })
 
-function alterarCampo(e) {
-const { name, value } = e.target
+      if (error) {
+        throw error
+      }
 
-setForm((anterior) => ({
-  ...anterior,
-  [name]: value
-}))
+      setClientes(data || [])
+    } catch (error) {
+      console.error("Erro ao carregar clientes:", error)
 
-}
-
-function prepararEdicao(cliente) {
-setEditandoId(cliente.id)
-
-setForm({
-  nome: cliente.nome || "",
-  tipo: cliente.tipo || "Pessoa Física",
-  documento: cliente.documento || "",
-  telefone: cliente.telefone || "",
-  email: cliente.email || "",
-  endereco: cliente.endereco || "",
-  cidade: cliente.cidade || ""
-})
-
-window.scrollTo({
-  top: 0,
-  behavior: "smooth"
-})
-
-}
-
-function cancelarEdicao() {
-setEditandoId(null)
-setForm(formularioInicial)
-}
-
-async function salvarCliente(e) {
-e.preventDefault()
-
-if (!form.nome || !form.telefone) {
-  alert("Preencha nome e telefone.")
-  return
-}
-
-setSalvando(true)
-
-const dados = {
-  nome: form.nome,
-  tipo: form.tipo,
-  documento: form.documento,
-  telefone: form.telefone,
-  email: form.email,
-  endereco: form.endereco,
-  cidade: form.cidade
-}
-
-if (editandoId) {
-  const { data, error } = await supabase
-    .from("clientes")
-    .update(dados)
-    .eq("id", editandoId)
-    .select()
-
-  if (error) {
-    console.error(error)
-    alert("Erro ao atualizar cliente.")
-  } else {
-    setClientes((anterior) =>
-      anterior.map((item) =>
-        item.id === editandoId ? data[0] : item
+      setErro(
+        error?.message ||
+          "Não foi possível carregar os clientes."
       )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    carregarClientes()
+  }, [])
+
+  function limparMensagens() {
+    setErro("")
+    setSucesso("")
+  }
+
+  function abrirNovoCliente() {
+    limparMensagens()
+
+    setEditando(null)
+
+    setForm({
+      nome: "",
+      cpf: "",
+      rg: "",
+      telefone: "",
+      email: "",
+      endereco: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+      cep: "",
+      observacoes: "",
+    })
+
+    setModalAberto(true)
+  }
+
+  function abrirEditarCliente(cliente) {
+    limparMensagens()
+
+    setEditando(cliente)
+
+    setForm({
+      nome: cliente.nome || "",
+      cpf: cliente.cpf || "",
+      rg: cliente.rg || "",
+      telefone: cliente.telefone || "",
+      email: cliente.email || "",
+      endereco: cliente.endereco || "",
+      numero: cliente.numero || "",
+      complemento: cliente.complemento || "",
+      bairro: cliente.bairro || "",
+      cidade: cliente.cidade || "",
+      estado: cliente.estado || "",
+      cep: cliente.cep || "",
+      observacoes: cliente.observacoes || "",
+    })
+
+    setModalAberto(true)
+  }
+
+  function fecharModal() {
+    if (salvando) return
+
+    setModalAberto(false)
+    setEditando(null)
+  }
+
+  function alterarCampo(campo, valor) {
+    setForm((anterior) => ({
+      ...anterior,
+      [campo]: valor,
+    }))
+  }
+
+  function acessarPagina(url) {
+    window.location.href = url
+  }
+
+  const clientesFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase()
+
+    if (!termo) {
+      return clientes
+    }
+
+    return clientes.filter((cliente) => {
+      const nome = String(
+        cliente.nome || ""
+      ).toLowerCase()
+
+      const cpf = String(
+        cliente.cpf || ""
+      ).toLowerCase()
+
+      const telefone = String(
+        cliente.telefone || ""
+      ).toLowerCase()
+
+      const email = String(
+        cliente.email || ""
+      ).toLowerCase()
+
+      return (
+        nome.includes(termo) ||
+        cpf.includes(termo) ||
+        telefone.includes(termo) ||
+        email.includes(termo)
+      )
+    })
+  }, [clientes, busca])
+  async function salvarCliente(e) {
+    e.preventDefault()
+
+    limparMensagens()
+
+    if (!form.nome.trim()) {
+      setErro("Informe o nome do cliente.")
+      return
+    }
+
+    setSalvando(true)
+
+    try {
+      const dados = {
+        nome: form.nome.trim(),
+        cpf: form.cpf.trim(),
+        rg: form.rg.trim(),
+        telefone: form.telefone.trim(),
+        email: form.email.trim(),
+        endereco: form.endereco.trim(),
+        numero: form.numero.trim(),
+        complemento: form.complemento.trim(),
+        bairro: form.bairro.trim(),
+        cidade: form.cidade.trim(),
+        estado: form.estado.trim(),
+        cep: form.cep.trim(),
+        observacoes: form.observacoes.trim(),
+      }
+
+      if (editando?.id) {
+        const { error } = await supabase
+          .from("clientes")
+          .update(dados)
+          .eq("id", editando.id)
+
+        if (error) {
+          throw error
+        }
+
+        setSucesso("Cliente atualizado com sucesso.")
+      } else {
+        const { error } = await supabase
+          .from("clientes")
+          .insert([dados])
+
+        if (error) {
+          throw error
+        }
+
+        setSucesso("Cliente cadastrado com sucesso.")
+      }
+
+      await carregarClientes()
+
+      setModalAberto(false)
+      setEditando(null)
+
+      setForm({
+        nome: "",
+        cpf: "",
+        rg: "",
+        telefone: "",
+        email: "",
+        endereco: "",
+        numero: "",
+        complemento: "",
+        bairro: "",
+        cidade: "",
+        estado: "",
+        cep: "",
+        observacoes: "",
+      })
+    } catch (error) {
+      console.error("Erro ao salvar cliente:", error)
+
+      setErro(
+        error?.message ||
+          "Não foi possível salvar o cliente."
+      )
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  async function excluirCliente(cliente) {
+    const confirmar = window.confirm(
+      `Deseja realmente excluir o cliente "${cliente.nome}"?`
     )
 
-    alert("Cliente atualizado com sucesso!")
-    cancelarEdicao()
+    if (!confirmar) {
+      return
+    }
+
+    limparMensagens()
+
+    try {
+      const { error } = await supabase
+        .from("clientes")
+        .delete()
+        .eq("id", cliente.id)
+
+      if (error) {
+        throw error
+      }
+
+      setSucesso("Cliente excluído com sucesso.")
+
+      await carregarClientes()
+    } catch (error) {
+      console.error("Erro ao excluir cliente:", error)
+
+      setErro(
+        error?.message ||
+          "Não foi possível excluir o cliente."
+      )
+    }
   }
-} else {
-  const { data, error } = await supabase
-    .from("clientes")
-    .insert([dados])
-    .select()
 
-  if (error) {
-    console.error(error)
-    alert("Erro ao cadastrar cliente.")
-  } else {
-    setClientes((anterior) => [data[0], ...anterior])
-    setForm(formularioInicial)
+  function formatarTelefone(valor) {
+    if (!valor) return "-"
 
-    alert("Cliente cadastrado com sucesso!")
+    return valor
   }
-}
 
-setSalvando(false)
+  function formatarCpf(valor) {
+    if (!valor) return "-"
 
-}
+    return valor
+  }
 
-async function excluirCliente(id) {
-const confirmar = window.confirm(
-"Tem certeza que deseja excluir este cliente?"
-)
+  function fecharMensagemSucesso() {
+    setSucesso("")
+  }
 
-if (!confirmar) return
+  return (
+    <div className="container-fluid py-4">
 
-const { error } = await supabase
-  .from("clientes")
-  .delete()
-  .eq("id", id)
+      {/* CABEÇALHO */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
-if (error) {
-  console.error(error)
-  alert("Erro ao excluir cliente.")
-  return
-}
+        <div>
+          <h2 className="fw-bold mb-1">
+            Clientes
+          </h2>
 
-setClientes((anterior) =>
-  anterior.filter((item) => item.id !== id)
-)
-
-if (visualizando?.id === id) {
-  setVisualizando(null)
-}
-
-alert("Cliente excluído com sucesso!")
-
-}
-
-return (
-<main className="container py-4">
-
-  {/* TÍTULO */}
-
-  <div className="d-flex justify-content-between align-items-center mb-3">
-
-    <div>
-      <h1 className="fw-bold mb-1">
-        Clientes
-      </h1>
-
-      <p className="text-muted mb-0">
-        Administração de clientes
-      </p>
-    </div>
-
-    <button
-      type="button"
-      className="btn btn-outline-primary"
-      onClick={carregarClientes}
-      disabled={carregando}
-    >
-      {carregando
-        ? "Atualizando..."
-        : "🔄 Atualizar"}
-    </button>
-
-  </div>
-
-  {/* ACESSO RÁPIDO */}
-
-  <div className="card shadow-sm mb-4">
-
-    <div className="card-body">
-
-      <h5 className="fw-bold mb-3">
-        ⚡ Acesso rápido
-      </h5>
-
-      <div className="d-flex gap-2 flex-wrap">
-
-        <a
-          href="/"
-          className="btn btn-primary"
-        >
-          🏠 Início
-        </a>
-
-        <a
-          href="/clientes"
-          className="btn btn-light border"
-        >
-          👥 Clientes
-        </a>
-
-        <a
-          href="/imoveis"
-          className="btn btn-light border"
-        >
-          🏢 Imóveis
-        </a>
-
-        <a
-          href="/contratos"
-          className="btn btn-light border"
-        >
-          📄 Contratos
-        </a>
-
-        <a
-          href="/recebimentos"
-          className="btn btn-light border"
-        >
-          💰 Recebimentos
-        </a>
-
-        <a
-          href="/despesas"
-          className="btn btn-light border"
-        >
-          💸 Despesas
-        </a>
-
-        <a
-          href="/financeiro"
-          className="btn btn-light border"
-        >
-          📊 Financeiro
-        </a>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <div className="card shadow-sm mb-4">
-    <div className="card-body">
-
-      <h4 className="mb-4">
-        {editandoId ? "Editar cliente" : "Cadastrar cliente"}
-      </h4>
-
-      <form onSubmit={salvarCliente}>
-
-        <div className="row g-3">
-
-          <div className="col-md-6">
-            <label className="form-label">
-              Nome *
-            </label>
-
-            <input
-              type="text"
-              name="nome"
-              value={form.nome}
-              onChange={alterarCampo}
-              className="form-control"
-              placeholder="Nome completo"
-            />
-          </div>
-
-          <div className="col-md-3">
-            <label className="form-label">
-              Tipo *
-            </label>
-
-            <select
-              name="tipo"
-              value={form.tipo}
-              onChange={alterarCampo}
-              className="form-select"
-            >
-              <option>Pessoa Física</option>
-              <option>Pessoa Jurídica</option>
-            </select>
-          </div>
-
-          <div className="col-md-3">
-            <label className="form-label">
-              CPF / CNPJ
-            </label>
-
-            <input
-              type="text"
-              name="documento"
-              value={form.documento}
-              onChange={alterarCampo}
-              className="form-control"
-              placeholder="CPF ou CNPJ"
-            />
-          </div>
-
-          <div className="col-md-4">
-            <label className="form-label">
-              Telefone *
-            </label>
-
-            <input
-              type="text"
-              name="telefone"
-              value={form.telefone}
-              onChange={alterarCampo}
-              className="form-control"
-              placeholder="(13) 99999-9999"
-            />
-          </div>
-
-          <div className="col-md-4">
-            <label className="form-label">
-              E-mail
-            </label>
-
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={alterarCampo}
-              className="form-control"
-              placeholder="cliente@email.com"
-            />
-          </div>
-
-          <div className="col-md-4">
-            <label className="form-label">
-              Cidade
-            </label>
-
-            <input
-              type="text"
-              name="cidade"
-              value={form.cidade}
-              onChange={alterarCampo}
-              className="form-control"
-              placeholder="Cidade"
-            />
-          </div>
-
-          <div className="col-12">
-            <label className="form-label">
-              Endereço
-            </label>
-
-            <input
-              type="text"
-              name="endereco"
-              value={form.endereco}
-              onChange={alterarCampo}
-              className="form-control"
-              placeholder="Rua, número, bairro..."
-            />
-          </div>
-
+          <p className="text-muted mb-0">
+            Gerencie os clientes da imobiliária
+          </p>
         </div>
 
-        <div className="mt-4 d-flex gap-2">
+        <div className="d-flex gap-2 mt-3 mt-md-0">
 
           <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={salvando}
+            className="btn btn-outline-primary"
+            onClick={carregarClientes}
+            disabled={loading}
           >
-            {salvando
-              ? "Salvando..."
-              : editandoId
-                ? "Salvar alterações"
-                : "Cadastrar cliente"}
+            <i className="bi bi-arrow-clockwise me-2"></i>
+            Atualizar
           </button>
 
-          {editandoId && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={cancelarEdicao}
-            >
-              Cancelar
-            </button>
-          )}
+          <button
+            className="btn btn-primary"
+            onClick={abrirNovoCliente}
+          >
+            <i className="bi bi-person-plus me-2"></i>
+            Novo cliente
+          </button>
 
         </div>
-
-      </form>
-
-    </div>
-  </div>
-
-  <div className="card shadow-sm">
-
-    <div className="card-body">
-
-      <div className="d-flex justify-content-between align-items-center mb-3">
-
-        <h4 className="mb-0">
-          Clientes cadastrados
-        </h4>
-
-        <span className="badge bg-primary">
-          {clientes.length}
-        </span>
 
       </div>
 
-      {carregando ? (
-        <div className="text-center py-4">
-          Carregando clientes...
+      {/* MENSAGEM DE ERRO */}
+      {erro && (
+        <div
+          className="alert alert-danger alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-triangle me-2"></i>
+
+          {erro}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setErro("")}
+          ></button>
         </div>
-      ) : clientes.length === 0 ? (
-        <div className="alert alert-info">
-          Nenhum cliente cadastrado.
-        </div>
-      ) : (
-
-        <div className="table-responsive">
-
-          <table className="table table-hover align-middle">
-
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th>Documento</th>
-                <th>Telefone</th>
-                <th>E-mail</th>
-                <th>Cidade</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-
-            <tbody>
-
-              {clientes.map((cliente) => (
-
-                <tr key={cliente.id}>
-
-                  <td>
-                    <strong>{cliente.nome}</strong>
-                  </td>
-
-                  <td>
-                    {cliente.tipo}
-                  </td>
-
-                  <td>
-                    {cliente.documento || "-"}
-                  </td>
-
-                  <td>
-                    {cliente.telefone}
-                  </td>
-
-                  <td>
-                    {cliente.email || "-"}
-                  </td>
-
-                  <td>
-                    {cliente.cidade || "-"}
-                  </td>
-
-                  <td>
-
-                    <div className="d-flex gap-2 flex-wrap">
-
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-info text-white"
-                        onClick={() =>
-                          setVisualizando(cliente)
-                        }
-                      >
-                        Visualizar
-                      </button>
-
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-warning"
-                        onClick={() =>
-                          prepararEdicao(cliente)
-                        }
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-danger"
-                        onClick={() =>
-                          excluirCliente(cliente.id)
-                        }
-                      >
-                        Excluir
-                      </button>
-
-                    </div>
-
-                  </td>
-
-                </tr>
-
-              ))}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
       )}
 
-    </div>
+      {/* MENSAGEM DE SUCESSO */}
+      {sucesso && (
+        <div
+          className="alert alert-success alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-check-circle me-2"></i>
 
-  </div>
+          {sucesso}
 
-  {visualizando && (
+          <button
+            type="button"
+            className="btn-close"
+            onClick={fecharMensagemSucesso}
+          ></button>
+        </div>
+      )}
 
-    <div
-      className="modal d-block"
-      tabIndex="-1"
-      style={{
-        backgroundColor: "rgba(0,0,0,0.5)"
-      }}
-    >
+      {/* ACESSO RÁPIDO */}
+      <div className="card shadow-sm border-0 mb-4">
 
-      <div className="modal-dialog modal-lg modal-dialog-centered">
+        <div className="card-body">
 
-        <div className="modal-content">
+          <div className="d-flex align-items-center mb-3">
 
-          <div className="modal-header">
+            <div
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+              style={{
+                width: "38px",
+                height: "38px",
+              }}
+            >
+              <i className="bi bi-lightning-charge text-primary"></i>
+            </div>
 
-            <h5 className="modal-title">
-              Dados do cliente
-            </h5>
+            <div>
+              <h5 className="fw-bold mb-0">
+                Acesso rápido
+              </h5>
 
-            <button
-              type="button"
-              className="btn-close"
-              onClick={() =>
-                setVisualizando(null)
-              }
-            />
+              <small className="text-muted">
+                Acesse rapidamente as principais áreas
+              </small>
+            </div>
 
           </div>
 
-          <div className="modal-body">
+          <div className="row g-2">
 
-            <div className="row g-3">
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/")}
+              >
+                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
+                Dashboard
+              </button>
+            </div>
 
-              <div className="col-md-6">
-                <strong>Nome:</strong>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-primary w-100 py-2"
+                onClick={() => acessarPagina("/clientes")}
+              >
+                <i className="bi bi-people d-block fs-5 mb-1"></i>
+                Clientes
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/imoveis")}
+              >
+                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
+                Imóveis
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/contratos")}
+              >
+                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
+                Contratos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/recebimentos")}
+              >
+                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
+                Recebimentos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/despesas")}
+              >
+                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
+                Despesas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/financeiro")}
+              >
+                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
+                Financeiro
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/manutencoes")}
+              >
+                <i className="bi bi-tools d-block fs-5 mb-1"></i>
+                Manutenções
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/visitas")}
+              >
+                <i className="bi bi-calendar-check d-block fs-5 mb-1"></i>
+                Visitas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/comunicacao")}
+              >
+                <i className="bi bi-whatsapp d-block fs-5 mb-1"></i>
+                Comunicação
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/relatorios")}
+              >
+                <i className="bi bi-file-earmark-bar-graph d-block fs-5 mb-1"></i>
+                Relatórios
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/configuracoes")}
+              >
+                <i className="bi bi-gear d-block fs-5 mb-1"></i>
+                Configurações
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+      {/* RESUMO DOS CLIENTES */}
+      <div className="row g-3 mb-4">
+
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
                 <div>
-                  {visualizando.nome}
+                  <p className="text-muted mb-1">
+                    Total de clientes
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {clientes.length}
+                  </h3>
                 </div>
+
+                <div
+                  className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-people text-primary fs-4"></i>
+                </div>
+
               </div>
 
-              <div className="col-md-6">
-                <strong>Tipo:</strong>
+              <small className="text-muted d-block mt-3">
+                Clientes cadastrados no sistema
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
                 <div>
-                  {visualizando.tipo}
+                  <p className="text-muted mb-1">
+                    Resultados
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {clientesFiltrados.length}
+                  </h3>
                 </div>
+
+                <div
+                  className="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-search text-info fs-4"></i>
+                </div>
+
               </div>
 
-              <div className="col-md-6">
-                <strong>CPF / CNPJ:</strong>
+              <small className="text-muted d-block mt-3">
+                Clientes encontrados na busca
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
                 <div>
-                  {visualizando.documento || "-"}
+                  <p className="text-muted mb-1">
+                    Cadastro
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    Ativo
+                  </h3>
                 </div>
+
+                <div
+                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-person-check text-success fs-4"></i>
+                </div>
+
               </div>
 
-              <div className="col-md-6">
-                <strong>Telefone:</strong>
-                <div>
-                  {visualizando.telefone}
-                </div>
+              <small className="text-muted d-block mt-3">
+                Cadastro de clientes disponível
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* LISTA DE CLIENTES */}
+      <div className="card shadow-sm border-0 mb-4">
+
+        <div className="card-body">
+
+          {/* CABEÇALHO DA LISTA */}
+          <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+            <div>
+              <h5 className="fw-bold mb-1">
+                Clientes cadastrados
+              </h5>
+
+              <small className="text-muted">
+                Consulte, edite ou exclua clientes
+              </small>
+            </div>
+
+            <button
+              className="btn btn-primary mt-3 mt-md-0"
+              onClick={abrirNovoCliente}
+            >
+              <i className="bi bi-person-plus me-2"></i>
+              Novo cliente
+            </button>
+
+          </div>
+
+          {/* BUSCA */}
+          <div className="row g-2 mb-4">
+
+            <div className="col-12 col-md-9">
+
+              <div className="input-group">
+
+                <span className="input-group-text bg-white">
+                  <i className="bi bi-search"></i>
+                </span>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Buscar por nome, CPF, telefone ou e-mail..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                />
+
+                {busca && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setBusca("")}
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                )}
+
               </div>
 
-              <div className="col-md-6">
-                <strong>E-mail:</strong>
-                <div>
-                  {visualizando.email || "-"}
-                </div>
-              </div>
+            </div>
 
-              <div className="col-md-6">
-                <strong>Cidade:</strong>
-                <div>
-                  {visualizando.cidade || "-"}
-                </div>
-              </div>
+            <div className="col-12 col-md-3">
 
-              <div className="col-12">
-                <strong>Endereço:</strong>
-                <div>
-                  {visualizando.endereco || "-"}
-                </div>
-              </div>
+              <button
+                className="btn btn-outline-primary w-100"
+                onClick={carregarClientes}
+                disabled={loading}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Atualizar lista
+              </button>
 
             </div>
 
           </div>
 
-          <div className="modal-footer">
+          {/* TABELA */}
+          {loading ? (
 
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() =>
-                setVisualizando(null)
-              }
-            >
-              Fechar
-            </button>
+            <div className="text-center py-5">
 
-            <button
-              type="button"
-              className="btn btn-warning"
-              onClick={() => {
-                prepararEdicao(visualizando)
-                setVisualizando(null)
-              }}
-            >
-              Editar cliente
-            </button>
+              <div
+                className="spinner-border text-primary"
+                role="status"
+              >
+                <span className="visually-hidden">
+                  Carregando...
+                </span>
+              </div>
 
+              <p className="text-muted mt-3 mb-0">
+                Carregando clientes...
+              </p>
+
+            </div>
+
+          ) : clientesFiltrados.length === 0 ? (
+
+            <div className="text-center py-5">
+
+              <div
+                className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                style={{
+                  width: "70px",
+                  height: "70px",
+                }}
+              >
+                <i className="bi bi-people text-primary fs-2"></i>
+              </div>
+
+              <h5 className="fw-bold mt-3">
+                Nenhum cliente encontrado
+              </h5>
+
+              <p className="text-muted mb-3">
+                {busca
+                  ? "Tente alterar os termos da busca."
+                  : "Comece cadastrando o primeiro cliente."}
+              </p>
+
+              {!busca && (
+                <button
+                  className="btn btn-primary"
+                  onClick={abrirNovoCliente}
+                >
+                  <i className="bi bi-person-plus me-2"></i>
+                  Cadastrar cliente
+                </button>
+              )}
+
+            </div>
+
+          ) : (
+
+            <div className="table-responsive">
+
+              <table className="table table-hover align-middle mb-0">
+
+                <thead className="table-light">
+
+                  <tr>
+
+                    <th>
+                      Cliente
+                    </th>
+
+                    <th>
+                      CPF
+                    </th>
+
+                    <th>
+                      Telefone
+                    </th>
+
+                    <th>
+                      E-mail
+                    </th>
+
+                    <th>
+                      Cidade
+                    </th>
+
+                    <th className="text-end">
+                      Ações
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {clientesFiltrados.map((cliente) => (
+
+                    <tr key={cliente.id}>
+
+                      <td>
+
+                        <div className="d-flex align-items-center">
+
+                          <div
+                            className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                            }}
+                          >
+                            <i className="bi bi-person text-primary"></i>
+                          </div>
+
+                          <div>
+
+                            <div className="fw-semibold">
+                              {cliente.nome || "-"}
+                            </div>
+
+                            {cliente.email && (
+                              <small className="text-muted">
+                                {cliente.email}
+                              </small>
+                            )}
+
+                          </div>
+
+                        </div>
+
+                      </td>
+
+                      <td>
+                        {formatarCpf(cliente.cpf)}
+                      </td>
+
+                      <td>
+                        {formatarTelefone(
+                          cliente.telefone
+                        )}
+                      </td>
+
+                      <td>
+                        {cliente.email || "-"}
+                      </td>
+
+                      <td>
+                        {cliente.cidade
+                          ? `${cliente.cidade}${
+                              cliente.estado
+                                ? ` - ${cliente.estado}`
+                                : ""
+                            }`
+                          : "-"}
+                      </td>
+
+                      <td className="text-end">
+
+                        <div className="btn-group">
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            title="Editar cliente"
+                            onClick={() =>
+                              abrirEditarCliente(cliente)
+                            }
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            title="Excluir cliente"
+                            onClick={() =>
+                              excluirCliente(cliente)
+                            }
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
+
+        </div>
+
+      </div>
+      {/* MODAL - NOVO / EDITAR CLIENTE */}
+      {modalAberto && (
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          role="dialog"
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+          }}
+        >
+          <div
+            className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
+            role="document"
+          >
+            <div className="modal-content border-0 shadow">
+
+              {/* CABEÇALHO DO MODAL */}
+              <div className="modal-header">
+
+                <div>
+                  <h5 className="modal-title fw-bold">
+                    {editando
+                      ? "Editar cliente"
+                      : "Novo cliente"}
+                  </h5>
+
+                  <small className="text-muted">
+                    {editando
+                      ? "Atualize os dados do cliente"
+                      : "Cadastre um novo cliente no sistema"}
+                  </small>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={fecharModal}
+                  disabled={salvando}
+                ></button>
+
+              </div>
+
+              {/* FORMULÁRIO */}
+              <form onSubmit={salvarCliente}>
+
+                <div className="modal-body">
+
+                  {/* DADOS PESSOAIS */}
+                  <div className="mb-4">
+
+                    <div className="d-flex align-items-center mb-3">
+
+                      <div
+                        className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                        }}
+                      >
+                        <i className="bi bi-person text-primary"></i>
+                      </div>
+
+                      <div>
+                        <h6 className="fw-bold mb-0">
+                          Dados pessoais
+                        </h6>
+
+                        <small className="text-muted">
+                          Informações básicas do cliente
+                        </small>
+                      </div>
+
+                    </div>
+
+                    <div className="row g-3">
+
+                      {/* NOME */}
+                      <div className="col-12 col-md-8">
+
+                        <label className="form-label fw-semibold">
+                          Nome completo
+                          <span className="text-danger ms-1">
+                            *
+                          </span>
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Digite o nome completo"
+                          value={form.nome}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "nome",
+                              e.target.value
+                            )
+                          }
+                          required
+                        />
+
+                      </div>
+
+                      {/* CPF */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          CPF
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="000.000.000-00"
+                          value={form.cpf}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "cpf",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* RG */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          RG
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Digite o RG"
+                          value={form.rg}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "rg",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* TELEFONE */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Telefone
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="(00) 00000-0000"
+                          value={form.telefone}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "telefone",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* E-MAIL */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          E-mail
+                        </label>
+
+                        <input
+                          type="email"
+                          className="form-control"
+                          placeholder="cliente@email.com"
+                          value={form.email}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "email",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                  <hr className="my-4" />
+
+                  {/* ENDEREÇO */}
+                  <div className="mb-4">
+
+                    <div className="d-flex align-items-center mb-3">
+
+                      <div
+                        className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                        }}
+                      >
+                        <i className="bi bi-geo-alt text-success"></i>
+                      </div>
+
+                      <div>
+                        <h6 className="fw-bold mb-0">
+                          Endereço
+                        </h6>
+
+                        <small className="text-muted">
+                          Endereço residencial ou comercial
+                        </small>
+                      </div>
+
+                    </div>
+
+                    <div className="row g-3">
+
+                      {/* CEP */}
+                      <div className="col-12 col-md-3">
+
+                        <label className="form-label fw-semibold">
+                          CEP
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="00000-000"
+                          value={form.cep}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "cep",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* ENDEREÇO */}
+                      <div className="col-12 col-md-7">
+
+                        <label className="form-label fw-semibold">
+                          Logradouro
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Rua, Avenida, Estrada..."
+                          value={form.endereco}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "endereco",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* NÚMERO */}
+                      <div className="col-12 col-md-2">
+
+                        <label className="form-label fw-semibold">
+                          Número
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Nº"
+                          value={form.numero}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "numero",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* COMPLEMENTO */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Complemento
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Apartamento, bloco..."
+                          value={form.complemento}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "complemento",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* BAIRRO */}
+                      <div className="col-12 col-md-4">
+
+                        <label className="form-label fw-semibold">
+                          Bairro
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Digite o bairro"
+                          value={form.bairro}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "bairro",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* CIDADE */}
+                      <div className="col-12 col-md-3">
+
+                        <label className="form-label fw-semibold">
+                          Cidade
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Digite a cidade"
+                          value={form.cidade}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "cidade",
+                              e.target.value
+                            )
+                          }
+                        />
+
+                      </div>
+
+                      {/* ESTADO */}
+                      <div className="col-12 col-md-1">
+
+                        <label className="form-label fw-semibold">
+                          UF
+                        </label>
+
+                        <input
+                          type="text"
+                          className="form-control text-uppercase"
+                          maxLength="2"
+                          placeholder="SP"
+                          value={form.estado}
+                          onChange={(e) =>
+                            alterarCampo(
+                              "estado",
+                              e.target.value.toUpperCase()
+                            )
+                          }
+                        />
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                  <hr className="my-4" />
+
+                  {/* OBSERVAÇÕES */}
+                  <div>
+
+                    <div className="d-flex align-items-center mb-3">
+
+                      <div
+                        className="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                        }}
+                      >
+                        <i className="bi bi-chat-left-text text-warning"></i>
+                      </div>
+
+                      <div>
+                        <h6 className="fw-bold mb-0">
+                          Observações
+                        </h6>
+
+                        <small className="text-muted">
+                          Informações adicionais sobre o cliente
+                        </small>
+                      </div>
+
+                    </div>
+
+                    <textarea
+                      className="form-control"
+                      rows="4"
+                      placeholder="Digite observações, informações adicionais ou anotações..."
+                      value={form.observacoes}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "observacoes",
+                          e.target.value
+                        )
+                      }
+                    ></textarea>
+
+                  </div>
+
+                </div>
+
+                {/* RODAPÉ DO MODAL */}
+                <div className="modal-footer">
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={fecharModal}
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={salvando}
+                  >
+
+                    {salvando ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                        ></span>
+
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-lg me-2"></i>
+
+                        {editando
+                          ? "Salvar alterações"
+                          : "Cadastrar cliente"}
+                      </>
+                    )}
+
+                  </button>
+
+                </div>
+
+              </form>
+
+            </div>
           </div>
+        </div>
+      )}
+      {/* RODAPÉ DA PÁGINA */}
+      <div className="text-center text-muted py-3">
 
+        <small>
+          Sistema de Gestão Imobiliária
+        </small>
+
+        <div className="mt-1">
+          <small>
+            Gestão de clientes e informações cadastrais
+          </small>
         </div>
 
       </div>
 
     </div>
-
-  )}
-
-</main>
-
-)
+  )
 }
