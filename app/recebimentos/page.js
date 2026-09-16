@@ -535,12 +535,11 @@ export default function Recebimentos() {
           ACESSO RÁPIDO
       ======================================== */}
 
+         {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm border-0 mb-4">
-
         <div className="card-body">
 
           <div className="d-flex align-items-center mb-3">
-
             <div
               className="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary me-3"
               style={{
@@ -548,13 +547,10 @@ export default function Recebimentos() {
                 height: "42px",
               }}
             >
-
               <i className="bi bi-lightning-charge fs-5"></i>
-
             </div>
 
             <div>
-
               <h5 className="fw-bold mb-0">
                 Acesso rápido
               </h5>
@@ -562,149 +558,145 @@ export default function Recebimentos() {
               <small className="text-muted">
                 Acesse rapidamente os principais módulos
               </small>
+            </div>
+          </div>
 
+          <div className="row g-2">
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/")}
+              >
+                <i className="bi bi-speedometer2 me-2"></i>
+                Dashboard
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/clientes")}
+              >
+                <i className="bi bi-people me-2"></i>
+                Clientes
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/imoveis")}
+              >
+                <i className="bi bi-buildings me-2"></i>
+                Imóveis
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/contratos")}
+              >
+                <i className="bi bi-file-earmark-text me-2"></i>
+                Contratos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-primary w-100"
+                onClick={() => acessarPagina("/recebimentos")}
+              >
+                <i className="bi bi-cash-coin me-2"></i>
+                Recebimentos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/despesas")}
+              >
+                <i className="bi bi-receipt me-2"></i>
+                Despesas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/financeiro")}
+              >
+                <i className="bi bi-wallet2 me-2"></i>
+                Financeiro
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/manutencoes")}
+              >
+                <i className="bi bi-tools me-2"></i>
+                Manutenções
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/visitas")}
+              >
+                <i className="bi bi-calendar-check me-2"></i>
+                Visitas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/comunicacao")}
+              >
+                <i className="bi bi-whatsapp me-2"></i>
+                Comunicação
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/relatorios")}
+              >
+                <i className="bi bi-bar-chart me-2"></i>
+                Relatórios
+              </button>
+            </div>
+
+            <div className="col-6 col-md-auto">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() => acessarPagina("/configuracoes")}
+              >
+                <i className="bi bi-gear me-2"></i>
+                Configurações
+              </button>
             </div>
 
           </div>
-
-          <div className="d-flex flex-wrap gap-2">
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/")
-              }
-            >
-              <i className="bi bi-speedometer2 me-2"></i>
-              Dashboard
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/clientes")
-              }
-            >
-              <i className="bi bi-people me-2"></i>
-              Clientes
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/imoveis")
-              }
-            >
-              <i className="bi bi-buildings me-2"></i>
-              Imóveis
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/contratos")
-              }
-            >
-              <i className="bi bi-file-earmark-text me-2"></i>
-              Contratos
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() =>
-                acessarPagina("/recebimentos")
-              }
-            >
-              <i className="bi bi-cash-coin me-2"></i>
-              Recebimentos
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/despesas")
-              }
-            >
-              <i className="bi bi-receipt me-2"></i>
-              Despesas
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/financeiro")
-              }
-            >
-              <i className="bi bi-wallet2 me-2"></i>
-              Financeiro
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/manutencoes")
-              }
-            >
-              <i className="bi bi-tools me-2"></i>
-              Manutenções
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/visitas")
-              }
-            >
-              <i className="bi bi-calendar-check me-2"></i>
-              Visitas
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/comunicacao")
-              }
-            >
-              <i className="bi bi-whatsapp me-2"></i>
-              Comunicação
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/relatorios")
-              }
-            >
-              <i className="bi bi-bar-chart me-2"></i>
-              Relatórios
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/configuracoes")
-              }
-            >
-              <i className="bi bi-gear me-2"></i>
-              Configurações
-            </button>
-
-          </div>
-
         </div>
-
       </div>
       {/* ========================================
           PERÍODO
