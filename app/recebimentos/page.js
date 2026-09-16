@@ -535,168 +535,223 @@ export default function Recebimentos() {
           ACESSO RÁPIDO
       ======================================== */}
 
-         {/* ACESSO RÁPIDO */}
+               {/* ACESSO RÁPIDO */}
+
       <div className="card shadow-sm border-0 mb-4">
+
         <div className="card-body">
 
           <div className="d-flex align-items-center mb-3">
+
             <div
-              className="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary me-3"
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
               style={{
-                width: "42px",
-                height: "42px",
+                width: "38px",
+                height: "38px",
               }}
             >
-              <i className="bi bi-lightning-charge fs-5"></i>
+              <i className="bi bi-lightning-charge text-primary"></i>
             </div>
 
             <div>
+
               <h5 className="fw-bold mb-0">
                 Acesso rápido
               </h5>
 
               <small className="text-muted">
-                Acesse rapidamente os principais módulos
+                Acesse rapidamente as principais áreas
               </small>
+
             </div>
+
           </div>
 
           <div className="row g-2">
 
-            <div className="col-6 col-md-auto">
+            {/* DASHBOARD */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/")}
               >
-                <i className="bi bi-speedometer2 me-2"></i>
+                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
                 Dashboard
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* CLIENTES */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/clientes")}
               >
-                <i className="bi bi-people me-2"></i>
+                <i className="bi bi-people d-block fs-5 mb-1"></i>
                 Clientes
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* IMÓVEIS */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/imoveis")}
               >
-                <i className="bi bi-buildings me-2"></i>
+                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
                 Imóveis
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* CONTRATOS */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/contratos")}
               >
-                <i className="bi bi-file-earmark-text me-2"></i>
+                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
                 Contratos
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* RECEBIMENTOS */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-primary w-100"
+                className="btn btn-primary w-100 py-2"
                 onClick={() => acessarPagina("/recebimentos")}
               >
-                <i className="bi bi-cash-coin me-2"></i>
+                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
                 Recebimentos
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* DESPESAS */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/despesas")}
               >
-                <i className="bi bi-receipt me-2"></i>
+                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
                 Despesas
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* FINANCEIRO */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/financeiro")}
               >
-                <i className="bi bi-wallet2 me-2"></i>
+                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
                 Financeiro
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* MANUTENÇÕES */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/manutencoes")}
               >
-                <i className="bi bi-tools me-2"></i>
+                <i className="bi bi-tools d-block fs-5 mb-1"></i>
                 Manutenções
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* VISITAS */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/visitas")}
               >
-                <i className="bi bi-calendar-check me-2"></i>
+                <i className="bi bi-calendar-check d-block fs-5 mb-1"></i>
                 Visitas
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* COMUNICAÇÃO */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/comunicacao")}
               >
-                <i className="bi bi-whatsapp me-2"></i>
+                <i className="bi bi-whatsapp d-block fs-5 mb-1"></i>
                 Comunicação
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* RELATÓRIOS */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/relatorios")}
               >
-                <i className="bi bi-bar-chart me-2"></i>
+                <i className="bi bi-file-earmark-bar-graph d-block fs-5 mb-1"></i>
                 Relatórios
               </button>
+
             </div>
 
-            <div className="col-6 col-md-auto">
+
+            {/* CONFIGURAÇÕES */}
+
+            <div className="col-6 col-md-3 col-lg-2">
+
               <button
-                type="button"
-                className="btn btn-outline-primary w-100"
+                className="btn btn-outline-primary w-100 py-2"
                 onClick={() => acessarPagina("/configuracoes")}
               >
-                <i className="bi bi-gear me-2"></i>
+                <i className="bi bi-gear d-block fs-5 mb-1"></i>
                 Configurações
               </button>
+
             </div>
 
           </div>
+
         </div>
+
       </div>
       {/* ========================================
           PERÍODO
