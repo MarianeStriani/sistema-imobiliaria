@@ -352,7 +352,6 @@ export default function Imoveis() {
       alugado: "Alugado",
       vendido: "Vendido",
       manutencao: "Manutenção",
-      manutenção: "Manutenção",
       reservado: "Reservado",
       indisponivel: "Indisponível",
     }
@@ -750,6 +749,7 @@ export default function Imoveis() {
         </div>
 
       </div>
+ 
       {/* =====================================
           LISTA DE IMÓVEIS
       ===================================== */}
