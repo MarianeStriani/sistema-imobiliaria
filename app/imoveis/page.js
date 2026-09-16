@@ -465,6 +465,79 @@ export default function Imoveis() {
       )
     })
   }, [imoveis, busca, filtroStatus])
+  const imoveisFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase()
+
+    return imoveis.filter((imovel) => {
+
+      const correspondeBusca =
+        !termo ||
+        String(imovel.codigo || "")
+          .toLowerCase()
+          .includes(termo) ||
+        String(imovel.titulo || "")
+          .toLowerCase()
+          .includes(termo) ||
+        String(imovel.tipo || "")
+          .toLowerCase()
+          .includes(termo) ||
+        String(imovel.finalidade || "")
+          .toLowerCase()
+          .includes(termo) ||
+        String(imovel.endereco || "")
+          .toLowerCase()
+          .includes(termo) ||
+        String(imovel.bairro || "")
+          .toLowerCase()
+          .includes(termo) ||
+        String(imovel.cidade || "")
+          .toLowerCase()
+          .includes(termo) ||
+        String(imovel.estado || "")
+          .toLowerCase()
+          .includes(termo)
+
+      const correspondeStatus =
+        filtroStatus === "todos" ||
+        imovel.status === filtroStatus
+
+      return (
+        correspondeBusca &&
+        correspondeStatus
+      )
+    })
+  }, [imoveis, busca, filtroStatus])
+
+  const resumo = useMemo(() => {
+
+    const total = imoveis.length
+
+    const disponiveis = imoveis.filter(
+      (imovel) =>
+        imovel.status === "disponivel"
+    ).length
+
+    const alugados = imoveis.filter(
+      (imovel) =>
+        imovel.status === "alugado"
+    ).length
+
+    const manutencao = imoveis.filter(
+      (imovel) =>
+        imovel.status === "manutencao" ||
+        imovel.status === "manutenção"
+    ).length
+
+    return {
+      total,
+      disponiveis,
+      alugados,
+      manutencao,
+    }
+  }, [imoveis])
+
+  return (
+    <div className="container-fluid py-4">
 
   // ==========================================
   // RESUMO DOS IMÓVEIS
