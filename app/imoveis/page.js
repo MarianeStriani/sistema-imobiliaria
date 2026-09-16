@@ -40,10 +40,6 @@ export default function Imoveis() {
     observacoes: "",
   })
 
-  // ==========================================
-  // CARREGAR IMÓVEIS
-  // ==========================================
-
   async function carregarImoveis() {
     setLoading(true)
     setErro("")
@@ -80,26 +76,14 @@ export default function Imoveis() {
     carregarImoveis()
   }, [])
 
-  // ==========================================
-  // MENSAGENS
-  // ==========================================
-
   function limparMensagens() {
     setErro("")
     setSucesso("")
   }
 
-  // ==========================================
-  // NAVEGAÇÃO
-  // ==========================================
-
   function acessarPagina(url) {
     window.location.href = url
   }
-
-  // ==========================================
-  // FORMULÁRIO INICIAL
-  // ==========================================
 
   function formularioInicial() {
     return {
@@ -125,10 +109,6 @@ export default function Imoveis() {
     }
   }
 
-  // ==========================================
-  // NOVO IMÓVEL
-  // ==========================================
-
   function abrirNovoImovel() {
     limparMensagens()
 
@@ -136,10 +116,6 @@ export default function Imoveis() {
     setForm(formularioInicial())
     setModalAberto(true)
   }
-
-  // ==========================================
-  // EDITAR IMÓVEL
-  // ==========================================
 
   function abrirEditarImovel(imovel) {
     limparMensagens()
@@ -150,10 +126,8 @@ export default function Imoveis() {
       codigo: imovel.codigo || "",
       titulo: imovel.titulo || "",
       tipo: imovel.tipo || "Casa",
-      finalidade:
-        imovel.finalidade || "Aluguel",
-      status:
-        imovel.status || "disponivel",
+      finalidade: imovel.finalidade || "Aluguel",
+      status: imovel.status || "disponivel",
 
       valor:
         imovel.valor !== null &&
@@ -199,10 +173,6 @@ export default function Imoveis() {
     setModalAberto(true)
   }
 
-  // ==========================================
-  // FECHAR MODAL
-  // ==========================================
-
   function fecharModal() {
     if (salvando) return
 
@@ -210,20 +180,12 @@ export default function Imoveis() {
     setEditando(null)
   }
 
-  // ==========================================
-  // ALTERAR CAMPO
-  // ==========================================
-
   function alterarCampo(campo, valor) {
     setForm((anterior) => ({
       ...anterior,
       [campo]: valor,
     }))
   }
-
-  // ==========================================
-  // SALVAR IMÓVEL
-  // ==========================================
 
   async function salvarImovel(e) {
     e.preventDefault()
@@ -321,10 +283,6 @@ export default function Imoveis() {
     }
   }
 
-  // ==========================================
-  // EXCLUIR IMÓVEL
-  // ==========================================
-
   async function excluirImovel(id) {
     const confirmar = window.confirm(
       "Tem certeza que deseja excluir este imóvel?"
@@ -361,10 +319,6 @@ export default function Imoveis() {
       )
     }
   }
-
-  // ==========================================
-  // FORMATADORES
-  // ==========================================
 
   function formatarMoeda(valor) {
     if (
@@ -414,62 +368,14 @@ export default function Imoveis() {
     }
 
     return (
-      classes[status] || "bg-secondary"
+      classes[status] ||
+      "bg-secondary"
     )
   }
-
-  // ==========================================
-  // IMÓVEIS FILTRADOS
-  // ==========================================
-
-  const imoveisFiltrados = useMemo(() => {
-    const termo = busca
-      .trim()
-      .toLowerCase()
-
-    return imoveis.filter((imovel) => {
-      const correspondeBusca =
-        !termo ||
-        String(imovel.codigo || "")
-          .toLowerCase()
-          .includes(termo) ||
-        String(imovel.titulo || "")
-          .toLowerCase()
-          .includes(termo) ||
-        String(imovel.tipo || "")
-          .toLowerCase()
-          .includes(termo) ||
-        String(imovel.finalidade || "")
-          .toLowerCase()
-          .includes(termo) ||
-        String(imovel.endereco || "")
-          .toLowerCase()
-          .includes(termo) ||
-        String(imovel.bairro || "")
-          .toLowerCase()
-          .includes(termo) ||
-        String(imovel.cidade || "")
-          .toLowerCase()
-          .includes(termo) ||
-        String(imovel.estado || "")
-          .toLowerCase()
-          .includes(termo)
-
-      const correspondeStatus =
-        filtroStatus === "todos" ||
-        imovel.status === filtroStatus
-
-      return (
-        correspondeBusca &&
-        correspondeStatus
-      )
-    })
-  }, [imoveis, busca, filtroStatus])
   const imoveisFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase()
 
     return imoveis.filter((imovel) => {
-
       const correspondeBusca =
         !termo ||
         String(imovel.codigo || "")
@@ -509,7 +415,6 @@ export default function Imoveis() {
   }, [imoveis, busca, filtroStatus])
 
   const resumo = useMemo(() => {
-
     const total = imoveis.length
 
     const disponiveis = imoveis.filter(
@@ -539,45 +444,9 @@ export default function Imoveis() {
   return (
     <div className="container-fluid py-4">
 
-  // ==========================================
-  // RESUMO DOS IMÓVEIS
-  // ==========================================
-
-  const resumo = useMemo(() => {
-    const total = imoveis.length
-
-    const disponiveis = imoveis.filter(
-      (imovel) =>
-        imovel.status === "disponivel"
-    ).length
-
-    const alugados = imoveis.filter(
-      (imovel) =>
-        imovel.status === "alugado"
-    ).length
-
-    const manutencao = imoveis.filter(
-      (imovel) =>
-        imovel.status === "manutencao" ||
-        imovel.status === "manutenção"
-    ).length
-
-    return {
-      total,
-      disponiveis,
-      alugados,
-      manutencao,
-    }
-  }, [imoveis])
-
-  // ==========================================
-  // INÍCIO DA PÁGINA
-  // ==========================================
-
-  return (
-    <div className="container-fluid py-4">
-
-      {/* CABEÇALHO */}
+      {/* ========================================
+          CABEÇALHO
+      ======================================== */}
 
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
@@ -611,8 +480,7 @@ export default function Imoveis() {
               </>
             ) : (
               <>
-                <i className="bi bi-arrow-clockwise me-2" />
-
+                <i className="bi bi-arrow-clockwise me-2"></i>
                 Atualizar
               </>
             )}
@@ -623,22 +491,25 @@ export default function Imoveis() {
             className="btn btn-primary"
             onClick={abrirNovoImovel}
           >
-            <i className="bi bi-plus-lg me-2" />
-
+            <i className="bi bi-plus-lg me-2"></i>
             Novo imóvel
           </button>
 
         </div>
+
       </div>
 
-      {/* ALERTA DE ERRO */}
+      {/* ========================================
+          ALERTA DE ERRO
+      ======================================== */}
 
       {erro && (
         <div
           className="alert alert-danger alert-dismissible fade show"
           role="alert"
         >
-          <i className="bi bi-exclamation-triangle-fill me-2" />
+
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
 
           {erro}
 
@@ -648,17 +519,21 @@ export default function Imoveis() {
             aria-label="Fechar"
             onClick={() => setErro("")}
           />
+
         </div>
       )}
 
-      {/* ALERTA DE SUCESSO */}
+      {/* ========================================
+          ALERTA DE SUCESSO
+      ======================================== */}
 
       {sucesso && (
         <div
           className="alert alert-success alert-dismissible fade show"
           role="alert"
         >
-          <i className="bi bi-check-circle-fill me-2" />
+
+          <i className="bi bi-check-circle-fill me-2"></i>
 
           {sucesso}
 
@@ -668,13 +543,16 @@ export default function Imoveis() {
             aria-label="Fechar"
             onClick={() => setSucesso("")}
           />
+
         </div>
       )}
+
       {/* ========================================
           ACESSO RÁPIDO
       ======================================== */}
 
       <div className="card shadow-sm border-0 mb-4">
+
         <div className="card-body">
 
           <div className="d-flex align-items-center mb-3">
@@ -690,6 +568,7 @@ export default function Imoveis() {
             </div>
 
             <div>
+
               <h5 className="fw-bold mb-0">
                 Acesso rápido
               </h5>
@@ -697,13 +576,13 @@ export default function Imoveis() {
               <small className="text-muted">
                 Acesse rapidamente as principais áreas
               </small>
+
             </div>
 
           </div>
 
           <div className="row g-2">
 
-            {/* DASHBOARD */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -715,7 +594,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* CLIENTES */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -729,7 +607,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* IMÓVEIS */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -743,7 +620,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* CONTRATOS */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -757,7 +633,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* RECEBIMENTOS */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -771,7 +646,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* DESPESAS */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -785,7 +659,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* FINANCEIRO */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -799,7 +672,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* MANUTENÇÕES */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -813,7 +685,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* VISITAS */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -827,7 +698,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* COMUNICAÇÃO */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -841,7 +711,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* RELATÓRIOS */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -855,7 +724,6 @@ export default function Imoveis() {
               </button>
             </div>
 
-            {/* CONFIGURAÇÕES */}
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 type="button"
@@ -870,9 +738,10 @@ export default function Imoveis() {
             </div>
 
           </div>
-        </div>
-      </div>
 
+        </div>
+
+      </div>
       {/* ========================================
           RESUMO DOS IMÓVEIS
       ======================================== */}
@@ -910,6 +779,7 @@ export default function Imoveis() {
             <table className="table table-hover align-middle mb-0">
 
               <thead className="table-light">
+
                 <tr>
                   <th>
                     Situação
@@ -919,92 +789,89 @@ export default function Imoveis() {
                     Total
                   </th>
                 </tr>
+
               </thead>
 
               <tbody>
 
-                {/* TOTAL */}
                 <tr>
+
                   <td>
-                    <div className="d-flex align-items-center">
+                    <i className="bi bi-buildings text-primary me-2"></i>
 
-                      <i className="bi bi-buildings text-primary me-2"></i>
-
-                      <span className="fw-semibold">
-                        Total de imóveis
-                      </span>
-
-                    </div>
+                    <span className="fw-semibold">
+                      Total de imóveis
+                    </span>
                   </td>
 
                   <td className="text-end">
-                    <span className="badge bg-primary fs-6">
+
+                    <span className="badge bg-primary rounded-pill">
                       {resumo.total}
                     </span>
+
                   </td>
+
                 </tr>
 
-                {/* DISPONÍVEIS */}
                 <tr>
+
                   <td>
-                    <div className="d-flex align-items-center">
+                    <i className="bi bi-house-check text-success me-2"></i>
 
-                      <i className="bi bi-house-check text-success me-2"></i>
-
-                      <span className="fw-semibold">
-                        Disponíveis
-                      </span>
-
-                    </div>
+                    <span className="fw-semibold">
+                      Disponíveis
+                    </span>
                   </td>
 
                   <td className="text-end">
-                    <span className="badge bg-success fs-6">
+
+                    <span className="badge bg-success rounded-pill">
                       {resumo.disponiveis}
                     </span>
+
                   </td>
+
                 </tr>
 
-                {/* ALUGADOS */}
                 <tr>
+
                   <td>
-                    <div className="d-flex align-items-center">
+                    <i className="bi bi-house-door text-primary me-2"></i>
 
-                      <i className="bi bi-house-door text-primary me-2"></i>
-
-                      <span className="fw-semibold">
-                        Alugados
-                      </span>
-
-                    </div>
+                    <span className="fw-semibold">
+                      Alugados
+                    </span>
                   </td>
 
                   <td className="text-end">
-                    <span className="badge bg-primary fs-6">
+
+                    <span className="badge bg-primary rounded-pill">
                       {resumo.alugados}
                     </span>
+
                   </td>
+
                 </tr>
 
-                {/* MANUTENÇÃO */}
                 <tr>
+
                   <td>
-                    <div className="d-flex align-items-center">
+                    <i className="bi bi-tools text-warning me-2"></i>
 
-                      <i className="bi bi-tools text-warning me-2"></i>
-
-                      <span className="fw-semibold">
-                        Em manutenção
-                      </span>
-
-                    </div>
+                    <span className="fw-semibold">
+                      Em manutenção
+                    </span>
                   </td>
 
                   <td className="text-end">
-                    <span className="badge bg-warning text-dark fs-6">
+
+                    <span className="badge bg-warning text-dark rounded-pill">
                       {resumo.manutencao}
                     </span>
+
                   </td>
+
                 </tr>
 
               </tbody>
@@ -1014,27 +881,30 @@ export default function Imoveis() {
           </div>
 
         </div>
+
       </div>
       {/* ========================================
-          LISTA DE IMÓVEIS
+          IMÓVEIS CADASTRADOS
       ======================================== */}
 
       <div className="card shadow-sm border-0 mb-4">
 
         <div className="card-body">
 
-          {/* TÍTULO DA LISTA */}
+          {/* CABEÇALHO DA LISTA */}
 
-          <div className="d-flex flex-wrap justify-content-between align-items-center mb-3">
+          <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
             <div>
+
               <h5 className="fw-bold mb-1">
                 Imóveis cadastrados
               </h5>
 
               <small className="text-muted">
-                Consulte, pesquise, edite ou exclua imóveis
+                Consulte e gerencie os imóveis cadastrados
               </small>
+
             </div>
 
             <button
@@ -1042,7 +912,7 @@ export default function Imoveis() {
               className="btn btn-primary mt-3 mt-md-0"
               onClick={abrirNovoImovel}
             >
-              <i className="bi bi-plus-circle me-2"></i>
+              <i className="bi bi-plus-lg me-2"></i>
               Novo imóvel
             </button>
 
@@ -1071,7 +941,7 @@ export default function Imoveis() {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Buscar por código, título, tipo, bairro ou cidade..."
+                  placeholder="Código, título, bairro, cidade..."
                   value={busca}
                   onChange={(e) =>
                     setBusca(e.target.value)
@@ -1097,6 +967,7 @@ export default function Imoveis() {
                   setFiltroStatus(e.target.value)
                 }
               >
+
                 <option value="todos">
                   Todos
                 </option>
@@ -1112,6 +983,19 @@ export default function Imoveis() {
                 <option value="manutencao">
                   Em manutenção
                 </option>
+
+                <option value="reservado">
+                  Reservados
+                </option>
+
+                <option value="vendido">
+                  Vendidos
+                </option>
+
+                <option value="indisponivel">
+                  Indisponíveis
+                </option>
+
               </select>
 
             </div>
@@ -1119,7 +1003,7 @@ export default function Imoveis() {
           </div>
 
           {/* ========================================
-              RESULTADO DOS FILTROS
+              RESULTADO / LIMPAR FILTROS
           ======================================== */}
 
           <div className="d-flex flex-wrap justify-content-between align-items-center mb-3">
@@ -1135,6 +1019,7 @@ export default function Imoveis() {
 
             {(busca ||
               filtroStatus !== "todos") && (
+
               <button
                 type="button"
                 className="btn btn-sm btn-outline-secondary"
@@ -1143,15 +1028,19 @@ export default function Imoveis() {
                   setFiltroStatus("todos")
                 }}
               >
+
                 <i className="bi bi-x-circle me-1"></i>
+
                 Limpar filtros
+
               </button>
+
             )}
 
           </div>
 
           {/* ========================================
-              TABELA DE IMÓVEIS
+              TABELA
           ======================================== */}
 
           <div className="table-responsive">
@@ -1195,10 +1084,12 @@ export default function Imoveis() {
               </thead>
 
               <tbody>
-
-                {/* CARREGANDO */}
+                {/* ========================================
+                    CARREGAMENTO
+                ======================================== */}
 
                 {loading ? (
+
                   <tr>
 
                     <td
@@ -1225,7 +1116,9 @@ export default function Imoveis() {
 
                 ) : imoveisFiltrados.length === 0 ? (
 
-                  /* NENHUM RESULTADO */
+                  /* ========================================
+                      NENHUM IMÓVEL
+                  ======================================== */
 
                   <tr>
 
@@ -1245,7 +1138,7 @@ export default function Imoveis() {
                         {busca ||
                         filtroStatus !== "todos"
                           ? "Tente alterar os filtros utilizados."
-                          : "Cadastre o primeiro imóvel para começar."}
+                          : "Cadastre um imóvel para começar."}
 
                       </small>
 
@@ -1255,54 +1148,72 @@ export default function Imoveis() {
 
                 ) : (
 
-                  /* IMÓVEIS */
+                  /* ========================================
+                      IMÓVEIS
+                  ======================================== */
 
-                  imoveisFiltrados.map(
-                    (imovel) => (
-                      <tr key={imovel.id}>
+                  imoveisFiltrados.map((imovel) => (
 
-                        {/* IMÓVEL */}
+                    <tr key={imovel.id}>
 
-                        <td>
+                      {/* IMÓVEL */}
 
-                          <div className="fw-semibold">
-                            {imovel.titulo ||
-                              "Sem título"}
-                          </div>
+                      <td>
 
-                          {imovel.codigo && (
-                            <small className="text-muted">
-                              Código:{" "}
-                              {imovel.codigo}
-                            </small>
-                          )}
+                        <div className="fw-semibold">
 
-                        </td>
+                          {imovel.titulo ||
+                            "Sem título"}
 
-                        {/* TIPO */}
+                        </div>
 
-                        <td>
-                          <span className="text-muted">
-                            {imovel.tipo || "-"}
-                          </span>
-                        </td>
+                        {imovel.codigo && (
 
-                        {/* FINALIDADE */}
+                          <small className="text-muted">
 
-                        <td>
-                          <span className="text-muted">
-                            {imovel.finalidade ||
-                              "-"}
-                          </span>
-                        </td>
+                            Código:{" "}
+                            {imovel.codigo}
 
-                        {/* LOCALIZAÇÃO */}
+                          </small>
 
-                        <td>
+                        )}
 
-                          <div>
-                            {imovel.bairro || "-"}
-                          </div>
+                      </td>
+
+                      {/* TIPO */}
+
+                      <td>
+
+                        <span>
+                          {imovel.tipo || "-"}
+                        </span>
+
+                      </td>
+
+                      {/* FINALIDADE */}
+
+                      <td>
+
+                        <span>
+                          {imovel.finalidade || "-"}
+                        </span>
+
+                      </td>
+
+                      {/* LOCALIZAÇÃO */}
+
+                      <td>
+
+                        <div>
+
+                          {imovel.bairro ||
+                            imovel.endereco ||
+                            "-"}
+
+                        </div>
+
+                        {(imovel.cidade ||
+                          imovel.estado) && (
 
                           <small className="text-muted">
 
@@ -1314,78 +1225,91 @@ export default function Imoveis() {
 
                           </small>
 
-                        </td>
+                        )}
 
-                        {/* VALOR */}
+                      </td>
 
-                        <td>
+                      {/* VALOR */}
 
-                          <span className="fw-semibold">
-                            {formatarMoeda(
-                              imovel.valor
-                            )}
-                          </span>
+                      <td>
 
-                        </td>
+                        <span className="fw-semibold">
 
-                        {/* STATUS */}
+                          {formatarMoeda(
+                            imovel.valor
+                          )}
 
-                        <td>
+                        </span>
 
-                          <span
-                            className={`badge ${obterStatusClass(
-                              imovel.status
-                            )}`}
+                      </td>
+
+                      {/* STATUS */}
+
+                      <td>
+
+                        <span
+                          className={`badge ${obterStatusClass(
+                            imovel.status
+                          )}`}
+                        >
+
+                          {obterStatusLabel(
+                            imovel.status
+                          )}
+
+                        </span>
+
+                      </td>
+
+                      {/* AÇÕES */}
+
+                      <td className="text-end">
+
+                        <div className="d-flex justify-content-end gap-2">
+
+                          {/* EDITAR */}
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            title="Editar imóvel"
+                            onClick={() =>
+                              abrirEditarImovel(
+                                imovel
+                              )
+                            }
                           >
-                            {obterStatusLabel(
-                              imovel.status
-                            )}
-                          </span>
 
-                        </td>
+                            <i className="bi bi-pencil"></i>
 
-                        {/* AÇÕES */}
+                          </button>
 
-                        <td className="text-end">
+                          {/* EXCLUIR */}
 
-                          <div className="d-flex justify-content-end gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            title="Excluir imóvel"
+                            onClick={() =>
+                              excluirImovel(
+                                imovel.id
+                              )
+                            }
+                          >
 
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary"
-                              title="Editar imóvel"
-                              onClick={() =>
-                                abrirEditarImovel(
-                                  imovel
-                                )
-                              }
-                            >
-                              <i className="bi bi-pencil"></i>
-                            </button>
+                            <i className="bi bi-trash"></i>
 
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-danger"
-                              title="Excluir imóvel"
-                              onClick={() =>
-                                excluirImovel(
-                                  imovel.id
-                                )
-                              }
-                            >
-                              <i className="bi bi-trash"></i>
-                            </button>
+                          </button>
 
-                          </div>
+                        </div>
 
-                        </td>
+                      </td>
 
-                      </tr>
-                    )
-                  )
+                    </tr>
+
+                  ))
 
                 )}
-
               </tbody>
 
             </table>
@@ -1395,11 +1319,13 @@ export default function Imoveis() {
         </div>
 
       </div>
+
       {/* ========================================
-          MODAL - CADASTRO / EDIÇÃO DE IMÓVEL
+          MODAL - NOVO / EDITAR IMÓVEL
       ======================================== */}
 
       {modalAberto && (
+
         <div
           className="modal fade show d-block"
           tabIndex="-1"
@@ -1414,9 +1340,7 @@ export default function Imoveis() {
 
             <div className="modal-content border-0 shadow">
 
-              {/* ========================================
-                  CABEÇALHO DO MODAL
-              ======================================== */}
+              {/* CABEÇALHO */}
 
               <div className="modal-header">
 
@@ -1424,7 +1348,7 @@ export default function Imoveis() {
 
                   <h5 className="modal-title fw-bold mb-1">
 
-                    <i className="bi bi-house me-2 text-primary"></i>
+                    <i className="bi bi-house-door text-primary me-2"></i>
 
                     {editando
                       ? "Editar imóvel"
@@ -1435,8 +1359,8 @@ export default function Imoveis() {
                   <small className="text-muted">
 
                     {editando
-                      ? "Atualize os dados do imóvel cadastrado."
-                      : "Preencha os dados para cadastrar um novo imóvel."}
+                      ? "Atualize as informações do imóvel."
+                      : "Cadastre um novo imóvel no sistema."}
 
                   </small>
 
@@ -1452,9 +1376,7 @@ export default function Imoveis() {
 
               </div>
 
-              {/* ========================================
-                  FORMULÁRIO
-              ======================================== */}
+              {/* FORMULÁRIO */}
 
               <form onSubmit={salvarImovel}>
 
@@ -1477,7 +1399,9 @@ export default function Imoveis() {
                             height: "42px",
                           }}
                         >
+
                           <i className="bi bi-house-door fs-5"></i>
+
                         </div>
 
                         <div>
@@ -1843,7 +1767,9 @@ export default function Imoveis() {
                             height: "42px",
                           }}
                         >
+
                           <i className="bi bi-geo-alt fs-5"></i>
+
                         </div>
 
                         <div>
@@ -1862,32 +1788,9 @@ export default function Imoveis() {
 
                       <div className="row g-3">
 
-                        {/* CEP */}
-
-                        <div className="col-12 col-md-3">
-
-                          <label className="form-label fw-semibold">
-                            CEP
-                          </label>
-
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="00000-000"
-                            value={form.cep}
-                            onChange={(e) =>
-                              alterarCampo(
-                                "cep",
-                                e.target.value
-                              )
-                            }
-                          />
-
-                        </div>
-
                         {/* ENDEREÇO */}
 
-                        <div className="col-12 col-md-7">
+                        <div className="col-12 col-md-8">
 
                           <label className="form-label fw-semibold">
                             Endereço
@@ -1910,7 +1813,7 @@ export default function Imoveis() {
 
                         {/* NÚMERO */}
 
-                        <div className="col-12 col-md-2">
+                        <div className="col-12 col-md-4">
 
                           <label className="form-label fw-semibold">
                             Número
@@ -1919,7 +1822,7 @@ export default function Imoveis() {
                           <input
                             type="text"
                             className="form-control"
-                            placeholder="Nº"
+                            placeholder="Número"
                             value={form.numero}
                             onChange={(e) =>
                               alterarCampo(
@@ -1942,7 +1845,7 @@ export default function Imoveis() {
                           <input
                             type="text"
                             className="form-control"
-                            placeholder="Apartamento, bloco, fundos..."
+                            placeholder="Apartamento, bloco, casa..."
                             value={form.complemento}
                             onChange={(e) =>
                               alterarCampo(
@@ -1977,9 +1880,32 @@ export default function Imoveis() {
 
                         </div>
 
-                        {/* CIDADE */}
+                        {/* CEP */}
 
                         <div className="col-12 col-md-4">
+
+                          <label className="form-label fw-semibold">
+                            CEP
+                          </label>
+
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="00000-000"
+                            value={form.cep}
+                            onChange={(e) =>
+                              alterarCampo(
+                                "cep",
+                                e.target.value
+                              )
+                            }
+                          />
+
+                        </div>
+
+                        {/* CIDADE */}
+
+                        <div className="col-12 col-md-8">
 
                           <label className="form-label fw-semibold">
                             Cidade
@@ -2002,7 +1928,7 @@ export default function Imoveis() {
 
                         {/* ESTADO */}
 
-                        <div className="col-12 col-md-3">
+                        <div className="col-12 col-md-4">
 
                           <label className="form-label fw-semibold">
                             Estado
@@ -2024,111 +1950,111 @@ export default function Imoveis() {
                             </option>
 
                             <option value="AC">
-                              AC
+                              Acre
                             </option>
 
                             <option value="AL">
-                              AL
+                              Alagoas
                             </option>
 
                             <option value="AP">
-                              AP
+                              Amapá
                             </option>
 
                             <option value="AM">
-                              AM
+                              Amazonas
                             </option>
 
                             <option value="BA">
-                              BA
+                              Bahia
                             </option>
 
                             <option value="CE">
-                              CE
+                              Ceará
                             </option>
 
                             <option value="DF">
-                              DF
+                              Distrito Federal
                             </option>
 
                             <option value="ES">
-                              ES
+                              Espírito Santo
                             </option>
 
                             <option value="GO">
-                              GO
+                              Goiás
                             </option>
 
                             <option value="MA">
-                              MA
+                              Maranhão
                             </option>
 
                             <option value="MT">
-                              MT
+                              Mato Grosso
                             </option>
 
                             <option value="MS">
-                              MS
+                              Mato Grosso do Sul
                             </option>
 
                             <option value="MG">
-                              MG
+                              Minas Gerais
                             </option>
 
                             <option value="PA">
-                              PA
+                              Pará
                             </option>
 
                             <option value="PB">
-                              PB
+                              Paraíba
                             </option>
 
                             <option value="PR">
-                              PR
+                              Paraná
                             </option>
 
                             <option value="PE">
-                              PE
+                              Pernambuco
                             </option>
 
                             <option value="PI">
-                              PI
+                              Piauí
                             </option>
 
                             <option value="RJ">
-                              RJ
+                              Rio de Janeiro
                             </option>
 
                             <option value="RN">
-                              RN
+                              Rio Grande do Norte
                             </option>
 
                             <option value="RS">
-                              RS
+                              Rio Grande do Sul
                             </option>
 
                             <option value="RO">
-                              RO
+                              Rondônia
                             </option>
 
                             <option value="RR">
-                              RR
+                              Roraima
                             </option>
 
                             <option value="SC">
-                              SC
+                              Santa Catarina
                             </option>
 
                             <option value="SP">
-                              SP
+                              São Paulo
                             </option>
 
                             <option value="SE">
-                              SE
+                              Sergipe
                             </option>
 
                             <option value="TO">
-                              TO
+                              Tocantins
                             </option>
 
                           </select>
@@ -2145,7 +2071,7 @@ export default function Imoveis() {
                       DESCRIÇÃO E OBSERVAÇÕES
                   ======================================== */}
 
-                  <div className="card shadow-sm border-0 mb-4">
+                  <div className="card shadow-sm border-0">
 
                     <div className="card-body">
 
@@ -2158,7 +2084,9 @@ export default function Imoveis() {
                             height: "42px",
                           }}
                         >
+
                           <i className="bi bi-card-text fs-5"></i>
+
                         </div>
 
                         <div>
@@ -2188,7 +2116,7 @@ export default function Imoveis() {
                           <textarea
                             className="form-control"
                             rows="4"
-                            placeholder="Descreva as características, ambientes, diferenciais e demais informações do imóvel..."
+                            placeholder="Descreva o imóvel, seus ambientes e características..."
                             value={form.descricao}
                             onChange={(e) =>
                               alterarCampo(
@@ -2210,7 +2138,7 @@ export default function Imoveis() {
 
                           <textarea
                             className="form-control"
-                            rows="3"
+                            rows="4"
                             placeholder="Informações adicionais..."
                             value={form.observacoes}
                             onChange={(e) =>
@@ -2228,6 +2156,8 @@ export default function Imoveis() {
                     </div>
 
                   </div>
+                </div>
+
                 {/* ========================================
                     RODAPÉ DO MODAL
                 ======================================== */}
@@ -2256,7 +2186,7 @@ export default function Imoveis() {
                           className="spinner-border spinner-border-sm me-2"
                           role="status"
                           aria-hidden="true"
-                        />
+                        ></span>
 
                         Salvando...
                       </>
@@ -2281,6 +2211,7 @@ export default function Imoveis() {
           </div>
 
         </div>
+
       )}
 
     </div>
