@@ -13,7 +13,6 @@ export default function Contratos() {
 
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
-
   const [busca, setBusca] = useState("")
 
   const [modalAberto, setModalAberto] = useState(false)
@@ -195,7 +194,6 @@ export default function Contratos() {
           ? String(contrato.dia_vencimento)
           : "10",
 
-
       observacoes:
         contrato.observacoes ||
         "",
@@ -325,7 +323,6 @@ export default function Contratos() {
       "bg-secondary"
     )
   }
-
   // =========================================================
   // FILTRO / PESQUISA
   // =========================================================
@@ -361,12 +358,18 @@ export default function Contratos() {
               )
             ).toLowerCase()
 
+          const numero =
+            String(
+              contrato.numero || ""
+            ).toLowerCase()
+
           return (
             !texto ||
             cliente.includes(texto) ||
             imovel.includes(texto) ||
             tipo.includes(texto) ||
-            status.includes(texto)
+            status.includes(texto) ||
+            numero.includes(texto)
           )
         }
       )
@@ -427,6 +430,36 @@ export default function Contratos() {
       valorAtivo,
     }
   }, [contratos])
+
+  // =========================================================
+  // GERAR NÚMERO DO CONTRATO
+  // =========================================================
+
+  function gerarNumeroContrato() {
+    const data = new Date()
+
+    const ano =
+      data.getFullYear()
+
+    const mes =
+      String(
+        data.getMonth() + 1
+      ).padStart(2, "0")
+
+    const dia =
+      String(
+        data.getDate()
+      ).padStart(2, "0")
+
+    const parteAleatoria =
+      Math.floor(
+        100000 +
+          Math.random() * 900000
+      )
+
+    return `CONT-${ano}${mes}${dia}-${parteAleatoria}`
+  }
+
   // =========================================================
   // SALVAR CONTRATO
   // =========================================================
@@ -479,16 +512,20 @@ export default function Contratos() {
             : null,
 
         tipo:
-          form.tipo || "Aluguel",
+          form.tipo ||
+          "Aluguel",
 
         status:
-          form.status || "ativo",
+          form.status ||
+          "ativo",
 
         data_inicio:
-          form.data_inicio || null,
+          form.data_inicio ||
+          null,
 
         data_fim:
-          form.data_fim || null,
+          form.data_fim ||
+          null,
 
         valor:
           form.valor !== ""
@@ -503,25 +540,48 @@ export default function Contratos() {
             : null,
 
         observacoes:
-          form.observacoes || null,
+          form.observacoes ||
+          null,
       }
 
       let resultado
+
+      // =====================================================
+      // EDITAR CONTRATO
+      // =====================================================
 
       if (editando) {
         resultado =
           await supabase
             .from("contratos")
             .update(dadosContrato)
-            .eq("id", editando.id)
+            .eq(
+              "id",
+              editando.id
+            )
             .select()
             .single()
-      } else {
+      }
+
+      // =====================================================
+      // NOVO CONTRATO
+      // =====================================================
+
+      else {
+        const novoContrato = {
+          ...dadosContrato,
+
+          // CORREÇÃO DO ERRO:
+          // A coluna numero é NOT NULL.
+          numero:
+            gerarNumeroContrato(),
+        }
+
         resultado =
           await supabase
             .from("contratos")
             .insert([
-              dadosContrato,
+              novoContrato,
             ])
             .select()
             .single()
@@ -539,7 +599,9 @@ export default function Contratos() {
 
       setModalAberto(false)
       setEditando(null)
-      setForm(formularioInicial())
+      setForm(
+        formularioInicial()
+      )
 
       await carregarDados()
     } catch (error) {
@@ -586,7 +648,10 @@ export default function Contratos() {
         await supabase
           .from("contratos")
           .delete()
-          .eq("id", contrato.id)
+          .eq(
+            "id",
+            contrato.id
+          )
 
       if (error) {
         throw error
@@ -609,70 +674,126 @@ export default function Contratos() {
       )
     }
   }
-
   // =========================================================
-  // INÍCIO DA PÁGINA
+  // RENDERIZAÇÃO
   // =========================================================
 
   return (
     <div className="container-fluid py-4">
 
-      {/* CABEÇALHO */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+      {/* =====================================================
+          CABEÇALHO
+      ===================================================== */}
+
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
 
         <div>
-
-          <h2 className="fw-bold mb-1">
+          <h1 className="fw-bold mb-1">
             Contratos
-          </h2>
+          </h1>
 
           <p className="text-muted mb-0">
-            Gerencie os contratos dos clientes e imóveis.
+            Gerencie os contratos de locação e venda
           </p>
-
         </div>
 
-        <div className="d-flex gap-2 mt-3 mt-md-0">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={abrirNovoContrato}
+        >
+          <i className="bi bi-plus-lg me-2"></i>
+          Novo contrato
+        </button>
 
-          <button
-            type="button"
-            className="btn btn-outline-primary"
-            onClick={() => {
-              limparMensagens()
-              carregarDados()
-            }}
-            disabled={loading}
-          >
+      </div>
 
-            <i className="bi bi-arrow-clockwise me-2"></i>
+      {/* =====================================================
+          ACESSO RÁPIDO
+      ===================================================== */}
 
-            Atualizar
+      <div className="card shadow-sm border-0 mb-4">
 
-          </button>
+        <div className="card-body">
 
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={abrirNovoContrato}
-          >
+          <h5 className="fw-bold mb-3">
+            <i className="bi bi-lightning-charge-fill text-warning me-2"></i>
+            Acesso rápido
+          </h5>
 
-            <i className="bi bi-plus-lg me-2"></i>
+          <div className="row g-2">
 
-            Novo contrato
+            <div className="col-6 col-md-3">
 
-          </button>
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/")}
+              >
+                <i className="bi bi-house-door me-2"></i>
+                Início
+              </button>
+
+            </div>
+
+            <div className="col-6 col-md-3">
+
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/clientes")}
+              >
+                <i className="bi bi-people me-2"></i>
+                Clientes
+              </button>
+
+            </div>
+
+            <div className="col-6 col-md-3">
+
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/imoveis")}
+              >
+                <i className="bi bi-building me-2"></i>
+                Imóveis
+              </button>
+
+            </div>
+
+            <div className="col-6 col-md-3">
+
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/recebimentos")}
+              >
+                <i className="bi bi-cash-coin me-2"></i>
+                Recebimentos
+              </button>
+
+            </div>
+
+          </div>
 
         </div>
 
       </div>
 
-      {/* ALERTA DE ERRO */}
+      {/* =====================================================
+          ALERTAS
+      ===================================================== */}
+
       {erro && (
         <div
           className="alert alert-danger alert-dismissible fade show"
           role="alert"
         >
-
           <i className="bi bi-exclamation-triangle-fill me-2"></i>
 
           {erro}
@@ -680,19 +801,18 @@ export default function Contratos() {
           <button
             type="button"
             className="btn-close"
-            onClick={() => setErro("")}
+            onClick={() =>
+              setErro("")
+            }
           ></button>
-
         </div>
       )}
 
-      {/* ALERTA DE SUCESSO */}
       {sucesso && (
         <div
           className="alert alert-success alert-dismissible fade show"
           role="alert"
         >
-
           <i className="bi bi-check-circle-fill me-2"></i>
 
           {sucesso}
@@ -700,338 +820,43 @@ export default function Contratos() {
           <button
             type="button"
             className="btn-close"
-            onClick={() => setSucesso("")}
+            onClick={() =>
+              setSucesso("")
+            }
           ></button>
-
         </div>
       )}
 
       {/* =====================================================
-          ACESSO RÁPIDO
-          ===================================================== */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <div className="d-flex align-items-center mb-3">
-
-            <div
-              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
-              style={{
-                width: "48px",
-                height: "48px",
-              }}
-            >
-
-              <i className="bi bi-lightning-charge-fill text-primary fs-4"></i>
-
-            </div>
-
-            <div>
-
-              <h5 className="fw-bold mb-0">
-                Acesso rápido
-              </h5>
-
-              <small className="text-muted">
-                Acesse rapidamente os módulos do sistema.
-              </small>
-
-            </div>
-
-          </div>
-
-          <div className="row g-2">
-
-            {/* DASHBOARD */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina("/")
-                }
-              >
-
-                <i className="bi bi-speedometer2 me-1"></i>
-
-                Dashboard
-
-              </button>
-
-            </div>
-
-            {/* CLIENTES */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/clientes"
-                  )
-                }
-              >
-
-                <i className="bi bi-people me-1"></i>
-
-                Clientes
-
-              </button>
-
-            </div>
-
-            {/* IMÓVEIS */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/imoveis"
-                  )
-                }
-              >
-
-                <i className="bi bi-house me-1"></i>
-
-                Imóveis
-
-              </button>
-
-            </div>
-
-            {/* CONTRATOS - ATIVO */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-primary w-100 py-2"
-              >
-
-                <i className="bi bi-file-earmark-text me-1"></i>
-
-                Contratos
-
-              </button>
-
-            </div>
-
-            {/* RECEBIMENTOS */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/recebimentos"
-                  )
-                }
-              >
-
-                <i className="bi bi-cash-coin me-1"></i>
-
-                Recebimentos
-
-              </button>
-
-            </div>
-
-            {/* DESPESAS */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/despesas"
-                  )
-                }
-              >
-
-                <i className="bi bi-receipt me-1"></i>
-
-                Despesas
-
-              </button>
-
-            </div>
-
-            {/* FINANCEIRO */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/financeiro"
-                  )
-                }
-              >
-
-                <i className="bi bi-wallet2 me-1"></i>
-
-                Financeiro
-
-              </button>
-
-            </div>
-
-            {/* MANUTENÇÕES */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/manutencoes"
-                  )
-                }
-              >
-
-                <i className="bi bi-tools me-1"></i>
-
-                Manutenções
-
-              </button>
-
-            </div>
-
-            {/* VISITAS */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/visitas"
-                  )
-                }
-              >
-
-                <i className="bi bi-calendar-check me-1"></i>
-
-                Visitas
-
-              </button>
-
-            </div>
-
-            {/* COMUNICAÇÃO */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/comunicacao"
-                  )
-                }
-              >
-
-                <i className="bi bi-whatsapp me-1"></i>
-
-                Comunicação
-
-              </button>
-
-            </div>
-
-            {/* RELATÓRIOS */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/relatorios"
-                  )
-                }
-              >
-
-                <i className="bi bi-bar-chart-line me-1"></i>
-
-                Relatórios
-
-              </button>
-
-            </div>
-
-            {/* CONFIGURAÇÕES */}
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() =>
-                  acessarPagina(
-                    "/configuracoes"
-                  )
-                }
-              >
-
-                <i className="bi bi-gear me-1"></i>
-
-                Configurações
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* =====================================================
-          RESUMO
-          ===================================================== */}
+          CARDS DE RESUMO
+      ===================================================== */}
 
       <div className="row g-3 mb-4">
 
         {/* TOTAL */}
-        <div className="col-12 col-md-4">
+
+        <div className="col-12 col-sm-6 col-xl-3">
 
           <div className="card shadow-sm border-0 h-100">
 
             <div className="card-body">
 
-              <div className="d-flex align-items-center">
-
-                <div
-                  className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                  }}
-                >
-
-                  <i className="bi bi-file-earmark-text text-primary fs-4"></i>
-
-                </div>
+              <div className="d-flex justify-content-between align-items-center">
 
                 <div>
 
-                  <div className="text-muted small">
+                  <p className="text-muted mb-1">
                     Total de contratos
-                  </div>
+                  </p>
 
-                  <h4 className="fw-bold mb-0">
+                  <h3 className="fw-bold mb-0">
                     {resumo.total}
-                  </h4>
+                  </h3>
 
+                </div>
+
+                <div className="fs-1 text-primary">
+                  <i className="bi bi-file-earmark-text"></i>
                 </div>
 
               </div>
@@ -1043,36 +868,29 @@ export default function Contratos() {
         </div>
 
         {/* ATIVOS */}
-        <div className="col-12 col-md-4">
+
+        <div className="col-12 col-sm-6 col-xl-3">
 
           <div className="card shadow-sm border-0 h-100">
 
             <div className="card-body">
 
-              <div className="d-flex align-items-center">
-
-                <div
-                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                  }}
-                >
-
-                  <i className="bi bi-check-circle text-success fs-4"></i>
-
-                </div>
+              <div className="d-flex justify-content-between align-items-center">
 
                 <div>
 
-                  <div className="text-muted small">
+                  <p className="text-muted mb-1">
                     Contratos ativos
-                  </div>
+                  </p>
 
-                  <h4 className="fw-bold mb-0">
+                  <h3 className="fw-bold text-success mb-0">
                     {resumo.ativos}
-                  </h4>
+                  </h3>
 
+                </div>
+
+                <div className="fs-1 text-success">
+                  <i className="bi bi-check-circle"></i>
                 </div>
 
               </div>
@@ -1083,39 +901,66 @@ export default function Contratos() {
 
         </div>
 
-        {/* VALOR ATIVO */}
-        <div className="col-12 col-md-4">
+        {/* VENCIDOS */}
+
+        <div className="col-12 col-sm-6 col-xl-3">
 
           <div className="card shadow-sm border-0 h-100">
 
             <div className="card-body">
 
-              <div className="d-flex align-items-center">
-
-                <div
-                  className="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                  }}
-                >
-
-                  <i className="bi bi-cash-stack text-warning fs-4"></i>
-
-                </div>
+              <div className="d-flex justify-content-between align-items-center">
 
                 <div>
 
-                  <div className="text-muted small">
-                    Valor dos contratos ativos
-                  </div>
+                  <p className="text-muted mb-1">
+                    Vencidos
+                  </p>
 
-                  <h4 className="fw-bold mb-0">
+                  <h3 className="fw-bold text-danger mb-0">
+                    {resumo.vencidos}
+                  </h3>
+
+                </div>
+
+                <div className="fs-1 text-danger">
+                  <i className="bi bi-exclamation-circle"></i>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* VALOR */}
+
+        <div className="col-12 col-sm-6 col-xl-3">
+
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                  <p className="text-muted mb-1">
+                    Valor dos ativos
+                  </p>
+
+                  <h3 className="fw-bold text-primary mb-0">
                     {formatarMoeda(
                       resumo.valorAtivo
                     )}
-                  </h4>
+                  </h3>
 
+                </div>
+
+                <div className="fs-1 text-primary">
+                  <i className="bi bi-currency-dollar"></i>
                 </div>
 
               </div>
@@ -1127,51 +972,22 @@ export default function Contratos() {
         </div>
 
       </div>
+
       {/* =====================================================
-          CONTRATOS CADASTRADOS
-          ===================================================== */}
+          PESQUISA
+      ===================================================== */}
 
       <div className="card shadow-sm border-0 mb-4">
 
-        {/* CABEÇALHO DO CARD */}
-        <div className="card-body border-bottom">
+        <div className="card-body">
 
-          <div className="d-flex flex-wrap justify-content-between align-items-center">
-
-            <div>
-
-              <h5 className="fw-bold mb-1">
-                Contratos cadastrados
-              </h5>
-
-              <p className="text-muted small mb-0">
-                Consulte, edite ou exclua os contratos cadastrados.
-              </p>
-
-            </div>
-
-            <button
-              type="button"
-              className="btn btn-primary mt-3 mt-md-0"
-              onClick={abrirNovoContrato}
-            >
-
-              <i className="bi bi-plus-lg me-2"></i>
-
-              Novo contrato
-
-            </button>
-
-          </div>
-
-        </div>
-
-        {/* PESQUISA */}
-        <div className="card-body border-bottom">
-
-          <div className="row g-2">
+          <div className="row g-3 align-items-end">
 
             <div className="col-12 col-md-9">
+
+              <label className="form-label fw-semibold">
+                Pesquisar contratos
+              </label>
 
               <div className="input-group">
 
@@ -1182,24 +998,14 @@ export default function Contratos() {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Buscar por cliente, imóvel, tipo ou status..."
+                  placeholder="Cliente, imóvel, número, tipo ou status..."
                   value={busca}
                   onChange={(e) =>
-                    setBusca(e.target.value)
+                    setBusca(
+                      e.target.value
+                    )
                   }
                 />
-
-                {busca && (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() =>
-                      setBusca("")
-                    }
-                  >
-                    <i className="bi bi-x-lg"></i>
-                  </button>
-                )}
 
               </div>
 
@@ -1209,66 +1015,66 @@ export default function Contratos() {
 
               <button
                 type="button"
-                className="btn btn-outline-primary w-100"
-                onClick={() => {
-                  limparMensagens()
-                  carregarDados()
-                }}
-                disabled={loading}
+                className="btn btn-outline-secondary w-100"
+                onClick={() =>
+                  setBusca("")
+                }
               >
-
-                <i className="bi bi-arrow-clockwise me-2"></i>
-
-                Atualizar lista
-
+                <i className="bi bi-x-circle me-2"></i>
+                Limpar pesquisa
               </button>
 
             </div>
 
           </div>
 
-          {/* RESULTADO DA PESQUISA */}
-          {busca && (
-            <div className="mt-3">
-
-              <small className="text-muted">
-
-                <i className="bi bi-info-circle me-1"></i>
-
-                {contratosFiltrados.length}{" "}
-                {contratosFiltrados.length === 1
-                  ? "contrato encontrado"
-                  : "contratos encontrados"}
-
-                {" "}para{" "}
-
-                <strong>
-                  "{busca}"
-                </strong>
-
-              </small>
-
-            </div>
-          )}
-
         </div>
 
-        {/* CONTEÚDO */}
-        <div className="card-body p-0">
+      </div>
+
+      {/* =====================================================
+          TABELA
+      ===================================================== */}
+
+      <div className="card shadow-sm border-0">
+
+        <div className="card-body">
+
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+
+            <div>
+
+              <h5 className="fw-bold mb-1">
+                Lista de contratos
+              </h5>
+
+              <p className="text-muted mb-0">
+                {contratosFiltrados.length} contrato(s) encontrado(s)
+              </p>
+
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={abrirNovoContrato}
+            >
+              <i className="bi bi-plus-lg me-2"></i>
+              Novo contrato
+            </button>
+
+          </div>
 
           {loading ? (
-
             <div className="text-center py-5">
 
               <div
                 className="spinner-border text-primary"
                 role="status"
               >
-
                 <span className="visually-hidden">
                   Carregando...
                 </span>
-
               </div>
 
               <p className="text-muted mt-3 mb-0">
@@ -1276,66 +1082,28 @@ export default function Contratos() {
               </p>
 
             </div>
-
           ) : contratosFiltrados.length === 0 ? (
 
-            <div className="text-center py-5 px-3">
+            <div className="text-center py-5">
 
-              <div
-                className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
-                style={{
-                  width: "64px",
-                  height: "64px",
-                }}
-              >
+              <i className="bi bi-file-earmark-x fs-1 text-muted"></i>
 
-                <i className="bi bi-file-earmark-text text-primary fs-2"></i>
-
-              </div>
-
-              <h5 className="fw-bold">
-                {busca
-                  ? "Nenhum contrato encontrado"
-                  : "Nenhum contrato cadastrado"}
+              <h5 className="mt-3">
+                Nenhum contrato encontrado
               </h5>
 
-              <p className="text-muted mb-3">
-
-                {busca
-                  ? "Tente utilizar outro termo de pesquisa."
-                  : "Comece cadastrando o primeiro contrato."}
-
+              <p className="text-muted">
+                Cadastre um novo contrato para começar.
               </p>
 
-              {!busca && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={abrirNovoContrato}
-                >
-
-                  <i className="bi bi-plus-lg me-2"></i>
-
-                  Novo contrato
-
-                </button>
-              )}
-
-              {busca && (
-                <button
-                  type="button"
-                  className="btn btn-outline-primary"
-                  onClick={() =>
-                    setBusca("")
-                  }
-                >
-
-                  <i className="bi bi-x-circle me-2"></i>
-
-                  Limpar pesquisa
-
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={abrirNovoContrato}
+              >
+                <i className="bi bi-plus-lg me-2"></i>
+                Novo contrato
+              </button>
 
             </div>
 
@@ -1349,7 +1117,11 @@ export default function Contratos() {
 
                   <tr>
 
-                    <th className="px-3">
+                    <th>
+                      Número
+                    </th>
+
+                    <th>
                       Cliente
                     </th>
 
@@ -1370,14 +1142,10 @@ export default function Contratos() {
                     </th>
 
                     <th>
-                      Vencimento
-                    </th>
-
-                    <th>
                       Status
                     </th>
 
-                    <th className="text-end px-3">
+                    <th className="text-end">
                       Ações
                     </th>
 
@@ -1388,253 +1156,115 @@ export default function Contratos() {
                 <tbody>
 
                   {contratosFiltrados.map(
-                    (contrato) => {
+                    (contrato) => (
 
-                      const cliente =
-                        obterCliente(
-                          contrato
-                        )
+                      <tr
+                        key={
+                          contrato.id
+                        }
+                      >
 
-                      const imovel =
-                        obterImovel(
-                          contrato
-                        )
+                        <td>
+                          <span className="fw-semibold">
+                            {contrato.numero ||
+                              "-"}
+                          </span>
+                        </td>
 
-                      return (
-                        <tr
-                          key={contrato.id}
-                        >
+                        <td>
+                          <div className="fw-semibold">
+                            {obterNomeCliente(
+                              contrato
+                            )}
+                          </div>
+                        </td>
 
-                          {/* CLIENTE */}
-                          <td className="px-3">
+                        <td>
+                          {obterNomeImovel(
+                            contrato
+                          )}
+                        </td>
 
-                            <div className="d-flex align-items-center">
+                        <td>
+                          {contrato.tipo ||
+                            "-"}
+                        </td>
 
-                              <div
-                                className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
-                                style={{
-                                  width: "38px",
-                                  height: "38px",
-                                }}
-                              >
+                        <td>
 
-                                <i className="bi bi-person text-primary"></i>
-
-                              </div>
-
-                              <div>
-
-                                <div className="fw-semibold">
-
-                                  {cliente?.nome ||
-                                    "Cliente não informado"}
-
-                                </div>
-
-                                {cliente?.telefone && (
-                                  <div className="small text-muted">
-
-                                    <i className="bi bi-telephone me-1"></i>
-
-                                    {cliente.telefone}
-
-                                  </div>
-                                )}
-
-                              </div>
-
-                            </div>
-
-                          </td>
-
-                          {/* IMÓVEL */}
-                          <td>
-
-                            <div className="d-flex align-items-center">
-
-                              <div
-                                className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
-                                style={{
-                                  width: "38px",
-                                  height: "38px",
-                                }}
-                              >
-
-                                <i className="bi bi-house text-success"></i>
-
-                              </div>
-
-                              <div>
-
-                                <div className="fw-semibold">
-
-                                  {obterNomeImovel(
-                                    contrato
-                                  )}
-
-                                </div>
-
-                                {imovel?.codigo && (
-                                  <div className="small text-muted">
-
-                                    Código:{" "}
-                                    {imovel.codigo}
-
-                                  </div>
-                                )}
-
-                              </div>
-
-                            </div>
-
-                          </td>
-
-                          {/* TIPO */}
-                          <td>
-
-                            <span className="badge bg-primary">
-
-                              {contrato.tipo ||
-                                "Não informado"}
-
-                            </span>
-
-                          </td>
-
-                          {/* PERÍODO */}
-                          <td>
-
-                            <div className="small">
-
-                              <div>
-
-                                <span className="text-muted">
-                                  Início:
-                                </span>{" "}
-
-                                <strong>
-                                  {formatarData(
-                                    contrato.data_inicio
-                                  )}
-                                </strong>
-
-                              </div>
-
-                              <div className="mt-1">
-
-                                <span className="text-muted">
-                                  Fim:
-                                </span>{" "}
-
-                                <strong>
-                                  {formatarData(
-                                    contrato.data_fim
-                                  )}
-                                </strong>
-
-                              </div>
-
-                            </div>
-
-                          </td>
-
-                          {/* VALOR */}
-                          <td>
-
-                            <div className="fw-semibold text-success">
-
-                              {formatarMoeda(
-                                contrato.valor
-                              )}
-
-                            </div>
-
-                            
-
-                          </td>
-
-                          {/* VENCIMENTO */}
-                          <td>
-
-                            {contrato.dia_vencimento ? (
-                              <span>
-
-                                <i className="bi bi-calendar-event me-1 text-primary"></i>
-
-                                Dia{" "}
-
-                                <strong>
-                                  {contrato.dia_vencimento}
-                                </strong>
-
-                              </span>
-                            ) : (
-                              <span className="text-muted">
-                                -
-                              </span>
+                          <small className="text-muted">
+                            {formatarData(
+                              contrato.data_inicio
                             )}
 
-                          </td>
+                            {" até "}
 
-                          {/* STATUS */}
-                          <td>
+                            {contrato.data_fim
+                              ? formatarData(
+                                  contrato.data_fim
+                                )
+                              : "Indeterminado"}
+                          </small>
 
-                            <span
-                              className={`badge ${obterStatusClass(
-                                contrato.status
-                              )}`}
+                        </td>
+
+                        <td className="fw-semibold">
+                          {formatarMoeda(
+                            contrato.valor
+                          )}
+                        </td>
+
+                        <td>
+
+                          <span
+                            className={`badge ${obterStatusClass(
+                              contrato.status
+                            )}`}
+                          >
+                            {obterStatusLabel(
+                              contrato.status
+                            )}
+                          </span>
+
+                        </td>
+
+                        <td>
+
+                          <div className="d-flex justify-content-end gap-1">
+
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary"
+                              title="Editar contrato"
+                              onClick={() =>
+                                abrirEditarContrato(
+                                  contrato
+                                )
+                              }
                             >
+                              <i className="bi bi-pencil"></i>
+                            </button>
 
-                              {obterStatusLabel(
-                                contrato.status
-                              )}
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger"
+                              title="Excluir contrato"
+                              onClick={() =>
+                                excluirContrato(
+                                  contrato
+                                )
+                              }
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
 
-                            </span>
+                          </div>
 
-                          </td>
+                        </td>
 
-                          {/* AÇÕES */}
-                          <td className="text-end px-3">
+                      </tr>
 
-                            <div className="d-flex justify-content-end gap-1">
-
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-primary"
-                                title="Editar contrato"
-                                onClick={() =>
-                                  abrirEditarContrato(
-                                    contrato
-                                  )
-                                }
-                              >
-
-                                <i className="bi bi-pencil"></i>
-
-                              </button>
-
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                title="Excluir contrato"
-                                onClick={() =>
-                                  excluirContrato(
-                                    contrato
-                                  )
-                                }
-                              >
-
-                                <i className="bi bi-trash"></i>
-
-                              </button>
-
-                            </div>
-
-                          </td>
-
-                        </tr>
-                      )
-                    }
+                    )
                   )}
 
                 </tbody>
@@ -1650,7 +1280,7 @@ export default function Contratos() {
       </div>
       {/* =====================================================
           MODAL - NOVO / EDITAR CONTRATO
-          ===================================================== */}
+      ===================================================== */}
 
       {modalAberto && (
         <div
@@ -1659,25 +1289,26 @@ export default function Contratos() {
           role="dialog"
           aria-modal="true"
           style={{
-            backgroundColor: "rgba(0,0,0,0.5)",
+            backgroundColor:
+              "rgba(0, 0, 0, 0.5)",
           }}
         >
 
-          <div
-            className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
-            role="document"
-          >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
 
-            <div className="modal-content border-0 shadow">
+            <div className="modal-content">
 
-              {/* CABEÇALHO */}
+              {/* =================================================
+                  CABEÇALHO DO MODAL
+              ================================================= */}
+
               <div className="modal-header">
 
                 <div>
 
                   <h5 className="modal-title fw-bold mb-1">
 
-                    <i className="bi bi-file-earmark-text me-2 text-primary"></i>
+                    <i className="bi bi-file-earmark-text me-2"></i>
 
                     {editando
                       ? "Editar contrato"
@@ -1688,8 +1319,8 @@ export default function Contratos() {
                   <small className="text-muted">
 
                     {editando
-                      ? "Atualize as informações do contrato."
-                      : "Preencha os dados para cadastrar um novo contrato."}
+                      ? `Contrato ${editando.numero || ""}`
+                      : "Preencha os dados do contrato"}
 
                   </small>
 
@@ -1705,14 +1336,17 @@ export default function Contratos() {
 
               </div>
 
-              {/* FORMULÁRIO */}
+              {/* =================================================
+                  FORMULÁRIO
+              ================================================= */}
+
               <form onSubmit={salvarContrato}>
 
                 <div className="modal-body">
 
-                  {/* =================================================
-                      DADOS DO CONTRATO
-                      ================================================= */}
+                  {/* =============================================
+                      INFORMAÇÕES PRINCIPAIS
+                  ============================================= */}
 
                   <div className="card border-0 bg-light mb-4">
 
@@ -1720,24 +1354,30 @@ export default function Contratos() {
 
                       <h6 className="fw-bold mb-3">
 
-                        <i className="bi bi-file-earmark-text me-2 text-primary"></i>
+                        <i className="bi bi-info-circle me-2"></i>
 
-                        Dados do contrato
+                        Informações do contrato
 
                       </h6>
 
                       <div className="row g-3">
 
                         {/* CLIENTE */}
+
                         <div className="col-12 col-md-6">
 
                           <label className="form-label fw-semibold">
-                            Cliente *
+                            Cliente
+                            <span className="text-danger">
+                              {" "}*
+                            </span>
                           </label>
 
                           <select
                             className="form-select"
-                            value={form.cliente_id}
+                            value={
+                              form.cliente_id
+                            }
                             onChange={(e) =>
                               alterarCampo(
                                 "cliente_id",
@@ -1753,12 +1393,18 @@ export default function Contratos() {
 
                             {clientes.map(
                               (cliente) => (
+
                                 <option
-                                  key={cliente.id}
-                                  value={cliente.id}
+                                  key={
+                                    cliente.id
+                                  }
+                                  value={
+                                    cliente.id
+                                  }
                                 >
                                   {cliente.nome}
                                 </option>
+
                               )
                             )}
 
@@ -1767,15 +1413,21 @@ export default function Contratos() {
                         </div>
 
                         {/* IMÓVEL */}
+
                         <div className="col-12 col-md-6">
 
                           <label className="form-label fw-semibold">
-                            Imóvel *
+                            Imóvel
+                            <span className="text-danger">
+                              {" "}*
+                            </span>
                           </label>
 
                           <select
                             className="form-select"
-                            value={form.imovel_id}
+                            value={
+                              form.imovel_id
+                            }
                             onChange={(e) =>
                               alterarCampo(
                                 "imovel_id",
@@ -1791,19 +1443,23 @@ export default function Contratos() {
 
                             {imoveis.map(
                               (imovel) => (
-                                <option
-                                  key={imovel.id}
-                                  value={imovel.id}
-                                >
-                                  {imovel.codigo
-                                    ? `${imovel.codigo} - `
-                                    : ""}
 
-                                  {imovel.titulo ||
-                                    imovel.nome ||
-                                    imovel.endereco ||
-                                    "Imóvel"}
+                                <option
+                                  key={
+                                    imovel.id
+                                  }
+                                  value={
+                                    imovel.id
+                                  }
+                                >
+                                  {obterNomeImovel(
+                                    {
+                                      imovel_id:
+                                        imovel.id,
+                                    }
+                                  )}
                                 </option>
+
                               )
                             )}
 
@@ -1812,6 +1468,7 @@ export default function Contratos() {
                         </div>
 
                         {/* TIPO */}
+
                         <div className="col-12 col-md-6">
 
                           <label className="form-label fw-semibold">
@@ -1820,7 +1477,9 @@ export default function Contratos() {
 
                           <select
                             className="form-select"
-                            value={form.tipo}
+                            value={
+                              form.tipo
+                            }
                             onChange={(e) =>
                               alterarCampo(
                                 "tipo",
@@ -1833,16 +1492,12 @@ export default function Contratos() {
                               Aluguel
                             </option>
 
+                            <option value="Venda">
+                              Venda
+                            </option>
+
                             <option value="Temporada">
                               Temporada
-                            </option>
-
-                            <option value="Comercial">
-                              Comercial
-                            </option>
-
-                            <option value="Residencial">
-                              Residencial
                             </option>
 
                             <option value="Outro">
@@ -1854,6 +1509,7 @@ export default function Contratos() {
                         </div>
 
                         {/* STATUS */}
+
                         <div className="col-12 col-md-6">
 
                           <label className="form-label fw-semibold">
@@ -1862,7 +1518,9 @@ export default function Contratos() {
 
                           <select
                             className="form-select"
-                            value={form.status}
+                            value={
+                              form.status
+                            }
                             onChange={(e) =>
                               alterarCampo(
                                 "status",
@@ -1901,9 +1559,9 @@ export default function Contratos() {
 
                   </div>
 
-                  {/* =================================================
-                      PERÍODO E VALORES
-                      ================================================= */}
+                  {/* =============================================
+                      PERÍODO
+                  ============================================= */}
 
                   <div className="card border-0 bg-light mb-4">
 
@@ -1911,25 +1569,31 @@ export default function Contratos() {
 
                       <h6 className="fw-bold mb-3">
 
-                        <i className="bi bi-calendar3 me-2 text-primary"></i>
+                        <i className="bi bi-calendar3 me-2"></i>
 
-                        Período e valores
+                        Período do contrato
 
                       </h6>
 
                       <div className="row g-3">
 
                         {/* DATA INÍCIO */}
+
                         <div className="col-12 col-md-6">
 
                           <label className="form-label fw-semibold">
-                            Data de início *
+                            Data de início
+                            <span className="text-danger">
+                              {" "}*
+                            </span>
                           </label>
 
                           <input
                             type="date"
                             className="form-control"
-                            value={form.data_inicio}
+                            value={
+                              form.data_inicio
+                            }
                             onChange={(e) =>
                               alterarCampo(
                                 "data_inicio",
@@ -1942,6 +1606,7 @@ export default function Contratos() {
                         </div>
 
                         {/* DATA FIM */}
+
                         <div className="col-12 col-md-6">
 
                           <label className="form-label fw-semibold">
@@ -1951,22 +1616,57 @@ export default function Contratos() {
                           <input
                             type="date"
                             className="form-control"
-                            value={form.data_fim}
+                            value={
+                              form.data_fim
+                            }
                             onChange={(e) =>
                               alterarCampo(
                                 "data_fim",
                                 e.target.value
                               )
                             }
+                            min={
+                              form.data_inicio ||
+                              undefined
+                            }
                           />
+
+                          <div className="form-text">
+                            Deixe em branco caso o contrato não tenha data de término definida.
+                          </div>
 
                         </div>
 
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                  {/* =============================================
+                      VALORES
+                  ============================================= */}
+
+                  <div className="card border-0 bg-light mb-4">
+
+                    <div className="card-body">
+
+                      <h6 className="fw-bold mb-3">
+
+                        <i className="bi bi-cash-stack me-2"></i>
+
+                        Valores e vencimento
+
+                      </h6>
+
+                      <div className="row g-3">
+
                         {/* VALOR */}
+
                         <div className="col-12 col-md-6">
 
                           <label className="form-label fw-semibold">
-                            Valor *
+                            Valor
                           </label>
 
                           <div className="input-group">
@@ -1978,17 +1678,18 @@ export default function Contratos() {
                             <input
                               type="number"
                               className="form-control"
+                              placeholder="0,00"
                               min="0"
                               step="0.01"
-                              placeholder="0,00"
-                              value={form.valor}
+                              value={
+                                form.valor
+                              }
                               onChange={(e) =>
                                 alterarCampo(
                                   "valor",
                                   e.target.value
                                 )
                               }
-                              required
                             />
 
                           </div>
@@ -1996,17 +1697,15 @@ export default function Contratos() {
                         </div>
 
                         {/* DIA VENCIMENTO */}
-                        <div className="col-12 col-md-3">
+
+                        <div className="col-12 col-md-6">
 
                           <label className="form-label fw-semibold">
                             Dia de vencimento
                           </label>
 
-                          <input
-                            type="number"
-                            className="form-control"
-                            min="1"
-                            max="31"
+                          <select
+                            className="form-select"
                             value={
                               form.dia_vencimento
                             }
@@ -2016,10 +1715,30 @@ export default function Contratos() {
                                 e.target.value
                               )
                             }
-                          />
+                          >
+
+                            {Array.from(
+                              {
+                                length: 31,
+                              },
+                              (_, indice) =>
+                                indice + 1
+                            ).map(
+                              (dia) => (
+
+                                <option
+                                  key={dia}
+                                  value={dia}
+                                >
+                                  Dia {dia}
+                                </option>
+
+                              )
+                            )}
+
+                          </select>
 
                         </div>
-
 
                       </div>
 
@@ -2027,9 +1746,9 @@ export default function Contratos() {
 
                   </div>
 
-                  {/* =================================================
+                  {/* =============================================
                       OBSERVAÇÕES
-                      ================================================= */}
+                  ============================================= */}
 
                   <div className="card border-0 bg-light">
 
@@ -2037,7 +1756,7 @@ export default function Contratos() {
 
                       <h6 className="fw-bold mb-3">
 
-                        <i className="bi bi-chat-left-text me-2 text-primary"></i>
+                        <i className="bi bi-chat-left-text me-2"></i>
 
                         Observações
 
@@ -2045,8 +1764,8 @@ export default function Contratos() {
 
                       <textarea
                         className="form-control"
-                        rows="5"
-                        placeholder="Digite informações adicionais sobre o contrato..."
+                        rows="4"
+                        placeholder="Informações adicionais sobre o contrato..."
                         value={
                           form.observacoes
                         }
@@ -2065,8 +1784,8 @@ export default function Contratos() {
                 </div>
 
                 {/* =================================================
-                    RODAPÉ DO MODAL
-                    ================================================= */}
+                    RODAPÉ
+                ================================================= */}
 
                 <div className="modal-footer">
 
@@ -2076,11 +1795,8 @@ export default function Contratos() {
                     onClick={fecharModal}
                     disabled={salvando}
                   >
-
                     <i className="bi bi-x-lg me-2"></i>
-
                     Cancelar
-
                   </button>
 
                   <button
@@ -2106,7 +1822,6 @@ export default function Contratos() {
                         {editando
                           ? "Salvar alterações"
                           : "Cadastrar contrato"}
-
                       </>
                     )}
 
