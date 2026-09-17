@@ -1,20 +1,48 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
+
 import { supabase } from "../../lib/supabase"
 
 export default function Recebimentos() {
   const hoje = new Date()
 
-  const [recebimentos, setRecebimentos] = useState([])
-  const [clientes, setClientes] = useState([])
-  const [contratos, setContratos] = useState([])
+  // ========================================
+  // DADOS
+  // ========================================
 
-  const [loading, setLoading] = useState(true)
-  const [salvando, setSalvando] = useState(false)
+  const [recebimentos, setRecebimentos] =
+    useState([])
 
-  const [erro, setErro] = useState("")
-  const [sucesso, setSucesso] = useState("")
+  const [clientes, setClientes] =
+    useState([])
+
+  const [contratos, setContratos] =
+    useState([])
+
+  // ========================================
+  // CONTROLE
+  // ========================================
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [salvando, setSalvando] =
+    useState(false)
+
+  const [erro, setErro] =
+    useState("")
+
+  const [sucesso, setSucesso] =
+    useState("")
+
+  // ========================================
+  // PERÍODO
+  // ========================================
 
   const [mes, setMes] = useState(
     hoje.getMonth() + 1
@@ -24,31 +52,72 @@ export default function Recebimentos() {
     hoje.getFullYear()
   )
 
-  const [busca, setBusca] = useState("")
-
-  const [modalAberto, setModalAberto] =
-    useState(false)
-
-  const [recebimentoSelecionado, setRecebimentoSelecionado] =
-    useState(null)
-
-  const [formaPagamento, setFormaPagamento] =
+  const [busca, setBusca] =
     useState("")
 
-  const [dataPagamento, setDataPagamento] =
-    useState(
-      hoje.toISOString().split("T")[0]
-    )
+  // ========================================
+  // MODAL NOVO RECEBIMENTO
+  // ========================================
+
+  const [
+    novoRecebimentoAberto,
+    setNovoRecebimentoAberto,
+  ] = useState(false)
+
+  const [
+    novoRecebimento,
+    setNovoRecebimento,
+  ] = useState({
+    cliente_id: "",
+    contrato_id: "",
+    tipo: "Aluguel mensal",
+    descricao: "",
+    numero_contrato: "",
+    valor: "",
+    data_vencimento: "",
+    forma_pagamento: "Pix",
+    status: "Pendente",
+    observacoes: "",
+  })
+
+  // ========================================
+  // MODAL CONFIRMAR RECEBIMENTO
+  // ========================================
+
+  const [
+    modalAberto,
+    setModalAberto,
+  ] = useState(false)
+
+  const [
+    recebimentoSelecionado,
+    setRecebimentoSelecionado,
+  ] = useState(null)
+
+  const [
+    formaPagamento,
+    setFormaPagamento,
+  ] = useState("")
+
+  const [
+    dataPagamento,
+    setDataPagamento,
+  ] = useState(
+    hoje.toISOString().split("T")[0]
+  )
+  // ========================================
+  // CARREGAR DADOS
+  // ========================================
 
   async function carregarDados() {
-    setLoading(true)
-    setErro("")
-
     try {
+      setLoading(true)
+      setErro("")
+
       const [
-        recebimentosResult,
-        clientesResult,
-        contratosResult,
+        { data: dadosRecebimentos, error: erroRecebimentos },
+        { data: dadosClientes, error: erroClientes },
+        { data: dadosContratos, error: erroContratos },
       ] = await Promise.all([
         supabase
           .from("recebimentos")
@@ -72,67 +141,70 @@ export default function Recebimentos() {
           }),
       ])
 
-      if (recebimentosResult.error) {
-        throw recebimentosResult.error
+      if (erroRecebimentos) {
+        throw new Error(
+          `Erro ao carregar recebimentos: ${erroRecebimentos.message}`
+        )
       }
 
-      if (clientesResult.error) {
-        throw clientesResult.error
+      if (erroClientes) {
+        throw new Error(
+          `Erro ao carregar clientes: ${erroClientes.message}`
+        )
       }
 
-      if (contratosResult.error) {
-        throw contratosResult.error
+      if (erroContratos) {
+        throw new Error(
+          `Erro ao carregar contratos: ${erroContratos.message}`
+        )
       }
 
-      setRecebimentos(
-        recebimentosResult.data || []
-      )
-
-      setClientes(
-        clientesResult.data || []
-      )
-
-      setContratos(
-        contratosResult.data || []
-      )
+      setRecebimentos(dadosRecebimentos || [])
+      setClientes(dadosClientes || [])
+      setContratos(dadosContratos || [])
     } catch (error) {
-      console.error(
-        "Erro ao carregar recebimentos:",
-        error
-      )
+      console.error(error)
 
       setErro(
         error?.message ||
-          "Não foi possível carregar os recebimentos."
+          "Não foi possível carregar os dados."
       )
     } finally {
       setLoading(false)
     }
   }
 
+  // ========================================
+  // CARREGAR AO ABRIR A PÁGINA
+  // ========================================
+
   useEffect(() => {
     carregarDados()
   }, [])
+
+  // ========================================
+  // LIMPAR MENSAGENS
+  // ========================================
 
   function limparMensagens() {
     setErro("")
     setSucesso("")
   }
 
+  // ========================================
+  // NAVEGAÇÃO
+  // ========================================
+
   function acessarPagina(url) {
     window.location.href = url
   }
 
-  function formatarMoeda(valor) {
-    if (
-      valor === null ||
-      valor === undefined ||
-      valor === ""
-    ) {
-      return "R$ 0,00"
-    }
+  // ========================================
+  // FORMATAÇÃO DE MOEDA
+  // ========================================
 
-    return Number(valor).toLocaleString(
+  function formatarMoeda(valor) {
+    return Number(valor || 0).toLocaleString(
       "pt-BR",
       {
         style: "currency",
@@ -141,24 +213,34 @@ export default function Recebimentos() {
     )
   }
 
+  // ========================================
+  // FORMATAÇÃO DE DATA
+  // ========================================
+
   function formatarData(data) {
     if (!data) return "-"
 
     const partes = String(data).split("-")
 
-    if (partes.length === 3) {
-      return `${partes[2]}/${partes[1]}/${partes[0]}`
+    if (partes.length !== 3) {
+      return data
     }
 
-    return data
+    return `${partes[2]}/${partes[1]}/${partes[0]}`
   }
+
+  // ========================================
+  // OBTÉM MÊS E ANO
+  // ========================================
 
   function obterMesAno(data) {
     if (!data) return null
 
     const partes = String(data).split("-")
 
-    if (partes.length < 2) return null
+    if (partes.length < 2) {
+      return null
+    }
 
     return {
       mes: Number(partes[1]),
@@ -166,80 +248,123 @@ export default function Recebimentos() {
     }
   }
 
+  // ========================================
+  // NOME DO CLIENTE
+  // ========================================
+
   function nomeCliente(clienteId) {
     const cliente = clientes.find(
-      (item) => item.id === clienteId
+      (item) =>
+        String(item.id) === String(clienteId)
     )
 
-    return cliente?.nome || "Cliente não informado"
+    if (!cliente) {
+      return "Cliente não identificado"
+    }
+
+    return (
+      cliente.nome ||
+      cliente.razao_social ||
+      cliente.nome_completo ||
+      `Cliente #${cliente.id}`
+    )
   }
+
+  // ========================================
+  // CONTRATO RELACIONADO
+  // ========================================
 
   function contratoRelacionado(contratoId) {
-    return contratos.find(
-      (item) => item.id === contratoId
+    if (!contratoId) {
+      return null
+    }
+
+    return (
+      contratos.find(
+        (item) =>
+          String(item.id) === String(contratoId)
+      ) || null
     )
   }
+
+  // ========================================
+  // NÚMERO DO CONTRATO
+  // ========================================
+
+  function numeroDoContrato(contratoId) {
+    const contrato = contratoRelacionado(
+      contratoId
+    )
+
+    if (!contrato) {
+      return contratoId
+        ? `Contrato #${contratoId}`
+        : "-"
+    }
+
+    return (
+      contrato.numero ||
+      contrato.numero_contrato ||
+      contrato.codigo ||
+      `Contrato #${contrato.id}`
+    )
+  }
+  // ========================================
+  // RECEBIMENTOS DO PERÍODO
+  // ========================================
+
   const recebimentosDoPeriodo = useMemo(() => {
-    return recebimentos.filter((recebimento) => {
-      const dataReferencia =
-        recebimento.data_vencimento ||
-        recebimento.data_recebimento ||
-        recebimento.data_pagamento
+    return recebimentos.filter((item) => {
+      const info = obterMesAno(
+        item.data_vencimento
+      )
 
-      const periodo = obterMesAno(dataReferencia)
-
-      if (!periodo) return false
+      if (!info) return false
 
       return (
-        periodo.mes === Number(mes) &&
-        periodo.ano === Number(ano)
+        info.mes === Number(mes) &&
+        info.ano === Number(ano)
       )
     })
   }, [recebimentos, mes, ano])
 
+  // ========================================
+  // RECEBIMENTOS FILTRADOS
+  // ========================================
+
   const recebimentosFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase()
+    const termo = busca
+      .trim()
+      .toLowerCase()
 
     if (!termo) {
       return recebimentosDoPeriodo
     }
 
     return recebimentosDoPeriodo.filter(
-      (recebimento) => {
+      (item) => {
         const cliente = nomeCliente(
-          recebimento.cliente_id
+          item.cliente_id
         )
 
-        const contrato =
-          contratoRelacionado(
-            recebimento.contrato_id
-          )
-
-        return (
-          String(cliente)
-            .toLowerCase()
-            .includes(termo) ||
-          String(
-            recebimento.descricao || ""
-          )
-            .toLowerCase()
-            .includes(termo) ||
-          String(
-            recebimento.tipo || ""
-          )
-            .toLowerCase()
-            .includes(termo) ||
-          String(
-            recebimento.status || ""
-          )
-            .toLowerCase()
-            .includes(termo) ||
-          String(
-            contrato?.numero || ""
-          )
-            .toLowerCase()
-            .includes(termo)
+        const contrato = numeroDoContrato(
+          item.contrato_id
         )
+
+        return [
+          cliente,
+          item.descricao,
+          item.tipo,
+          item.status,
+          contrato,
+          item.numero_contrato,
+        ]
+          .filter(Boolean)
+          .some((valor) =>
+            String(valor)
+              .toLowerCase()
+              .includes(termo)
+          )
       }
     )
   }, [
@@ -249,120 +374,332 @@ export default function Recebimentos() {
     contratos,
   ])
 
-  const recebimentosPendentes = useMemo(() => {
-    return recebimentosFiltrados.filter(
-      (recebimento) => {
-        const status = String(
-          recebimento.status || ""
-        ).toLowerCase()
+  // ========================================
+  // PENDENTES
+  // ========================================
 
-        return (
-          status !== "pago" &&
-          status !== "recebido" &&
-          status !== "realizado"
-        )
-      }
-    )
-  }, [recebimentosFiltrados])
+  const recebimentosPendentes =
+    useMemo(() => {
+      return recebimentosFiltrados.filter(
+        (item) => {
+          const status = String(
+            item.status || ""
+          ).toLowerCase()
 
-  const recebimentosRealizados = useMemo(() => {
-    return recebimentosFiltrados.filter(
-      (recebimento) => {
-        const status = String(
-          recebimento.status || ""
-        ).toLowerCase()
+          return ![
+            "pago",
+            "recebido",
+            "realizado",
+          ].includes(status)
+        }
+      )
+    }, [recebimentosFiltrados])
 
-        return (
-          status === "pago" ||
-          status === "recebido" ||
-          status === "realizado"
-        )
-      }
-    )
-  }, [recebimentosFiltrados])
+  // ========================================
+  // RECEBIDOS
+  // ========================================
+
+  const recebimentosRealizados =
+    useMemo(() => {
+      return recebimentosFiltrados.filter(
+        (item) => {
+          const status = String(
+            item.status || ""
+          ).toLowerCase()
+
+          return [
+            "pago",
+            "recebido",
+            "realizado",
+          ].includes(status)
+        }
+      )
+    }, [recebimentosFiltrados])
+
+  // ========================================
+  // RESUMO
+  // ========================================
 
   const resumo = useMemo(() => {
-    const total = recebimentosDoPeriodo.reduce(
-      (soma, recebimento) =>
-        soma +
-        Number(recebimento.valor || 0),
+    const total = recebimentosFiltrados.reduce(
+      (soma, item) =>
+        soma + Number(item.valor || 0),
       0
     )
 
-    const pendente = recebimentosDoPeriodo
-      .filter((recebimento) => {
-        const status = String(
-          recebimento.status || ""
-        ).toLowerCase()
-
-        return (
-          status !== "pago" &&
-          status !== "recebido" &&
-          status !== "realizado"
-        )
-      })
-      .reduce(
-        (soma, recebimento) =>
-          soma +
-          Number(recebimento.valor || 0),
+    const pendente =
+      recebimentosPendentes.reduce(
+        (soma, item) =>
+          soma + Number(item.valor || 0),
         0
       )
 
-    const realizado = recebimentosDoPeriodo
-      .filter((recebimento) => {
-        const status = String(
-          recebimento.status || ""
-        ).toLowerCase()
-
-        return (
-          status === "pago" ||
-          status === "recebido" ||
-          status === "realizado"
-        )
-      })
-      .reduce(
-        (soma, recebimento) =>
-          soma +
-          Number(recebimento.valor || 0),
+    const recebido =
+      recebimentosRealizados.reduce(
+        (soma, item) =>
+          soma + Number(item.valor || 0),
         0
       )
 
     return {
       total,
       pendente,
-      realizado,
-      quantidadeTotal:
-        recebimentosDoPeriodo.length,
-      quantidadePendente:
-        recebimentosDoPeriodo.filter(
-          (recebimento) => {
-            const status = String(
-              recebimento.status || ""
-            ).toLowerCase()
-
-            return (
-              status !== "pago" &&
-              status !== "recebido" &&
-              status !== "realizado"
-            )
-          }
-        ).length,
-      quantidadeRealizada:
-        recebimentosDoPeriodo.filter(
-          (recebimento) => {
-            const status = String(
-              recebimento.status || ""
-            ).toLowerCase()
-
-            return (
-              status === "pago" ||
-              status === "recebido" ||
-              status === "realizado"
-            )
-          }
-        ).length,
+      recebido,
+      quantidade: recebimentosFiltrados.length,
     }
-  }, [recebimentosDoPeriodo])
+  }, [
+    recebimentosFiltrados,
+    recebimentosPendentes,
+    recebimentosRealizados,
+  ])
+
+  // ========================================
+  // ALTERAR CAMPO DO NOVO RECEBIMENTO
+  // ========================================
+
+  function alterarCampoNovoRecebimento(
+    campo,
+    valor
+  ) {
+    setNovoRecebimento((anterior) => ({
+      ...anterior,
+      [campo]: valor,
+    }))
+  }
+
+  // ========================================
+  // ABRIR MODAL NOVO RECEBIMENTO
+  // ========================================
+
+  function abrirNovoRecebimento() {
+    limparMensagens()
+
+    const dataAtual =
+      new Date().toISOString().split("T")[0]
+
+    setNovoRecebimento({
+      cliente_id: "",
+      contrato_id: "",
+      tipo: "Aluguel mensal",
+      descricao: "",
+      numero_contrato: "",
+      valor: "",
+      data_vencimento: dataAtual,
+      forma_pagamento: "Pix",
+      status: "Pendente",
+      observacoes: "",
+    })
+
+    setNovoRecebimentoAberto(true)
+  }
+
+  // ========================================
+  // FECHAR MODAL NOVO RECEBIMENTO
+  // ========================================
+
+  function fecharNovoRecebimento() {
+    if (salvando) return
+
+    setNovoRecebimentoAberto(false)
+  }
+  // ========================================
+  // SALVAR NOVO RECEBIMENTO
+  // ========================================
+
+  async function salvarNovoRecebimento(e) {
+    e.preventDefault()
+
+    limparMensagens()
+
+    // ----------------------------------------
+    // VALIDAÇÕES
+    // ----------------------------------------
+
+    if (!novoRecebimento.cliente_id) {
+      setErro("Selecione um cliente.")
+      return
+    }
+
+    if (!novoRecebimento.tipo) {
+      setErro(
+        "Selecione o tipo de recebimento."
+      )
+      return
+    }
+
+    if (!novoRecebimento.valor) {
+      setErro("Informe o valor do recebimento.")
+      return
+    }
+
+    if (!novoRecebimento.data_vencimento) {
+      setErro(
+        "Informe a data de vencimento."
+      )
+      return
+    }
+
+    try {
+      setSalvando(true)
+
+      // --------------------------------------
+      // DADOS PARA O SUPABASE
+      // --------------------------------------
+
+      const dados = {
+        cliente_id: novoRecebimento.cliente_id,
+        contrato_id:
+          novoRecebimento.contrato_id || null,
+
+        tipo: novoRecebimento.tipo,
+
+        descricao:
+          novoRecebimento.descricao || null,
+
+        valor: Number(
+          String(novoRecebimento.valor)
+            .replace(/\./g, "")
+            .replace(",", ".")
+        ),
+
+        data_vencimento:
+          novoRecebimento.data_vencimento,
+
+        forma_pagamento:
+          novoRecebimento.forma_pagamento ||
+          null,
+
+        status:
+          novoRecebimento.status ===
+          "Recebido"
+            ? "pago"
+            : "pendente",
+
+        observacoes:
+          novoRecebimento.observacoes || null,
+      }
+
+      // --------------------------------------
+      // SE FOR RECEBIDO, REGISTRA A DATA
+      // --------------------------------------
+
+      if (
+        novoRecebimento.status ===
+        "Recebido"
+      ) {
+        dados.data_recebimento =
+          new Date()
+            .toISOString()
+            .split("T")[0]
+      }
+
+      // --------------------------------------
+      // INSERIR
+      // --------------------------------------
+
+      const { data, error } =
+        await supabase
+          .from("recebimentos")
+          .insert([dados])
+          .select()
+          .single()
+
+      if (error) {
+        console.error(
+          "Erro ao salvar recebimento:",
+          error
+        )
+
+        throw new Error(
+          error.message ||
+            "Não foi possível salvar o recebimento."
+        )
+      }
+
+      // --------------------------------------
+      // ATUALIZAR LISTA
+      // --------------------------------------
+
+      setRecebimentos((anterior) => [
+        data,
+        ...anterior,
+      ])
+
+      // --------------------------------------
+      // FECHAR MODAL
+      // --------------------------------------
+
+      setNovoRecebimentoAberto(false)
+
+      // --------------------------------------
+      // MENSAGEM DE SUCESSO
+      // --------------------------------------
+
+      setSucesso(
+        "Recebimento cadastrado com sucesso."
+      )
+
+      // --------------------------------------
+      // LIMPAR FORMULÁRIO
+      // --------------------------------------
+
+      setNovoRecebimento({
+        cliente_id: "",
+        contrato_id: "",
+        tipo: "Aluguel mensal",
+        descricao: "",
+        numero_contrato: "",
+        valor: "",
+        data_vencimento: "",
+        forma_pagamento: "Pix",
+        status: "Pendente",
+        observacoes: "",
+      })
+
+      // --------------------------------------
+      // REMOVE A MENSAGEM APÓS ALGUNS
+      // SEGUNDOS
+      // --------------------------------------
+
+      setTimeout(() => {
+        setSucesso("")
+      }, 4000)
+    } catch (error) {
+      console.error(error)
+
+      setErro(
+        error?.message ||
+          "Erro ao cadastrar recebimento."
+      )
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  // ========================================
+  // QUANDO SELECIONAR UM CONTRATO
+  // PREENCHE O NÚMERO DO CONTRATO
+  // ========================================
+
+  function selecionarContrato(contratoId) {
+    const contrato = contratoRelacionado(
+      contratoId
+    )
+
+    setNovoRecebimento((anterior) => ({
+      ...anterior,
+
+      contrato_id: contratoId,
+
+      numero_contrato: contrato
+        ? numeroDoContrato(contrato.id)
+        : "",
+    }))
+  }
+
+  // ========================================
+  // ABRIR CONFIRMAÇÃO DE RECEBIMENTO
+  // ========================================
 
   function abrirConfirmacaoRecebimento(
     recebimento
@@ -374,104 +711,280 @@ export default function Recebimentos() {
     )
 
     setFormaPagamento(
-      recebimento.forma_pagamento || ""
+      recebimento.forma_pagamento ||
+        "Pix"
     )
 
     setDataPagamento(
       recebimento.data_recebimento ||
-        recebimento.data_pagamento ||
-        hoje.toISOString().split("T")[0]
+        new Date()
+          .toISOString()
+          .split("T")[0]
     )
 
     setModalAberto(true)
   }
 
-  function fecharModal() {
-    if (salvando) return
+  // ========================================
+  // FECHAR MODAL DE CONFIRMAÇÃO
+  // ========================================
 
+  function fecharModal() {
     setModalAberto(false)
     setRecebimentoSelecionado(null)
-    setFormaPagamento("")
   }
+  // ========================================
+  // CONFIRMAR RECEBIMENTO
+  // ========================================
 
   async function confirmarRecebimento() {
     if (!recebimentoSelecionado) {
       return
     }
 
-    setSalvando(true)
-    limparMensagens()
-
     try {
-      const dados = {
-        status: "pago",
-        forma_pagamento:
-          formaPagamento || null,
-        data_recebimento:
-          dataPagamento || null,
-      }
+      setSalvando(true)
+      limparMensagens()
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("recebimentos")
-        .update(dados)
+        .update({
+          status: "pago",
+          forma_pagamento:
+            formaPagamento || null,
+          data_recebimento:
+            dataPagamento || null,
+        })
         .eq(
           "id",
           recebimentoSelecionado.id
         )
+        .select()
+        .single()
 
       if (error) {
-        throw error
+        console.error(
+          "Erro ao confirmar recebimento:",
+          error
+        )
+
+        throw new Error(
+          error.message ||
+            "Não foi possível confirmar o recebimento."
+        )
       }
 
-      setSucesso(
-        "Recebimento confirmado com sucesso!"
+      // --------------------------------------
+      // ATUALIZA A LISTA NA TELA
+      // --------------------------------------
+
+      setRecebimentos((anterior) =>
+        anterior.map((item) =>
+          item.id === data.id
+            ? data
+            : item
+        )
       )
+
+      // --------------------------------------
+      // FECHA O MODAL
+      // --------------------------------------
 
       setModalAberto(false)
       setRecebimentoSelecionado(null)
 
-      await carregarDados()
-    } catch (error) {
-      console.error(
-        "Erro ao confirmar recebimento:",
-        error
+      // --------------------------------------
+      // MENSAGEM
+      // --------------------------------------
+
+      setSucesso(
+        "Recebimento confirmado com sucesso."
       )
+
+      setTimeout(() => {
+        setSucesso("")
+      }, 4000)
+    } catch (error) {
+      console.error(error)
 
       setErro(
         error?.message ||
-          "Não foi possível confirmar o recebimento."
+          "Erro ao confirmar recebimento."
       )
     } finally {
       setSalvando(false)
     }
   }
+
+  // ========================================
+  // ALTERAR MÊS
+  // ========================================
+
+  function alterarMes(valor) {
+    const novoMes = Number(valor)
+
+    if (novoMes < 1) {
+      setMes(12)
+      setAno((anterior) => anterior - 1)
+      return
+    }
+
+    if (novoMes > 12) {
+      setMes(1)
+      setAno((anterior) => anterior + 1)
+      return
+    }
+
+    setMes(novoMes)
+  }
+
+  // ========================================
+  // LIMPAR BUSCA
+  // ========================================
+
+  function limparBusca() {
+    setBusca("")
+  }
+
+  // ========================================
+  // STATUS EXIBIDO
+  // ========================================
+
+  function textoStatus(status) {
+    const valor = String(
+      status || ""
+    ).toLowerCase()
+
+    if (
+      [
+        "pago",
+        "recebido",
+        "realizado",
+      ].includes(valor)
+    ) {
+      return "Recebido"
+    }
+
+    return "Pendente"
+  }
+
+  // ========================================
+  // CLASSE DO STATUS
+  // ========================================
+
+  function classeStatus(status) {
+    const valor = String(
+      status || ""
+    ).toLowerCase()
+
+    if (
+      [
+        "pago",
+        "recebido",
+        "realizado",
+      ].includes(valor)
+    ) {
+      return "bg-success-subtle text-success"
+    }
+
+    return "bg-warning-subtle text-warning-emphasis"
+  }
+
+  // ========================================
+  // CLASSE DO TIPO
+  // ========================================
+
+  function textoTipo(tipo) {
+    if (!tipo) return "-"
+
+    const valor = String(tipo)
+      .toLowerCase()
+
+    if (
+      valor === "aluguel" ||
+      valor === "aluguel mensal"
+    ) {
+      return "Aluguel mensal"
+    }
+
+    if (valor === "diaria") {
+      return "Diária"
+    }
+
+    if (
+      valor === "venda_unitaria" ||
+      valor === "venda unitária"
+    ) {
+      return "Venda unitária"
+    }
+
+    if (
+      valor === "venda_parcelada" ||
+      valor === "venda parcelada"
+    ) {
+      return "Venda parcelada"
+    }
+
+    return tipo
+  }
+
+  // ========================================
+  // CLASSE DA FORMA DE PAGAMENTO
+  // ========================================
+
+  function textoFormaPagamento(
+    forma
+  ) {
+    if (!forma) return "-"
+
+    const valor = String(forma)
+      .toLowerCase()
+
+    if (valor === "dinheiro") {
+      return "Dinheiro"
+    }
+
+    if (
+      valor === "cartao" ||
+      valor === "cartão"
+    ) {
+      return "Cartão"
+    }
+
+    if (valor === "deposito") {
+      return "Depósito"
+    }
+
+    if (valor === "pix") {
+      return "Pix"
+    }
+
+    return forma
+  }
   return (
-    <div className="container-fluid py-4">
+    <main className="container-fluid py-4">
 
       {/* ========================================
           CABEÇALHO
       ======================================== */}
 
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
 
         <div>
-
-          <h2 className="fw-bold mb-1">
+          <h1 className="fw-bold mb-1">
             Recebimentos
-          </h2>
+          </h1>
 
           <p className="text-muted mb-0">
-            Controle e acompanhamento dos recebimentos
+            Controle de recebimentos e valores
+            a receber
           </p>
-
         </div>
 
         <button
           type="button"
           className="btn btn-primary mt-3 mt-md-0"
-          onClick={() =>
-            acessarPagina("/recebimentos/novo")
-          }
+          onClick={abrirNovoRecebimento}
         >
           <i className="bi bi-plus-lg me-2"></i>
           Novo recebimento
@@ -479,63 +992,10 @@ export default function Recebimentos() {
 
       </div>
 
-      {/* ========================================
-          ALERTA DE ERRO
-      ======================================== */}
-
-      {erro && (
-
-        <div
-          className="alert alert-danger alert-dismissible fade show"
-          role="alert"
-        >
-
-          <i className="bi bi-exclamation-triangle me-2"></i>
-
-          {erro}
-
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setErro("")}
-            aria-label="Fechar"
-          />
-
-        </div>
-
-      )}
-
-      {/* ========================================
-          ALERTA DE SUCESSO
-      ======================================== */}
-
-      {sucesso && (
-
-        <div
-          className="alert alert-success alert-dismissible fade show"
-          role="alert"
-        >
-
-          <i className="bi bi-check-circle me-2"></i>
-
-          {sucesso}
-
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setSucesso("")}
-            aria-label="Fechar"
-          />
-
-        </div>
-
-      )}
 
       {/* ========================================
           ACESSO RÁPIDO
       ======================================== */}
-
-               {/* ACESSO RÁPIDO */}
 
       <div className="card shadow-sm border-0 mb-4">
 
@@ -544,215 +1004,219 @@ export default function Recebimentos() {
           <div className="d-flex align-items-center mb-3">
 
             <div
-              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+              className="bg-primary bg-opacity-10
+                         text-primary rounded-circle
+                         d-flex align-items-center
+                         justify-content-center me-2"
               style={{
                 width: "38px",
                 height: "38px",
               }}
             >
-              <i className="bi bi-lightning-charge text-primary"></i>
+              <i className="bi bi-lightning-charge-fill"></i>
             </div>
 
             <div>
-
               <h5 className="fw-bold mb-0">
                 Acesso rápido
               </h5>
 
               <small className="text-muted">
-                Acesse rapidamente as principais áreas
+                Acesse rapidamente os módulos
+                do sistema
               </small>
-
             </div>
 
           </div>
 
-          <div className="row g-2">
 
-            {/* DASHBOARD */}
+          <div className="d-flex flex-wrap gap-2">
 
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/")}
-              >
-                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
-                Dashboard
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={() =>
+                acessarPagina("/")
+              }
+            >
+              <i className="bi bi-speedometer2 me-1"></i>
+              Dashboard
+            </button>
 
 
-            {/* CLIENTES */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/clientes")}
-              >
-                <i className="bi bi-people d-block fs-5 mb-1"></i>
-                Clientes
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() =>
+                acessarPagina("/clientes")
+              }
+            >
+              <i className="bi bi-people me-1"></i>
+              Clientes
+            </button>
 
 
-            {/* IMÓVEIS */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/imoveis")}
-              >
-                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
-                Imóveis
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-success"
+              onClick={() =>
+                acessarPagina("/imoveis")
+              }
+            >
+              <i className="bi bi-house me-1"></i>
+              Imóveis
+            </button>
 
 
-            {/* CONTRATOS */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/contratos")}
-              >
-                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
-                Contratos
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-warning"
+              onClick={() =>
+                acessarPagina("/contratos")
+              }
+            >
+              <i className="bi bi-file-earmark-text me-1"></i>
+              Contratos
+            </button>
 
 
-            {/* RECEBIMENTOS */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-primary w-100 py-2"
-                onClick={() => acessarPagina("/recebimentos")}
-              >
-                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
-                Recebimentos
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+            >
+              <i className="bi bi-cash-stack me-1"></i>
+              Recebimentos
+            </button>
 
 
-            {/* DESPESAS */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/despesas")}
-              >
-                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
-                Despesas
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-danger"
+              onClick={() =>
+                acessarPagina("/despesas")
+              }
+            >
+              <i className="bi bi-wallet2 me-1"></i>
+              Despesas
+            </button>
 
 
-            {/* FINANCEIRO */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/financeiro")}
-              >
-                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
-                Financeiro
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-info"
+              onClick={() =>
+                acessarPagina("/financeiro")
+              }
+            >
+              <i className="bi bi-bank me-1"></i>
+              Financeiro
+            </button>
 
 
-            {/* MANUTENÇÕES */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/manutencoes")}
-              >
-                <i className="bi bi-tools d-block fs-5 mb-1"></i>
-                Manutenções
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-dark"
+              onClick={() =>
+                acessarPagina("/manutencoes")
+              }
+            >
+              <i className="bi bi-tools me-1"></i>
+              Manutenções
+            </button>
 
 
-            {/* VISITAS */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/visitas")}
-              >
-                <i className="bi bi-calendar-check d-block fs-5 mb-1"></i>
-                Visitas
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() =>
+                acessarPagina("/visitas")
+              }
+            >
+              <i className="bi bi-calendar-check me-1"></i>
+              Visitas
+            </button>
 
 
-            {/* COMUNICAÇÃO */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/comunicacao")}
-              >
-                <i className="bi bi-whatsapp d-block fs-5 mb-1"></i>
-                Comunicação
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-success"
+              onClick={() =>
+                acessarPagina("/comunicacao")
+              }
+            >
+              <i className="bi bi-whatsapp me-1"></i>
+              Comunicação
+            </button>
 
 
-            {/* RELATÓRIOS */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/relatorios")}
-              >
-                <i className="bi bi-file-earmark-bar-graph d-block fs-5 mb-1"></i>
-                Relatórios
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={() =>
+                acessarPagina("/relatorios")
+              }
+            >
+              <i className="bi bi-bar-chart me-1"></i>
+              Relatórios
+            </button>
 
 
-            {/* CONFIGURAÇÕES */}
-
-            <div className="col-6 col-md-3 col-lg-2">
-
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/configuracoes")}
-              >
-                <i className="bi bi-gear d-block fs-5 mb-1"></i>
-                Configurações
-              </button>
-
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline-dark"
+              onClick={() =>
+                acessarPagina("/configuracoes")
+              }
+            >
+              <i className="bi bi-gear me-1"></i>
+              Configurações
+            </button>
 
           </div>
 
         </div>
 
       </div>
+
+
+      {/* ========================================
+          MENSAGENS
+      ======================================== */}
+
+      {erro && (
+        <div
+          className="alert alert-danger
+                     alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+          {erro}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setErro("")}
+          ></button>
+        </div>
+      )}
+
+
+      {sucesso && (
+        <div
+          className="alert alert-success
+                     alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-check-circle-fill me-2"></i>
+          {sucesso}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setSucesso("")}
+          ></button>
+        </div>
+      )}
       {/* ========================================
           PERÍODO
       ======================================== */}
@@ -764,13 +1228,16 @@ export default function Recebimentos() {
           <div className="d-flex align-items-center mb-3">
 
             <div
-              className="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary me-3"
+              className="bg-primary bg-opacity-10
+                         text-primary rounded-circle
+                         d-flex align-items-center
+                         justify-content-center me-2"
               style={{
-                width: "42px",
-                height: "42px",
+                width: "38px",
+                height: "38px",
               }}
             >
-              <i className="bi bi-calendar3 fs-5"></i>
+              <i className="bi bi-calendar3"></i>
             </div>
 
             <div>
@@ -779,15 +1246,18 @@ export default function Recebimentos() {
               </h5>
 
               <small className="text-muted">
-                Selecione o período para consultar os recebimentos
+                Selecione o mês e o ano
               </small>
             </div>
 
           </div>
 
+
           <div className="row g-3">
 
-            <div className="col-12 col-md-6">
+            {/* MÊS */}
+
+            <div className="col-12 col-md-4">
 
               <label className="form-label fw-semibold">
                 Mês
@@ -797,26 +1267,66 @@ export default function Recebimentos() {
                 className="form-select"
                 value={mes}
                 onChange={(e) =>
-                  setMes(Number(e.target.value))
+                  setMes(
+                    Number(e.target.value)
+                  )
                 }
               >
-                <option value={1}>Janeiro</option>
-                <option value={2}>Fevereiro</option>
-                <option value={3}>Março</option>
-                <option value={4}>Abril</option>
-                <option value={5}>Maio</option>
-                <option value={6}>Junho</option>
-                <option value={7}>Julho</option>
-                <option value={8}>Agosto</option>
-                <option value={9}>Setembro</option>
-                <option value={10}>Outubro</option>
-                <option value={11}>Novembro</option>
-                <option value={12}>Dezembro</option>
+                <option value={1}>
+                  Janeiro
+                </option>
+
+                <option value={2}>
+                  Fevereiro
+                </option>
+
+                <option value={3}>
+                  Março
+                </option>
+
+                <option value={4}>
+                  Abril
+                </option>
+
+                <option value={5}>
+                  Maio
+                </option>
+
+                <option value={6}>
+                  Junho
+                </option>
+
+                <option value={7}>
+                  Julho
+                </option>
+
+                <option value={8}>
+                  Agosto
+                </option>
+
+                <option value={9}>
+                  Setembro
+                </option>
+
+                <option value={10}>
+                  Outubro
+                </option>
+
+                <option value={11}>
+                  Novembro
+                </option>
+
+                <option value={12}>
+                  Dezembro
+                </option>
               </select>
 
             </div>
 
-            <div className="col-12 col-md-6">
+
+            {/* ANO */}
+
+            <div className="col-12 col-md-4">
 
               <label className="form-label fw-semibold">
                 Ano
@@ -826,18 +1336,19 @@ export default function Recebimentos() {
                 className="form-select"
                 value={ano}
                 onChange={(e) =>
-                  setAno(Number(e.target.value))
+                  setAno(
+                    Number(e.target.value)
+                  )
                 }
               >
-
                 {Array.from(
                   {
                     length: 7,
                   },
-                  (_, indice) =>
-                    hoje.getFullYear() -
+                  (_, index) =>
+                    new Date().getFullYear() -
                     3 +
-                    indice
+                    index
                 ).map((anoOpcao) => (
                   <option
                     key={anoOpcao}
@@ -846,8 +1357,47 @@ export default function Recebimentos() {
                     {anoOpcao}
                   </option>
                 ))}
-
               </select>
+
+            </div>
+
+
+            {/* BUSCA */}
+
+            <div className="col-12 col-md-4">
+
+              <label className="form-label fw-semibold">
+                Buscar
+              </label>
+
+              <div className="input-group">
+
+                <span className="input-group-text">
+                  <i className="bi bi-search"></i>
+                </span>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Cliente, descrição ou contrato..."
+                  value={busca}
+                  onChange={(e) =>
+                    setBusca(e.target.value)
+                  }
+                />
+
+                {busca && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={limparBusca}
+                    title="Limpar busca"
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                )}
+
+              </div>
 
             </div>
 
@@ -857,160 +1407,195 @@ export default function Recebimentos() {
 
       </div>
 
+
       {/* ========================================
-          RESUMO DE RECEBIMENTOS
+          RESUMO
       ======================================== */}
 
-      <div className="card shadow-sm border-0 mb-4">
+      <div className="row g-3 mb-4">
 
-        <div className="card-body">
+        {/* TOTAL */}
 
-          <div className="d-flex align-items-center mb-4">
+        <div className="col-12 col-md-6 col-xl-3">
 
-            <div
-              className="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary me-3"
-              style={{
-                width: "42px",
-                height: "42px",
-              }}
-            >
-              <i className="bi bi-bar-chart-line fs-5"></i>
-            </div>
+          <div className="card shadow-sm border-0 h-100">
 
-            <div>
-              <h5 className="fw-bold mb-0">
-                Resumo de recebimentos
-              </h5>
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Total
+                  </p>
+
+                  <h4 className="fw-bold mb-0">
+                    {formatarMoeda(
+                      resumo.total
+                    )}
+                  </h4>
+                </div>
+
+                <div
+                  className="bg-primary bg-opacity-10
+                             text-primary rounded-circle
+                             d-flex align-items-center
+                             justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-cash-stack"></i>
+                </div>
+
+              </div>
 
               <small className="text-muted">
-                Visão geral do período selecionado
+                {resumo.quantidade} recebimento(s)
               </small>
+
             </div>
 
           </div>
 
-          <div className="row g-3">
+        </div>
 
-            {/* TOTAL */}
 
-            <div className="col-12 col-md-4">
+        {/* PENDENTE */}
 
-              <div className="card h-100 border-0 bg-light">
+        <div className="col-12 col-md-6 col-xl-3">
 
-                <div className="card-body">
+          <div className="card shadow-sm border-0 h-100">
 
-                  <div className="d-flex justify-content-between align-items-start">
+            <div className="card-body">
 
-                    <div>
+              <div className="d-flex justify-content-between align-items-start">
 
-                      <small className="text-muted">
-                        Total previsto
-                      </small>
+                <div>
+                  <p className="text-muted mb-1">
+                    Pendente
+                  </p>
 
-                      <h4 className="fw-bold mb-1">
-                        {formatarMoeda(
-                          resumo.total
-                        )}
-                      </h4>
+                  <h4 className="fw-bold mb-0 text-warning">
+                    {formatarMoeda(
+                      resumo.pendente
+                    )}
+                  </h4>
+                </div>
 
-                      <small className="text-muted">
-                        {resumo.quantidadeTotal}{" "}
-                        recebimento(s)
-                      </small>
-
-                    </div>
-
-                    <div className="text-primary fs-3">
-                      <i className="bi bi-cash-stack"></i>
-                    </div>
-
-                  </div>
-
+                <div
+                  className="bg-warning bg-opacity-10
+                             text-warning rounded-circle
+                             d-flex align-items-center
+                             justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-clock"></i>
                 </div>
 
               </div>
+
+              <small className="text-muted">
+                Aguardando pagamento
+              </small>
 
             </div>
 
-            {/* PENDENTE */}
+          </div>
 
-            <div className="col-12 col-md-4">
+        </div>
 
-              <div className="card h-100 border-0 bg-warning bg-opacity-10">
 
-                <div className="card-body">
+        {/* RECEBIDO */}
 
-                  <div className="d-flex justify-content-between align-items-start">
+        <div className="col-12 col-md-6 col-xl-3">
 
-                    <div>
+          <div className="card shadow-sm border-0 h-100">
 
-                      <small className="text-muted">
-                        Pendente
-                      </small>
+            <div className="card-body">
 
-                      <h4 className="fw-bold mb-1">
-                        {formatarMoeda(
-                          resumo.pendente
-                        )}
-                      </h4>
+              <div className="d-flex justify-content-between align-items-start">
 
-                      <small className="text-muted">
-                        {resumo.quantidadePendente}{" "}
-                        pendente(s)
-                      </small>
+                <div>
+                  <p className="text-muted mb-1">
+                    Recebido
+                  </p>
 
-                    </div>
+                  <h4 className="fw-bold mb-0 text-success">
+                    {formatarMoeda(
+                      resumo.recebido
+                    )}
+                  </h4>
+                </div>
 
-                    <div className="text-warning fs-3">
-                      <i className="bi bi-clock-history"></i>
-                    </div>
-
-                  </div>
-
+                <div
+                  className="bg-success bg-opacity-10
+                             text-success rounded-circle
+                             d-flex align-items-center
+                             justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-check-circle"></i>
                 </div>
 
               </div>
+
+              <small className="text-muted">
+                Pagamentos confirmados
+              </small>
 
             </div>
 
-            {/* REALIZADO */}
+          </div>
 
-            <div className="col-12 col-md-4">
+        </div>
 
-              <div className="card h-100 border-0 bg-success bg-opacity-10">
 
-                <div className="card-body">
+        {/* QUANTIDADE */}
 
-                  <div className="d-flex justify-content-between align-items-start">
+        <div className="col-12 col-md-6 col-xl-3">
 
-                    <div>
+          <div className="card shadow-sm border-0 h-100">
 
-                      <small className="text-muted">
-                        Recebido
-                      </small>
+            <div className="card-body">
 
-                      <h4 className="fw-bold mb-1">
-                        {formatarMoeda(
-                          resumo.realizado
-                        )}
-                      </h4>
+              <div className="d-flex justify-content-between align-items-start">
 
-                      <small className="text-muted">
-                        {resumo.quantidadeRealizada}{" "}
-                        realizado(s)
-                      </small>
+                <div>
+                  <p className="text-muted mb-1">
+                    Quantidade
+                  </p>
 
-                    </div>
+                  <h4 className="fw-bold mb-0">
+                    {resumo.quantidade}
+                  </h4>
+                </div>
 
-                    <div className="text-success fs-3">
-                      <i className="bi bi-check-circle"></i>
-                    </div>
-
-                  </div>
-
+                <div
+                  className="bg-info bg-opacity-10
+                             text-info rounded-circle
+                             d-flex align-items-center
+                             justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-list-check"></i>
                 </div>
 
               </div>
+
+              <small className="text-muted">
+                No período selecionado
+              </small>
 
             </div>
 
@@ -1027,257 +1612,189 @@ export default function Recebimentos() {
 
         <div className="card-body">
 
-          <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+          <div className="d-flex flex-column flex-md-row
+                          justify-content-between
+                          align-items-md-center mb-3">
 
             <div>
 
-              <div className="d-flex align-items-center">
+              <h5 className="fw-bold mb-1">
+                Recebimentos pendentes
+              </h5>
 
-                <div
-                  className="d-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-10 text-warning me-3"
-                  style={{
-                    width: "42px",
-                    height: "42px",
-                  }}
-                >
-                  <i className="bi bi-clock-history fs-5"></i>
-                </div>
-
-                <div>
-
-                  <h5 className="fw-bold mb-1">
-                    Recebimentos pendentes
-                  </h5>
-
-                  <small className="text-muted">
-                    Valores que ainda não foram recebidos
-                  </small>
-
-                </div>
-
-              </div>
+              <small className="text-muted">
+                Valores que ainda aguardam pagamento
+              </small>
 
             </div>
 
-            <span className="badge bg-warning text-dark rounded-pill mt-3 mt-md-0">
-
-              {recebimentosPendentes.length}{" "}
-
-              {recebimentosPendentes.length === 1
-                ? "pendente"
-                : "pendentes"}
-
+            <span className="badge bg-warning-subtle text-warning-emphasis mt-2 mt-md-0">
+              {recebimentosPendentes.length}
+              {" "}
+              pendente(s)
             </span>
 
           </div>
 
-          {/* BUSCA */}
 
-          <div className="row g-3 mb-4">
+          {loading ? (
+            <div className="text-center py-5">
 
-            <div className="col-12">
-
-              <label className="form-label fw-semibold">
-                Buscar recebimento
-              </label>
-
-              <div className="input-group">
-
-                <span className="input-group-text">
-                  <i className="bi bi-search"></i>
+              <div
+                className="spinner-border text-primary"
+                role="status"
+              >
+                <span className="visually-hidden">
+                  Carregando...
                 </span>
-
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Cliente, descrição, tipo..."
-                  value={busca}
-                  onChange={(e) =>
-                    setBusca(e.target.value)
-                  }
-                />
-
               </div>
+
+              <p className="text-muted mt-3 mb-0">
+                Carregando recebimentos...
+              </p>
 
             </div>
 
-          </div>
+          ) : recebimentosPendentes.length === 0 ? (
 
-          {/* TABELA */}
+            <div className="text-center py-5">
 
-          <div className="table-responsive">
+              <div
+                className="bg-success bg-opacity-10
+                           text-success rounded-circle
+                           d-inline-flex
+                           align-items-center
+                           justify-content-center mb-3"
+                style={{
+                  width: "64px",
+                  height: "64px",
+                }}
+              >
+                <i className="bi bi-check-lg fs-3"></i>
+              </div>
 
-            <table className="table table-hover align-middle mb-0">
+              <h6 className="fw-bold">
+                Nenhum recebimento pendente
+              </h6>
 
-              <thead className="table-light">
+              <p className="text-muted mb-0">
+                Não há valores pendentes
+                para o período selecionado.
+              </p>
 
-                <tr>
+            </div>
 
-                  <th>
-                    Cliente
-                  </th>
+          ) : (
 
-                  <th>
-                    Tipo
-                  </th>
+            <div className="table-responsive">
 
-                  <th>
-                    Vencimento
-                  </th>
+              <table className="table table-hover align-middle mb-0">
 
-                  <th>
-                    Valor
-                  </th>
-
-                  <th>
-                    Status
-                  </th>
-
-                  <th className="text-end">
-                    Ações
-                  </th>
-
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                {loading ? (
+                <thead>
 
                   <tr>
 
-                    <td
-                      colSpan="6"
-                      className="text-center py-5"
-                    >
+                    <th>
+                      Cliente
+                    </th>
 
-                      <div
-                        className="spinner-border text-primary"
-                        role="status"
-                      >
+                    <th>
+                      Tipo
+                    </th>
 
-                        <span className="visually-hidden">
-                          Carregando...
-                        </span>
+                    <th>
+                      Descrição
+                    </th>
 
-                      </div>
+                    <th>
+                      Contrato
+                    </th>
 
-                      <div className="text-muted mt-2">
-                        Carregando recebimentos...
-                      </div>
+                    <th>
+                      Vencimento
+                    </th>
 
-                    </td>
+                    <th>
+                      Valor
+                    </th>
 
-                  </tr>
+                    <th>
+                      Status
+                    </th>
 
-                ) : recebimentosPendentes.length === 0 ? (
-
-                  <tr>
-
-                    <td
-                      colSpan="6"
-                      className="text-center py-5"
-                    >
-
-                      <i className="bi bi-check-circle fs-1 text-success"></i>
-
-                      <div className="fw-semibold mt-2">
-                        Nenhum recebimento pendente
-                      </div>
-
-                      <small className="text-muted">
-                        Não existem recebimentos pendentes
-                        para o período selecionado.
-                      </small>
-
-                    </td>
+                    <th className="text-end">
+                      Ações
+                    </th>
 
                   </tr>
 
-                ) : (
+                </thead>
 
-                  recebimentosPendentes.map(
-                    (recebimento) => (
+                <tbody>
 
-                      <tr
-                        key={recebimento.id}
-                      >
-
-                        {/* CLIENTE */}
+                  {recebimentosPendentes.map(
+                    (item) => (
+                      <tr key={item.id}>
 
                         <td>
-
                           <div className="fw-semibold">
-
                             {nomeCliente(
-                              recebimento.cliente_id
+                              item.cliente_id
                             )}
-
                           </div>
-
-                          {recebimento.descricao && (
-
-                            <small className="text-muted">
-
-                              {recebimento.descricao}
-
-                            </small>
-
-                          )}
-
                         </td>
 
-                        {/* TIPO */}
 
                         <td>
-
-                          <span>
-
-                            {recebimento.tipo ||
-                              "Recebimento"}
-
-                          </span>
-
-                        </td>
-
-                        {/* VENCIMENTO */}
-
-                        <td>
-
-                          {formatarData(
-                            recebimento.data_vencimento
-                          )}
-
-                        </td>
-
-                        {/* VALOR */}
-
-                        <td>
-
-                          <span className="fw-semibold">
-
-                            {formatarMoeda(
-                              recebimento.valor
+                          <span className="badge bg-light text-dark border">
+                            {textoTipo(
+                              item.tipo
                             )}
-
                           </span>
-
                         </td>
 
-                        {/* STATUS */}
 
                         <td>
-
-                          <span className="badge bg-warning text-dark">
-
-                            Pendente
-
-                          </span>
-
+                          {item.descricao || "-"}
                         </td>
 
-                        {/* AÇÕES */}
+
+                        <td>
+                          {numeroDoContrato(
+                            item.contrato_id
+                          )}
+                        </td>
+
+
+                        <td>
+                          {formatarData(
+                            item.data_vencimento
+                          )}
+                        </td>
+
+
+                        <td>
+                          <strong>
+                            {formatarMoeda(
+                              item.valor
+                            )}
+                          </strong>
+                        </td>
+
+
+                        <td>
+                          <span
+                            className={`badge ${classeStatus(
+                              item.status
+                            )}`}
+                          >
+                            <i className="bi bi-clock me-1"></i>
+                            {textoStatus(
+                              item.status
+                            )}
+                          </span>
+                        </td>
+
 
                         <td className="text-end">
 
@@ -1286,36 +1803,57 @@ export default function Recebimentos() {
                             className="btn btn-sm btn-success"
                             onClick={() =>
                               abrirConfirmacaoRecebimento(
-                                recebimento
+                                item
                               )
                             }
                           >
-
                             <i className="bi bi-check-lg me-1"></i>
-
                             Receber
-
                           </button>
 
                         </td>
 
                       </tr>
-
                     )
-                  )
+                  )}
 
-                )}
+                </tbody>
 
-              </tbody>
+              </table>
 
-            </table>
+            </div>
 
-          </div>
+          )}
 
         </div>
 
       </div>
 
+
+      {/* ========================================
+          TOTAL PENDENTE
+      ======================================== */}
+
+      {!loading &&
+        recebimentosPendentes.length > 0 && (
+          <div className="d-flex justify-content-end mb-4">
+
+            <div className="text-end">
+
+              <small className="text-muted d-block">
+                Total pendente
+              </small>
+
+              <h5 className="fw-bold text-warning mb-0">
+                {formatarMoeda(
+                  resumo.pendente
+                )}
+              </h5>
+
+            </div>
+
+          </div>
+        )}
       {/* ========================================
           RECEBIMENTOS REALIZADOS
       ======================================== */}
@@ -1324,287 +1862,297 @@ export default function Recebimentos() {
 
         <div className="card-body">
 
-          <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+          <div className="d-flex flex-column flex-md-row
+                          justify-content-between
+                          align-items-md-center mb-3">
 
             <div>
 
-              <div className="d-flex align-items-center">
+              <h5 className="fw-bold mb-1">
+                Recebimentos realizados
+              </h5>
 
-                <div
-                  className="d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success me-3"
-                  style={{
-                    width: "42px",
-                    height: "42px",
-                  }}
-                >
-                  <i className="bi bi-check-circle fs-5"></i>
-                </div>
-
-                <div>
-
-                  <h5 className="fw-bold mb-1">
-                    Recebimentos realizados
-                  </h5>
-
-                  <small className="text-muted">
-                    Recebimentos confirmados no período
-                  </small>
-
-                </div>
-
-              </div>
+              <small className="text-muted">
+                Pagamentos já confirmados
+              </small>
 
             </div>
 
-            <span className="badge bg-success rounded-pill mt-3 mt-md-0">
-
-              {recebimentosRealizados.length}{" "}
-
-              {recebimentosRealizados.length === 1
-                ? "realizado"
-                : "realizados"}
-
+            <span className="badge bg-success-subtle text-success mt-2 mt-md-0">
+              {recebimentosRealizados.length}
+              {" "}
+              recebido(s)
             </span>
 
           </div>
 
-          {/* TABELA */}
 
-          <div className="table-responsive">
+          {loading ? (
 
-            <table className="table table-hover align-middle mb-0">
+            <div className="text-center py-5">
 
-              <thead className="table-light">
+              <div
+                className="spinner-border text-primary"
+                role="status"
+              >
+                <span className="visually-hidden">
+                  Carregando...
+                </span>
+              </div>
 
-                <tr>
+              <p className="text-muted mt-3 mb-0">
+                Carregando recebimentos...
+              </p>
 
-                  <th>
-                    Cliente
-                  </th>
+            </div>
 
-                  <th>
-                    Tipo
-                  </th>
+          ) : recebimentosRealizados.length === 0 ? (
 
-                  <th>
-                    Data do recebimento
-                  </th>
+            <div className="text-center py-5">
 
-                  <th>
-                    Valor
-                  </th>
+              <div
+                className="bg-info bg-opacity-10
+                           text-info rounded-circle
+                           d-inline-flex
+                           align-items-center
+                           justify-content-center mb-3"
+                style={{
+                  width: "64px",
+                  height: "64px",
+                }}
+              >
+                <i className="bi bi-receipt fs-3"></i>
+              </div>
 
-                  <th>
-                    Forma de pagamento
-                  </th>
+              <h6 className="fw-bold">
+                Nenhum recebimento realizado
+              </h6>
 
-                  <th>
-                    Status
-                  </th>
+              <p className="text-muted mb-0">
+                Ainda não existem pagamentos
+                confirmados neste período.
+              </p>
 
-                </tr>
+            </div>
 
-              </thead>
+          ) : (
 
-              <tbody>
+            <div className="table-responsive">
 
-                {loading ? (
+              <table className="table table-hover align-middle mb-0">
 
-                  <tr>
-
-                    <td
-                      colSpan="6"
-                      className="text-center py-5"
-                    >
-
-                      <div
-                        className="spinner-border text-primary"
-                        role="status"
-                      >
-
-                        <span className="visually-hidden">
-                          Carregando...
-                        </span>
-
-                      </div>
-
-                      <div className="text-muted mt-2">
-                        Carregando recebimentos...
-                      </div>
-
-                    </td>
-
-                  </tr>
-
-                ) : recebimentosRealizados.length === 0 ? (
+                <thead>
 
                   <tr>
 
-                    <td
-                      colSpan="6"
-                      className="text-center py-5"
-                    >
+                    <th>
+                      Cliente
+                    </th>
 
-                      <i className="bi bi-cash-stack fs-1 text-muted"></i>
+                    <th>
+                      Tipo
+                    </th>
 
-                      <div className="fw-semibold mt-2">
-                        Nenhum recebimento realizado
-                      </div>
+                    <th>
+                      Descrição
+                    </th>
 
-                      <small className="text-muted">
-                        Ainda não existem recebimentos
-                        realizados no período selecionado.
-                      </small>
+                    <th>
+                      Contrato
+                    </th>
 
-                    </td>
+                    <th>
+                      Data recebimento
+                    </th>
+
+                    <th>
+                      Forma de pagamento
+                    </th>
+
+                    <th>
+                      Valor
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
 
                   </tr>
 
-                ) : (
+                </thead>
 
-                  recebimentosRealizados.map(
-                    (recebimento) => (
+                <tbody>
 
-                      <tr
-                        key={recebimento.id}
-                      >
-
-                        {/* CLIENTE */}
+                  {recebimentosRealizados.map(
+                    (item) => (
+                      <tr key={item.id}>
 
                         <td>
 
                           <div className="fw-semibold">
-
                             {nomeCliente(
-                              recebimento.cliente_id
+                              item.cliente_id
                             )}
-
                           </div>
 
-                          {recebimento.descricao && (
+                        </td>
 
-                            <small className="text-muted">
 
-                              {recebimento.descricao}
+                        <td>
 
-                            </small>
+                          <span className="badge bg-light text-dark border">
+                            {textoTipo(
+                              item.tipo
+                            )}
+                          </span>
 
+                        </td>
+
+
+                        <td>
+                          {item.descricao || "-"}
+                        </td>
+
+
+                        <td>
+                          {numeroDoContrato(
+                            item.contrato_id
                           )}
-
                         </td>
 
-                        {/* TIPO */}
 
                         <td>
-
-                          {recebimento.tipo ||
-                            "Recebimento"}
-
-                        </td>
-
-                        {/* DATA */}
-
-                        <td>
-
                           {formatarData(
-                            recebimento.data_recebimento ||
-                              recebimento.data_pagamento ||
-                              recebimento.data_vencimento
+                            item.data_recebimento ||
+                              item.data_vencimento
                           )}
-
                         </td>
 
-                        {/* VALOR */}
 
                         <td>
 
-                          <span className="fw-semibold text-success">
+                          <span className="text-muted">
 
-                            {formatarMoeda(
-                              recebimento.valor
+                            <i className="bi bi-credit-card me-1"></i>
+
+                            {textoFormaPagamento(
+                              item.forma_pagamento
                             )}
 
                           </span>
 
                         </td>
 
-                        {/* FORMA DE PAGAMENTO */}
 
                         <td>
 
-                          {recebimento.forma_pagamento ||
-                            "-"}
+                          <strong className="text-success">
+
+                            {formatarMoeda(
+                              item.valor
+                            )}
+
+                          </strong>
 
                         </td>
 
-                        {/* STATUS */}
 
                         <td>
 
-                          <span className="badge bg-success">
+                          <span
+                            className={`badge ${classeStatus(
+                              item.status
+                            )}`}
+                          >
 
-                            <i className="bi bi-check-lg me-1"></i>
+                            <i className="bi bi-check-circle me-1"></i>
 
-                            Recebido
+                            {textoStatus(
+                              item.status
+                            )}
 
                           </span>
 
                         </td>
 
                       </tr>
-
                     )
-                  )
+                  )}
 
-                )}
+                </tbody>
 
-              </tbody>
+              </table>
 
-            </table>
+            </div>
 
-          </div>
+          )}
 
         </div>
 
       </div>
+
+
       {/* ========================================
-          MODAL - CONFIRMAR RECEBIMENTO
+          TOTAL RECEBIDO
       ======================================== */}
 
-      {modalAberto && recebimentoSelecionado && (
+      {!loading &&
+        recebimentosRealizados.length > 0 && (
+          <div className="d-flex justify-content-end mb-4">
 
+            <div className="text-end">
+
+              <small className="text-muted d-block">
+                Total recebido
+              </small>
+
+              <h5 className="fw-bold text-success mb-0">
+                {formatarMoeda(
+                  resumo.recebido
+                )}
+              </h5>
+
+            </div>
+
+          </div>
+        )}
+      {/* ========================================
+          MODAL - NOVO RECEBIMENTO
+      ======================================== */}
+
+      {novoRecebimentoAberto && (
         <div
           className="modal fade show d-block"
           tabIndex="-1"
           role="dialog"
-          aria-modal="true"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor:
+              "rgba(0, 0, 0, 0.5)",
           }}
         >
 
-          <div className="modal-dialog modal-lg modal-dialog-centered">
+          <div
+            className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+            role="document"
+          >
 
             <div className="modal-content border-0 shadow">
 
-              {/* CABEÇALHO */}
+              {/* ==================================
+                  CABEÇALHO
+              ================================== */}
 
               <div className="modal-header">
 
                 <div>
 
                   <h5 className="modal-title fw-bold mb-1">
-
-                    <i className="bi bi-check-circle text-success me-2"></i>
-
-                    Confirmar recebimento
-
+                    <i className="bi bi-cash-stack text-primary me-2"></i>
+                    Novo recebimento
                   </h5>
 
                   <small className="text-muted">
-
-                    Registre o pagamento recebido.
-
+                    Cadastre um novo valor a receber
                   </small>
 
                 </div>
@@ -1612,226 +2160,626 @@ export default function Recebimentos() {
                 <button
                   type="button"
                   className="btn-close"
-                  aria-label="Fechar"
-                  onClick={fecharModal}
+                  onClick={
+                    fecharNovoRecebimento
+                  }
                   disabled={salvando}
-                />
+                ></button>
 
               </div>
 
-              {/* CORPO */}
 
-              <div className="modal-body">
+              {/* ==================================
+                  FORMULÁRIO
+              ================================== */}
 
-                {/* RESUMO DO RECEBIMENTO */}
+              <form
+                onSubmit={
+                  salvarNovoRecebimento
+                }
+              >
 
-                <div className="card shadow-sm border-0 bg-light mb-4">
+                <div className="modal-body">
 
-                  <div className="card-body">
+                  <div className="row g-3">
 
-                    <div className="row g-3">
+                    {/* ==============================
+                        CLIENTE
+                    ============================== */}
 
-                      {/* CLIENTE */}
+                    <div className="col-12">
 
-                      <div className="col-12 col-md-6">
-
-                        <small className="text-muted d-block">
-                          Cliente
-                        </small>
-
-                        <span className="fw-semibold">
-
-                          {nomeCliente(
-                            recebimentoSelecionado.cliente_id
-                          )}
-
+                      <label className="form-label fw-semibold">
+                        Cliente
+                        <span className="text-danger">
+                          {" "}*
                         </span>
+                      </label>
 
-                      </div>
-
-                      {/* VALOR */}
-
-                      <div className="col-12 col-md-6">
-
-                        <small className="text-muted d-block">
-                          Valor
-                        </small>
-
-                        <span className="fw-bold text-success fs-5">
-
-                          {formatarMoeda(
-                            recebimentoSelecionado.valor
-                          )}
-
-                        </span>
-
-                      </div>
-
-                      {/* TIPO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <small className="text-muted d-block">
-                          Tipo
-                        </small>
-
-                        <span className="fw-semibold">
-
-                          {recebimentoSelecionado.tipo ||
-                            "Recebimento"}
-
-                        </span>
-
-                      </div>
-
-                      {/* VENCIMENTO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <small className="text-muted d-block">
-                          Vencimento
-                        </small>
-
-                        <span className="fw-semibold">
-
-                          {formatarData(
-                            recebimentoSelecionado.data_vencimento
-                          )}
-
-                        </span>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* DADOS DO PAGAMENTO */}
-
-                <div className="card shadow-sm border-0">
-
-                  <div className="card-body">
-
-                    <div className="d-flex align-items-center mb-3">
-
-                      <div
-                        className="d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success me-3"
-                        style={{
-                          width: "42px",
-                          height: "42px",
-                        }}
+                      <select
+                        className="form-select"
+                        value={
+                          novoRecebimento.cliente_id
+                        }
+                        onChange={(e) =>
+                          alterarCampoNovoRecebimento(
+                            "cliente_id",
+                            e.target.value
+                          )
+                        }
+                        required
                       >
 
-                        <i className="bi bi-cash-coin fs-5"></i>
+                        <option value="">
+                          Selecione um cliente
+                        </option>
 
-                      </div>
+                        {clientes.map(
+                          (cliente) => (
+                            <option
+                              key={cliente.id}
+                              value={cliente.id}
+                            >
+                              {cliente.nome ||
+                                cliente.razao_social ||
+                                cliente.nome_completo ||
+                                `Cliente #${cliente.id}`}
+                            </option>
+                          )
+                        )}
 
-                      <div>
+                      </select>
 
-                        <h6 className="fw-bold mb-0">
-                          Dados do pagamento
-                        </h6>
-
-                        <small className="text-muted">
-                          Informe como e quando o valor foi recebido.
+                      {clientes.length === 0 && (
+                        <small className="text-danger">
+                          Nenhum cliente cadastrado.
                         </small>
-
-                      </div>
+                      )}
 
                     </div>
 
-                    <div className="row g-3">
 
-                      {/* FORMA DE PAGAMENTO */}
+                    {/* ==============================
+                        TIPO
+                    ============================== */}
 
-                      <div className="col-12 col-md-6">
+                    <div className="col-12 col-md-6">
 
-                        <label className="form-label fw-semibold">
+                      <label className="form-label fw-semibold">
+                        Tipo de recebimento
+                        <span className="text-danger">
+                          {" "}*
+                        </span>
+                      </label>
 
-                          Forma de pagamento
+                      <select
+                        className="form-select"
+                        value={
+                          novoRecebimento.tipo
+                        }
+                        onChange={(e) =>
+                          alterarCampoNovoRecebimento(
+                            "tipo",
+                            e.target.value
+                          )
+                        }
+                        required
+                      >
 
-                        </label>
+                        <option value="Aluguel mensal">
+                          Aluguel mensal
+                        </option>
 
-                        <select
-                          className="form-select"
-                          value={formaPagamento}
-                          onChange={(e) =>
-                            setFormaPagamento(
-                              e.target.value
-                            )
-                          }
-                        >
+                        <option value="Diária">
+                          Diária
+                        </option>
 
-                          <option value="">
-                            Selecione
-                          </option>
+                        <option value="Venda unitária">
+                          Venda unitária
+                        </option>
 
-                          <option value="Pix">
-                            Pix
-                          </option>
+                        <option value="Venda parcelada">
+                          Venda parcelada
+                        </option>
 
-                          <option value="Dinheiro">
-                            Dinheiro
-                          </option>
+                      </select>
 
-                          <option value="Transferência">
-                            Transferência
-                          </option>
+                    </div>
 
-                          <option value="Cartão">
-                            Cartão
-                          </option>
 
-                          <option value="Boleto">
-                            Boleto
-                          </option>
+                    {/* ==============================
+                        NÚMERO DO CONTRATO
+                    ============================== */}
 
-                          <option value="Cheque">
-                            Cheque
-                          </option>
+                    <div className="col-12 col-md-6">
 
-                          <option value="Outro">
-                            Outro
-                          </option>
+                      <label className="form-label fw-semibold">
+                        N° do Contrato
+                      </label>
 
-                        </select>
+                      <select
+                        className="form-select"
+                        value={
+                          novoRecebimento.contrato_id
+                        }
+                        onChange={(e) =>
+                          selecionarContrato(
+                            e.target.value
+                          )
+                        }
+                      >
 
-                      </div>
+                        <option value="">
+                          Selecione um contrato
+                        </option>
 
-                      {/* DATA DO RECEBIMENTO */}
+                        {contratos.map(
+                          (contrato) => (
+                            <option
+                              key={contrato.id}
+                              value={contrato.id}
+                            >
+                              {numeroDoContrato(
+                                contrato.id
+                              )}
+                            </option>
+                          )
+                        )}
 
-                      <div className="col-12 col-md-6">
+                      </select>
 
-                        <label className="form-label fw-semibold">
+                    </div>
 
-                          Data do recebimento
 
-                        </label>
+                    {/* ==============================
+                        DESCRIÇÃO
+                    ============================== */}
+
+                    <div className="col-12">
+
+                      <label className="form-label fw-semibold">
+                        Descrição
+                      </label>
+
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Ex.: Aluguel referente ao mês de setembro"
+                        value={
+                          novoRecebimento.descricao
+                        }
+                        onChange={(e) =>
+                          alterarCampoNovoRecebimento(
+                            "descricao",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                    </div>
+
+
+                    {/* ==============================
+                        VALOR
+                    ============================== */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label className="form-label fw-semibold">
+                        Valor
+                        <span className="text-danger">
+                          {" "}*
+                        </span>
+                      </label>
+
+                      <div className="input-group">
+
+                        <span className="input-group-text">
+                          R$
+                        </span>
 
                         <input
-                          type="date"
+                          type="text"
+                          inputMode="decimal"
                           className="form-control"
-                          value={dataPagamento}
+                          placeholder="0,00"
+                          value={
+                            novoRecebimento.valor
+                          }
                           onChange={(e) =>
-                            setDataPagamento(
+                            alterarCampoNovoRecebimento(
+                              "valor",
                               e.target.value
                             )
                           }
+                          required
                         />
 
                       </div>
 
                     </div>
 
+
+                    {/* ==============================
+                        DATA DE VENCIMENTO
+                    ============================== */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label className="form-label fw-semibold">
+                        Data de vencimento
+                        <span className="text-danger">
+                          {" "}*
+                        </span>
+                      </label>
+
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={
+                          novoRecebimento.data_vencimento
+                        }
+                        onChange={(e) =>
+                          alterarCampoNovoRecebimento(
+                            "data_vencimento",
+                            e.target.value
+                          )
+                        }
+                        required
+                      />
+
+                    </div>
+
+
+                    {/* ==============================
+                        FORMA DE PAGAMENTO
+                    ============================== */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label className="form-label fw-semibold">
+                        Forma de pagamento
+                      </label>
+
+                      <select
+                        className="form-select"
+                        value={
+                          novoRecebimento.forma_pagamento
+                        }
+                        onChange={(e) =>
+                          alterarCampoNovoRecebimento(
+                            "forma_pagamento",
+                            e.target.value
+                          )
+                        }
+                      >
+
+                        <option value="Dinheiro">
+                          Dinheiro
+                        </option>
+
+                        <option value="Cartão">
+                          Cartão
+                        </option>
+
+                        <option value="Depósito">
+                          Depósito
+                        </option>
+
+                        <option value="Pix">
+                          Pix
+                        </option>
+
+                      </select>
+
+                    </div>
+
+
+                    {/* ==============================
+                        STATUS
+                    ============================== */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label className="form-label fw-semibold">
+                        Status
+                      </label>
+
+                      <select
+                        className="form-select"
+                        value={
+                          novoRecebimento.status
+                        }
+                        onChange={(e) =>
+                          alterarCampoNovoRecebimento(
+                            "status",
+                            e.target.value
+                          )
+                        }
+                      >
+
+                        <option value="Pendente">
+                          Pendente
+                        </option>
+
+                        <option value="Recebido">
+                          Recebido
+                        </option>
+
+                      </select>
+
+                    </div>
+
+
+                    {/* ==============================
+                        OBSERVAÇÕES
+                    ============================== */}
+
+                    <div className="col-12">
+
+                      <label className="form-label fw-semibold">
+                        Observações
+                      </label>
+
+                      <textarea
+                        className="form-control"
+                        rows="4"
+                        placeholder="Informações adicionais..."
+                        value={
+                          novoRecebimento.observacoes
+                        }
+                        onChange={(e) =>
+                          alterarCampoNovoRecebimento(
+                            "observacoes",
+                            e.target.value
+                          )
+                        }
+                      ></textarea>
+
+                    </div>
+
                   </div>
 
                 </div>
 
+
+                {/* ==================================
+                    RODAPÉ
+                ================================== */}
+
+                <div className="modal-footer">
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={
+                      fecharNovoRecebimento
+                    }
+                    disabled={salvando}
+                  >
+                    <i className="bi bi-x-lg me-1"></i>
+                    Cancelar
+                  </button>
+
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={salvando}
+                  >
+
+                    {salvando ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
+
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-lg me-1"></i>
+                        Salvar recebimento
+                      </>
+                    )}
+
+                  </button>
+
+                </div>
+
+              </form>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+      {/* ========================================
+          MODAL - CONFIRMAR RECEBIMENTO
+      ======================================== */}
+
+      {modalAberto && (
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          role="dialog"
+          style={{
+            backgroundColor:
+              "rgba(0, 0, 0, 0.5)",
+          }}
+        >
+
+          <div
+            className="modal-dialog modal-dialog-centered"
+            role="document"
+          >
+
+            <div className="modal-content border-0 shadow">
+
+              {/* ==================================
+                  CABEÇALHO
+              ================================== */}
+
+              <div className="modal-header">
+
+                <div>
+
+                  <h5 className="modal-title fw-bold mb-1">
+                    <i className="bi bi-check-circle text-success me-2"></i>
+                    Confirmar recebimento
+                  </h5>
+
+                  <small className="text-muted">
+                    Registre o pagamento recebido
+                  </small>
+
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={fecharModal}
+                  disabled={salvando}
+                ></button>
+
               </div>
 
-              {/* RODAPÉ */}
+
+              {/* ==================================
+                  CORPO
+              ================================== */}
+
+              <div className="modal-body">
+
+                {recebimentoSelecionado && (
+                  <>
+
+                    {/* CLIENTE */}
+
+                    <div className="mb-3">
+
+                      <label className="form-label fw-semibold">
+                        Cliente
+                      </label>
+
+                      <div className="form-control bg-light">
+
+                        {nomeCliente(
+                          recebimentoSelecionado.cliente_id
+                        )}
+
+                      </div>
+
+                    </div>
+
+
+                    {/* VALOR */}
+
+                    <div className="mb-3">
+
+                      <label className="form-label fw-semibold">
+                        Valor
+                      </label>
+
+                      <div className="form-control bg-light fw-bold text-success">
+
+                        {formatarMoeda(
+                          recebimentoSelecionado.valor
+                        )}
+
+                      </div>
+
+                    </div>
+
+
+                    {/* FORMA DE PAGAMENTO */}
+
+                    <div className="mb-3">
+
+                      <label className="form-label fw-semibold">
+                        Forma de pagamento
+                      </label>
+
+                      <select
+                        className="form-select"
+                        value={formaPagamento}
+                        onChange={(e) =>
+                          setFormaPagamento(
+                            e.target.value
+                          )
+                        }
+                      >
+
+                        <option value="Dinheiro">
+                          Dinheiro
+                        </option>
+
+                        <option value="Cartão">
+                          Cartão
+                        </option>
+
+                        <option value="Depósito">
+                          Depósito
+                        </option>
+
+                        <option value="Pix">
+                          Pix
+                        </option>
+
+                      </select>
+
+                    </div>
+
+
+                    {/* DATA */}
+
+                    <div className="mb-3">
+
+                      <label className="form-label fw-semibold">
+                        Data do recebimento
+                      </label>
+
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={dataPagamento}
+                        onChange={(e) =>
+                          setDataPagamento(
+                            e.target.value
+                          )
+                        }
+                      />
+
+                    </div>
+
+
+                    {/* AVISO */}
+
+                    <div className="alert alert-success mb-0">
+
+                      <i className="bi bi-info-circle me-2"></i>
+
+                      Ao confirmar, este recebimento
+                      será marcado como
+                      <strong>
+                        {" "}Recebido
+                      </strong>
+                      .
+
+                    </div>
+
+                  </>
+                )}
+
+              </div>
+
+
+              {/* ==================================
+                  RODAPÉ
+              ================================== */}
 
               <div className="modal-footer">
 
@@ -1841,24 +2789,22 @@ export default function Recebimentos() {
                   onClick={fecharModal}
                   disabled={salvando}
                 >
-
-                  <i className="bi bi-x-lg me-2"></i>
-
+                  <i className="bi bi-x-lg me-1"></i>
                   Cancelar
-
                 </button>
+
 
                 <button
                   type="button"
                   className="btn btn-success"
-                  onClick={confirmarRecebimento}
+                  onClick={
+                    confirmarRecebimento
+                  }
                   disabled={salvando}
                 >
 
                   {salvando ? (
-
                     <>
-
                       <span
                         className="spinner-border spinner-border-sm me-2"
                         role="status"
@@ -1866,19 +2812,12 @@ export default function Recebimentos() {
                       ></span>
 
                       Confirmando...
-
                     </>
-
                   ) : (
-
                     <>
-
-                      <i className="bi bi-check-lg me-2"></i>
-
+                      <i className="bi bi-check-lg me-1"></i>
                       Confirmar recebimento
-
                     </>
-
                   )}
 
                 </button>
@@ -1890,8 +2829,13 @@ export default function Recebimentos() {
           </div>
 
         </div>
-
       )}
-    </div>
+
+
+      {/* ========================================
+          FIM DA PÁGINA
+      ======================================== */}
+
+    </main>
   )
 }
