@@ -28,7 +28,6 @@ export default function Contratos() {
     data_fim: "",
     valor: "",
     dia_vencimento: "10",
-    reajuste: "",
     observacoes: "",
   })
 
@@ -140,7 +139,6 @@ export default function Contratos() {
       data_fim: "",
       valor: "",
       dia_vencimento: "10",
-      reajuste: "",
       observacoes: "",
     }
   }
@@ -197,11 +195,6 @@ export default function Contratos() {
           ? String(contrato.dia_vencimento)
           : "10",
 
-      reajuste:
-        contrato.reajuste !== null &&
-        contrato.reajuste !== undefined
-          ? String(contrato.reajuste)
-          : "",
 
       observacoes:
         contrato.observacoes ||
@@ -507,11 +500,6 @@ export default function Contratos() {
             ? Number(
                 form.dia_vencimento
               )
-            : null,
-
-        reajuste:
-          form.reajuste !== ""
-            ? Number(form.reajuste)
             : null,
 
         observacoes:
@@ -1561,16 +1549,7 @@ export default function Contratos() {
 
                             </div>
 
-                            {contrato.reajuste !== null &&
-                              contrato.reajuste !== undefined &&
-                              contrato.reajuste !== "" && (
-                                <div className="small text-muted">
-
-                                  Reajuste:{" "}
-                                  {contrato.reajuste}%
-
-                                </div>
-                              )}
+                            
 
                           </td>
 
@@ -2041,39 +2020,6 @@ export default function Contratos() {
 
                         </div>
 
-                        {/* REAJUSTE */}
-                        <div className="col-12 col-md-3">
-
-                          <label className="form-label fw-semibold">
-                            Reajuste
-                          </label>
-
-                          <div className="input-group">
-
-                            <input
-                              type="number"
-                              className="form-control"
-                              min="0"
-                              step="0.01"
-                              placeholder="0"
-                              value={
-                                form.reajuste
-                              }
-                              onChange={(e) =>
-                                alterarCampo(
-                                  "reajuste",
-                                  e.target.value
-                                )
-                              }
-                            />
-
-                            <span className="input-group-text">
-                              %
-                            </span>
-
-                          </div>
-
-                        </div>
 
                       </div>
 
