@@ -389,36 +389,7 @@ export default function Dashboard() {
   return (
     <div className="container-fluid py-4">
 
-      {/* CABEÇALHO */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="fw-bold mb-1">
-            ImobGest - Dashboard
-          </h2>
-
-          <p className="text-muted mb-0">
-            Visão geral da gestão imobiliária
-          </p>
-        </div>
-      </div>
-
-      {/* ERRO */}
-      {erro && (
-        <div
-          className="alert alert-danger d-flex justify-content-between align-items-center"
-          role="alert"
-        >
-          <span>
-            {erro}
-          </span>
-
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setErro("")}
-          ></button>
-        </div>
-      )}
+      
 
       {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm border-0 mb-4">
@@ -511,6 +482,37 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+{/* CABEÇALHO */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="fw-bold mb-1">
+            ImobGest - Dashboard
+          </h2>
+
+          <p className="text-muted mb-0">
+            Visão geral da gestão imobiliária
+          </p>
+        </div>
+      </div>
+
+      {/* ERRO */}
+      {erro && (
+        <div
+          className="alert alert-danger d-flex justify-content-between align-items-center"
+          role="alert"
+        >
+          <span>
+            {erro}
+          </span>
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setErro("")}
+          ></button>
+        </div>
+      )}
+
       {/* CARDS PRINCIPAIS */}
       <div className="row g-3 mb-4">
 
