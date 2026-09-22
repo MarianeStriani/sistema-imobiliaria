@@ -1,493 +1,1541 @@
 "use client"
 
-import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
-const acessos = [
-  ["🏠", "Início", "/"],
-  ["👥", "Clientes", "/clientes"],
-  ["🏢", "Imóveis", "/imoveis"],
-  ["📄", "Contratos", "/contratos"],
-  ["💰", "Recebimentos", "/recebimentos"],
-  ["💸", "Despesas", "/despesas"],
-  ["📊", "Financeiro", "/financeiro"],
-]
-
-const meses = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-]
-
 export default function Financeiro() {
+  // ========================================
+  // DATA ATUAL
+  // ========================================
+
   const hoje = new Date()
 
-  const [mes, setMes] = useState(hoje.getMonth() + 1)
-  const [ano, setAno] = useState(hoje.getFullYear())
-  const [recebimentos, setRecebimentos] = useState([])
-  const [despesas, setDespesas] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [erro, setErro] = useState("")
+  // ========================================
+  // FILTRO DE PERÍODO
+  // ========================================
 
-  useEffect(() => {
-    carregarDados()
-  }, [])
+  const [mes, setMes] = useState(
+    hoje.getMonth() + 1
+  )
+
+  const [ano, setAno] = useState(
+    hoje.getFullYear()
+  )
+
+  // ========================================
+  // DADOS
+  // ========================================
+
+  const [recebimentos, setRecebimentos] =
+    useState([])
+
+  const [despesas, setDespesas] =
+    useState([])
+
+  // ========================================
+  // CONTROLE
+  // ========================================
+
+  const [loading, setLoading] =
+    useState(true)
+
+  const [erro, setErro] =
+    useState("")
+
+  const [sucesso, setSucesso] =
+    useState("")
+
+  // ========================================
+  // MESES
+  // ========================================
+
+  const meses = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ]
+
+  // ========================================
+  // CARREGAR DADOS
+  // ========================================
 
   async function carregarDados() {
     setLoading(true)
     setErro("")
 
-    const [r, d] = await Promise.all([
-      supabase.from("recebimentos").select("*"),
-      supabase.from("despesas").select("*"),
-    ])
+    try {
+      const [recebimentosResult, despesasResult] =
+        await Promise.all([
+          supabase
+            .from("recebimentos")
+            .select("*"),
 
-    if (r.error) {
-      console.error(r.error)
-      setErro("Erro ao carregar recebimentos.")
+          supabase
+            .from("despesas")
+            .select("*"),
+        ])
+
+      if (recebimentosResult.error) {
+        throw recebimentosResult.error
+      }
+
+      if (despesasResult.error) {
+        throw despesasResult.error
+      }
+
+      setRecebimentos(
+        recebimentosResult.data || []
+      )
+
+      setDespesas(
+        despesasResult.data || []
+      )
+    } catch (error) {
+      console.error(
+        "Erro ao carregar dados financeiros:",
+        error
+      )
+
+      setErro(
+        error?.message ||
+          "Não foi possível carregar os dados financeiros."
+      )
+    } finally {
       setLoading(false)
-      return
     }
-
-    if (d.error) {
-      console.error(d.error)
-      setErro("Erro ao carregar despesas.")
-      setLoading(false)
-      return
-    }
-
-    setRecebimentos(r.data || [])
-    setDespesas(d.data || [])
-    setLoading(false)
   }
+
+  // ========================================
+  // CARREGAMENTO INICIAL
+  // ========================================
+
+  useEffect(() => {
+    carregarDados()
+  }, [])
+
+  // ========================================
+  // LIMPAR MENSAGENS
+  // ========================================
+
+  function limparMensagens() {
+    setErro("")
+    setSucesso("")
+  }
+
+  // ========================================
+  // CONVERSÃO DE NÚMERO
+  // ========================================
 
   function numero(valor) {
     const n = Number(valor)
-    return Number.isNaN(n) ? 0 : n
+
+    return Number.isNaN(n)
+      ? 0
+      : n
   }
+
+  // ========================================
+  // VERIFICAR STATUS PAGO
+  // ========================================
 
   function pago(status) {
-    const s = String(status || "").trim().toLowerCase()
-    return ["pago", "recebido", "confirmado", "realizado"].includes(s)
+    const s = String(
+      status || ""
+    )
+      .trim()
+      .toLowerCase()
+
+    return [
+      "pago",
+      "recebido",
+      "confirmado",
+      "realizado",
+    ].includes(s)
   }
+
+  // ========================================
+  // VALIDAR DATA
+  // ========================================
 
   function dataValida(data) {
-    if (!data) return false
-    const d = new Date(`${data}T00:00:00`)
-    return !Number.isNaN(d.getTime())
+    if (!data) {
+      return false
+    }
+
+    const dataConvertida =
+      new Date(`${data}T00:00:00`)
+
+    return !Number.isNaN(
+      dataConvertida.getTime()
+    )
   }
+
+  // ========================================
+  // FORMATAR DATA
+  // ========================================
 
   function dataBR(data) {
-    if (!dataValida(data)) return "-"
-    return new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR")
+    if (!dataValida(data)) {
+      return "-"
+    }
+
+    return new Date(
+      `${data}T00:00:00`
+    ).toLocaleDateString(
+      "pt-BR"
+    )
   }
+
+  // ========================================
+  // FORMATAR MOEDA
+  // ========================================
 
   function moeda(valor) {
-    return Number(valor).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    })
+    return Number(
+      valor || 0
+    ).toLocaleString(
+      "pt-BR",
+      {
+        style: "currency",
+        currency: "BRL",
+      }
+    )
   }
 
+  // ========================================
+  // MONTAR MOVIMENTAÇÕES
+  // ========================================
+
   const movimentos = useMemo(() => {
-    const entradas = recebimentos
-      .filter((x) => pago(x.status) && dataValida(x.data_recebimento))
-      .map((x) => ({
-        id: `e-${x.id}`,
-        tipo: "entrada",
-        data: x.data_recebimento,
-        descricao: x.descricao || x.observacoes || "Recebimento",
-        categoria: x.categoria || "Recebimento",
-        forma: x.forma_pagamento || "-",
-        valor: numero(x.valor),
-        criado: x.created_at || "",
-      }))
+    const entradas =
+      recebimentos
+        .filter(
+          (item) =>
+            pago(item.status) &&
+            dataValida(
+              item.data_recebimento
+            )
+        )
+        .map((item) => ({
+          id: `e-${item.id}`,
 
-    const saidas = despesas
-      .filter((x) => pago(x.status) && dataValida(x.data_despesa))
-      .map((x) => ({
-        id: `s-${x.id}`,
-        tipo: "saida",
-        data: x.data_despesa,
-        descricao:
-          x.descricao ||
-          x.observacoes ||
-          x["observações"] ||
-          "Despesa",
-        categoria: x.categoria || "Despesa",
-        forma: x.forma_pagamento || "-",
-        valor: numero(x.valor),
-        criado: x.created_at || "",
-      }))
+          tipo: "entrada",
 
-    return [...entradas, ...saidas]
-  }, [recebimentos, despesas])
+          data:
+            item.data_recebimento,
 
-  const saldoAtual = useMemo(() => {
-    return movimentos.reduce(
-      (saldo, x) =>
-        x.tipo === "entrada"
-          ? saldo + x.valor
-          : saldo - x.valor,
-      0
-    )
-  }, [movimentos])
+          descricao:
+            item.descricao ||
+            item.observacoes ||
+            "Recebimento",
 
-  const periodo = useMemo(() => {
-    return movimentos.filter((x) => {
-      const d = new Date(`${x.data}T00:00:00`)
-      return (
-        d.getMonth() + 1 === mes &&
-        d.getFullYear() === ano
+          categoria:
+            item.categoria ||
+            "Recebimento",
+
+          forma:
+            item.forma_pagamento ||
+            "-",
+
+          valor:
+            numero(item.valor),
+
+          criado:
+            item.created_at || "",
+        }))
+
+    const saidas =
+      despesas
+        .filter(
+          (item) =>
+            pago(item.status) &&
+            dataValida(
+              item.data_despesa
+            )
+        )
+        .map((item) => ({
+          id: `s-${item.id}`,
+
+          tipo: "saida",
+
+          data:
+            item.data_despesa,
+
+          descricao:
+            item.descricao ||
+            item.observacoes ||
+            item["observações"] ||
+            "Despesa",
+
+          categoria:
+            item.categoria ||
+            "Despesa",
+
+          forma:
+            item.forma_pagamento ||
+            "-",
+
+          valor:
+            numero(item.valor),
+
+          criado:
+            item.created_at || "",
+        }))
+
+    return [
+      ...entradas,
+      ...saidas,
+    ]
+  }, [
+    recebimentos,
+    despesas,
+  ])
+
+  // ========================================
+  // SALDO ATUAL
+  // ========================================
+
+  const saldoAtual =
+    useMemo(() => {
+      return movimentos.reduce(
+        (saldo, movimento) =>
+          movimento.tipo ===
+          "entrada"
+            ? saldo +
+              movimento.valor
+            : saldo -
+              movimento.valor,
+        0
       )
-    })
-  }, [movimentos, mes, ano])
+    }, [movimentos])
 
-  const saldoAnterior = useMemo(() => {
-    const inicio = new Date(ano, mes - 1, 1)
+  // ========================================
+  // MOVIMENTAÇÕES DO PERÍODO
+  // ========================================
 
-    return movimentos.reduce((saldo, x) => {
-      const d = new Date(`${x.data}T00:00:00`)
+  const periodo =
+    useMemo(() => {
+      return movimentos.filter(
+        (movimento) => {
+          const data =
+            new Date(
+              `${movimento.data}T00:00:00`
+            )
 
-      if (d < inicio) {
-        return x.tipo === "entrada"
-          ? saldo + x.valor
-          : saldo - x.valor
-      }
+          return (
+            data.getMonth() + 1 ===
+              mes &&
+            data.getFullYear() ===
+              ano
+          )
+        }
+      )
+    }, [
+      movimentos,
+      mes,
+      ano,
+    ])
 
-      return saldo
-    }, 0)
-  }, [movimentos, mes, ano])
+  // ========================================
+  // SALDO ANTERIOR
+  // ========================================
 
-  const extrato = useMemo(() => {
-    const lista = [...periodo].sort((a, b) => {
-      const da = new Date(`${a.data}T00:00:00`).getTime()
-      const db = new Date(`${b.data}T00:00:00`).getTime()
+  const saldoAnterior =
+    useMemo(() => {
+      const inicio =
+        new Date(
+          ano,
+          mes - 1,
+          1
+        )
 
-      if (da !== db) return da - db
+      return movimentos.reduce(
+        (
+          saldo,
+          movimento
+        ) => {
+          const data =
+            new Date(
+              `${movimento.data}T00:00:00`
+            )
 
-      return String(a.criado).localeCompare(String(b.criado))
-    })
+          if (data < inicio) {
+            return movimento.tipo ===
+              "entrada"
+              ? saldo +
+                movimento.valor
+              : saldo -
+                movimento.valor
+          }
 
-    let saldo = saldoAnterior
+          return saldo
+        },
+        0
+      )
+    }, [
+      movimentos,
+      mes,
+      ano,
+    ])
 
-    return lista.map((x) => {
-      saldo =
-        x.tipo === "entrada"
-          ? saldo + x.valor
-          : saldo - x.valor
+  // ========================================
+  // EXTRATO
+  // ========================================
 
-      return { ...x, saldo }
-    }).reverse()
-  }, [periodo, saldoAnterior])
+  const extrato =
+    useMemo(() => {
+      const lista = [
+        ...periodo,
+      ].sort((a, b) => {
+        const dataA =
+          new Date(
+            `${a.data}T00:00:00`
+          ).getTime()
 
-  const entradas = periodo
-    .filter((x) => x.tipo === "entrada")
-    .reduce((s, x) => s + x.valor, 0)
+        const dataB =
+          new Date(
+            `${b.data}T00:00:00`
+          ).getTime()
 
-  const saidas = periodo
-    .filter((x) => x.tipo === "saida")
-    .reduce((s, x) => s + x.valor, 0)
+        if (
+          dataA !== dataB
+        ) {
+          return (
+            dataA - dataB
+          )
+        }
 
-  const saldoPeriodo = saldoAnterior + entradas - saidas
+        return String(
+          a.criado
+        ).localeCompare(
+          String(b.criado)
+        )
+      })
+
+      let saldo =
+        saldoAnterior
+
+      return lista
+        .map((movimento) => {
+          saldo =
+            movimento.tipo ===
+            "entrada"
+              ? saldo +
+                movimento.valor
+              : saldo -
+                movimento.valor
+
+          return {
+            ...movimento,
+            saldo,
+          }
+        })
+        .reverse()
+    }, [
+      periodo,
+      saldoAnterior,
+    ])
+
+  // ========================================
+  // ENTRADAS DO PERÍODO
+  // ========================================
+
+  const entradas =
+    periodo
+      .filter(
+        (item) =>
+          item.tipo ===
+          "entrada"
+      )
+      .reduce(
+        (total, item) =>
+          total +
+          item.valor,
+        0
+      )
+
+  // ========================================
+  // SAÍDAS DO PERÍODO
+  // ========================================
+
+  const saidas =
+    periodo
+      .filter(
+        (item) =>
+          item.tipo ===
+          "saida"
+      )
+      .reduce(
+        (total, item) =>
+          total +
+          item.valor,
+        0
+      )
+
+  // ========================================
+  // SALDO DO PERÍODO
+  // ========================================
+
+  const saldoPeriodo =
+    saldoAnterior +
+    entradas -
+    saidas
+
+  // ========================================
+  // FECHAR MENSAGEM
+  // ========================================
+
+  function fecharMensagemErro() {
+    setErro("")
+  }
+
+  function fecharMensagemSucesso() {
+    setSucesso("")
+  }
+
+  // ========================================
+  // ACESSO RÁPIDO
+  // ========================================
+
+  function acessarPagina(url) {
+    window.location.href =
+      url
+  }
+
+  // ========================================
+  // RENDERIZAÇÃO
+  // ========================================
 
   return (
-    <main style={styles.main}>
-      <div style={styles.container}>
+    <div className="container-fluid py-4">
 
-        {/* ACESSO RÁPIDO */}
-        <section style={styles.acessoBox}>
-          <h2 style={styles.acessoTitulo}>
-            ⚡ Acesso rápido
+      {/* ACESSO RÁPIDO */}
+
+      <div className="card shadow-sm border-0 mb-4">
+        <div className="card-body">
+
+          <div className="d-flex align-items-center mb-3">
+
+            <div
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+              style={{
+                width: "38px",
+                height: "38px",
+              }}
+            >
+              <i className="bi bi-lightning-charge text-primary"></i>
+            </div>
+
+            <div>
+              <h5 className="fw-bold mb-0">
+                Acesso rápido
+              </h5>
+            </div>
+
+          </div>
+
+          <div className="row g-2">
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/")
+                }
+              >
+                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
+                Dashboard
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/clientes")
+                }
+              >
+                <i className="bi bi-people d-block fs-5 mb-1"></i>
+                Clientes
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/imoveis")
+                }
+              >
+                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
+                Imóveis
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/contratos")
+                }
+              >
+                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
+                Contratos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/recebimentos")
+                }
+              >
+                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
+                Recebimentos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/despesas")
+                }
+              >
+                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
+                Despesas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/financeiro")
+                }
+              >
+                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
+                Financeiro
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* CABEÇALHO */}
+
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+        <div>
+          <h2 className="fw-bold mb-1">
+            ImobGest - Financeiro
           </h2>
+        </div>
 
-          <div style={styles.acessos}>
-            {acessos.map(([icone, nome, caminho]) => {
-              const ativo = caminho === "/financeiro"
-
-              return (
-                <Link
-                  key={caminho}
-                  href={caminho}
-                  style={{
-                    ...styles.acesso,
-                    background: ativo ? "#2563eb" : "#f3f4f6",
-                    color: ativo ? "#fff" : "#374151",
-                  }}
-                >
-                  {icone} {nome}
-                </Link>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* CABEÇALHO */}
-        <header style={styles.header}>
-          <div>
-            <h1 style={styles.titulo}>
-              📊 Financeiro
-            </h1>
-
-            <p style={styles.subtitulo}>
-              Extrato financeiro da imobiliária
-            </p>
-          </div>
+        <div className="d-flex gap-2 mt-3 mt-md-0">
 
           <button
+            className="btn btn-outline-primary"
             onClick={carregarDados}
             disabled={loading}
-            style={styles.botaoAtualizar}
           >
-            {loading ? "Atualizando..." : "↻ Atualizar"}
+            <i className="bi bi-arrow-clockwise me-2"></i>
+
+            {loading
+              ? "Atualizando..."
+              : "Atualizar"}
           </button>
-        </header>
 
-        {/* SALDO */}
-        <section style={styles.saldoBox}>
-          <span style={styles.label}>
-            SALDO ATUAL
-          </span>
+        </div>
+      {/* ========================================
+          ALERTA DE ERRO
+      ======================================== */}
 
-          <div
-            style={{
-              ...styles.saldo,
-              color: saldoAtual >= 0 ? "#111827" : "#dc2626",
-            }}
-          >
-            {moeda(saldoAtual)}
-          </div>
+      {erro && (
+        <div
+          className="alert alert-danger alert-dismissible fade show shadow-sm"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
 
-          <div style={styles.resumos}>
-            <div>
-              <span style={styles.label}>
-                🟢 Entradas
-              </span>
-              <strong style={{ color: "#16a34a" }}>
-                {moeda(entradas)}
-              </strong>
-            </div>
+          {erro}
 
-            <div>
-              <span style={styles.label}>
-                🔴 Saídas
-              </span>
-              <strong style={{ color: "#dc2626" }}>
-                {moeda(saidas)}
-              </strong>
-            </div>
+          <button
+            type="button"
+            className="btn-close"
+            onClick={fecharMensagemErro}
+            aria-label="Fechar"
+          ></button>
+        </div>
+      )}
 
-            <div>
-              <span style={styles.label}>
-                Saldo do período
-              </span>
-              <strong>
-                {moeda(saldoPeriodo)}
-              </strong>
-            </div>
-          </div>
-        </section>
+      {/* ========================================
+          ALERTA DE SUCESSO
+      ======================================== */}
 
-        {/* FILTROS */}
-        <section style={styles.filtros}>
-          <div>
-            <label style={styles.label}>
-              Mês
-            </label>
+      {sucesso && (
+        <div
+          className="alert alert-success alert-dismissible fade show shadow-sm"
+          role="alert"
+        >
+          <i className="bi bi-check-circle-fill me-2"></i>
 
-            <select
-              value={mes}
-              onChange={(e) => setMes(Number(e.target.value))}
-              style={styles.select}
-            >
-              {meses.map((nome, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {nome}
-                </option>
-              ))}
-            </select>
-          </div>
+          {sucesso}
 
-          <div>
-            <label style={styles.label}>
-              Ano
-            </label>
+          <button
+            type="button"
+            className="btn-close"
+            onClick={fecharMensagemSucesso}
+            aria-label="Fechar"
+          ></button>
+        </div>
+      )}
 
-            <select
-              value={ano}
-              onChange={(e) => setAno(Number(e.target.value))}
-              style={styles.select}
-            >
-              {Array.from({ length: 7 }, (_, i) => hoje.getFullYear() - 3 + i).map(
-                (a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
+      {/* ========================================
+          RESUMO FINANCEIRO
+      ======================================== */}
 
-          <div style={styles.periodo}>
-            Exibindo:{" "}
-            <strong>
-              {meses[mes - 1]} de {ano}
-            </strong>
-          </div>
-        </section>
+      <div className="row g-3 mb-4">
 
-        {erro && (
-          <div style={styles.erro}>
-            {erro}
-          </div>
-        )}
+        {/* SALDO ATUAL */}
 
-        {/* EXTRATO */}
-        <section style={styles.extratoBox}>
-          <div style={styles.extratoTitulo}>
-            <h2>Extrato</h2>
-            <p>
-              Movimentações realizadas no período
-            </p>
-          </div>
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
 
-          {loading ? (
-            <div style={styles.vazio}>
-              Carregando extrato...
-            </div>
-          ) : extrato.length === 0 ? (
-            <div style={styles.vazio}>
-              <div style={{ fontSize: 40 }}>
-                🧾
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Saldo atual
+                  </p>
+
+                  <h4 className="fw-bold mb-0">
+                    {moeda(saldoAtual)}
+                  </h4>
+                </div>
+
+                <div
+                  className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-wallet2 fs-5"></i>
+                </div>
+
               </div>
 
-              <strong>
-                Nenhuma movimentação encontrada
-              </strong>
+            </div>
+          </div>
+        </div>
 
-              <p>
-                Não existem entradas ou saídas pagas
-                neste período.
+        {/* ENTRADAS */}
+
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Entradas
+                  </p>
+
+                  <h4 className="fw-bold text-success mb-0">
+                    {moeda(entradas)}
+                  </h4>
+                </div>
+
+                <div
+                  className="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-arrow-down-left fs-5"></i>
+                </div>
+
+              </div>
+
+              <small className="text-muted">
+                {meses[mes - 1]} de {ano}
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+        {/* SAÍDAS */}
+
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Saídas
+                  </p>
+
+                  <h4 className="fw-bold text-danger mb-0">
+                    {moeda(saidas)}
+                  </h4>
+                </div>
+
+                <div
+                  className="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-arrow-up-right fs-5"></i>
+                </div>
+
+              </div>
+
+              <small className="text-muted">
+                {meses[mes - 1]} de {ano}
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+        {/* SALDO DO PERÍODO */}
+
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Saldo do período
+                  </p>
+
+                  <h4
+                    className={`fw-bold mb-0 ${
+                      saldoPeriodo >= 0
+                        ? "text-success"
+                        : "text-danger"
+                    }`}
+                  >
+                    {moeda(saldoPeriodo)}
+                  </h4>
+                </div>
+
+                <div
+                  className={`bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center ${
+                    saldoPeriodo >= 0
+                      ? "bg-success text-success"
+                      : "bg-danger text-danger"
+                  }`}
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-graph-up-arrow fs-5"></i>
+                </div>
+
+              </div>
+
+              <small className="text-muted">
+                {meses[mes - 1]} de {ano}
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ========================================
+          FILTRO DE PERÍODO
+      ======================================== */}
+
+      <div className="card shadow-sm border-0 mb-4">
+
+        <div className="card-body">
+
+          <div className="d-flex align-items-center mb-3">
+
+            <div
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+              style={{
+                width: "38px",
+                height: "38px",
+              }}
+            >
+              <i className="bi bi-funnel text-primary"></i>
+            </div>
+
+            <div>
+              <h5 className="fw-bold mb-0">
+                Filtros
+              </h5>
+
+              <small className="text-muted">
+                Selecione o período para consultar o financeiro
+              </small>
+            </div>
+
+          </div>
+
+          <div className="row g-3">
+
+            {/* MÊS */}
+
+            <div className="col-12 col-md-6">
+
+              <label
+                htmlFor="mes"
+                className="form-label fw-semibold"
+              >
+                Mês
+              </label>
+
+              <select
+                id="mes"
+                className="form-select"
+                value={mes}
+                onChange={(e) =>
+                  setMes(
+                    Number(e.target.value)
+                  )
+                }
+              >
+                {meses.map(
+                  (
+                    nome,
+                    indice
+                  ) => (
+                    <option
+                      key={indice + 1}
+                      value={indice + 1}
+                    >
+                      {nome}
+                    </option>
+                  )
+                )}
+              </select>
+
+            </div>
+
+            {/* ANO */}
+
+            <div className="col-12 col-md-6">
+
+              <label
+                htmlFor="ano"
+                className="form-label fw-semibold"
+              >
+                Ano
+              </label>
+
+              <select
+                id="ano"
+                className="form-select"
+                value={ano}
+                onChange={(e) =>
+                  setAno(
+                    Number(e.target.value)
+                  )
+                }
+              >
+                {[
+                  ano - 2,
+                  ano - 1,
+                  ano,
+                  ano + 1,
+                  ano + 2,
+                ].map(
+                  (valorAno) => (
+                    <option
+                      key={valorAno}
+                      value={valorAno}
+                    >
+                      {valorAno}
+                    </option>
+                  )
+                )}
+              </select>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ========================================
+          RESUMO DO PERÍODO
+      ======================================== */}
+
+      <div className="card shadow-sm border-0 mb-4">
+
+        <div className="card-body">
+
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+
+            <div>
+              <h5 className="fw-bold mb-1">
+                Resumo financeiro
+              </h5>
+
+              <p className="text-muted mb-0">
+                {meses[mes - 1]} de {ano}
               </p>
             </div>
+
+            <span className="badge bg-light text-dark border">
+              {periodo.length} movimentação
+              {periodo.length !== 1
+                ? "s"
+                : ""}
+            </span>
+
+          </div>
+
+          <div className="row g-3">
+
+            <div className="col-12 col-md-4">
+
+              <div className="border rounded p-3 h-100">
+
+                <div className="d-flex align-items-center">
+
+                  <div
+                    className="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3"
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                    }}
+                  >
+                    <i className="bi bi-arrow-down-left"></i>
+                  </div>
+
+                  <div>
+                    <small className="text-muted d-block">
+                      Total de entradas
+                    </small>
+
+                    <strong className="text-success">
+                      {moeda(entradas)}
+                    </strong>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="col-12 col-md-4">
+
+              <div className="border rounded p-3 h-100">
+
+                <div className="d-flex align-items-center">
+
+                  <div
+                    className="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center me-3"
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                    }}
+                  >
+                    <i className="bi bi-arrow-up-right"></i>
+                  </div>
+
+                  <div>
+                    <small className="text-muted d-block">
+                      Total de saídas
+                    </small>
+
+                    <strong className="text-danger">
+                      {moeda(saidas)}
+                    </strong>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="col-12 col-md-4">
+
+              <div className="border rounded p-3 h-100">
+
+                <div className="d-flex align-items-center">
+
+                  <div
+                    className={`rounded-circle d-flex align-items-center justify-content-center me-3 ${
+                      saldoPeriodo >= 0
+                        ? "bg-success bg-opacity-10 text-success"
+                        : "bg-danger bg-opacity-10 text-danger"
+                    }`}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                    }}
+                  >
+                    <i className="bi bi-cash-stack"></i>
+                  </div>
+
+                  <div>
+                    <small className="text-muted d-block">
+                      Resultado
+                    </small>
+
+                    <strong
+                      className={
+                        saldoPeriodo >= 0
+                          ? "text-success"
+                          : "text-danger"
+                      }
+                    >
+                      {moeda(
+                        entradas -
+                          saidas
+                      )}
+                    </strong>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ========================================
+          EXTRATO FINANCEIRO
+      ======================================== */}
+
+      <div className="card shadow-sm border-0 mb-4">
+
+        <div className="card-body p-0">
+
+          {/* CABEÇALHO DO CARD */}
+
+          <div className="p-3 border-bottom">
+
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+
+              <div>
+                <h5 className="fw-bold mb-1">
+                  <i className="bi bi-list-ul text-primary me-2"></i>
+                  Extrato financeiro
+                </h5>
+
+                <p className="text-muted mb-0 small">
+                  Movimentações de{" "}
+                  {meses[mes - 1]} de {ano}
+                </p>
+              </div>
+
+              <span className="badge bg-primary">
+                {extrato.length}{" "}
+                movimentação
+                {extrato.length !== 1
+                  ? "s"
+                  : ""}
+              </span>
+
+            </div>
+
+          </div>
+
+          {/* CARREGANDO */}
+
+          {loading ? (
+            <div className="text-center py-5">
+
+              <div
+                className="spinner-border text-primary"
+                role="status"
+              >
+                <span className="visually-hidden">
+                  Carregando...
+                </span>
+              </div>
+
+              <p className="text-muted mt-3 mb-0">
+                Carregando informações financeiras...
+              </p>
+
+            </div>
+
+          ) : extrato.length === 0 ? (
+
+            /* SEM MOVIMENTAÇÕES */
+
+            <div className="text-center py-5 px-3">
+
+              <div className="text-muted fs-1 mb-3">
+                <i className="bi bi-receipt"></i>
+              </div>
+
+              <h5 className="fw-bold">
+                Nenhuma movimentação encontrada
+              </h5>
+
+              <p className="text-muted mb-0">
+                Não existem entradas ou saídas
+                registradas para{" "}
+                {meses[mes - 1]} de {ano}.
+              </p>
+
+            </div>
+
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={styles.table}>
-                <thead>
+
+            /* TABELA */
+
+            <div className="table-responsive">
+
+              <table className="table table-hover align-middle mb-0">
+
+                <thead className="table-light">
+
                   <tr>
-                    <th style={styles.th}>Movimento</th>
-                    <th style={styles.th}>Data</th>
-                    <th style={styles.th}>Descrição</th>
-                    <th style={styles.th}>Categoria</th>
-                    <th style={styles.th}>Pagamento</th>
-                    <th style={styles.thRight}>Valor</th>
-                    <th style={styles.thRight}>Saldo</th>
+
+                    <th className="px-3">
+                      Data
+                    </th>
+
+                    <th>
+                      Tipo
+                    </th>
+
+                    <th>
+                      Descrição
+                    </th>
+
+                    <th>
+                      Categoria
+                    </th>
+
+                    <th>
+                      Forma de pagamento
+                    </th>
+
+                    <th className="text-end">
+                      Valor
+                    </th>
+
+                    <th className="text-end px-3">
+                      Saldo
+                    </th>
+
                   </tr>
+
                 </thead>
 
                 <tbody>
-                  {extrato.map((x) => {
-                    const entrada = x.tipo === "entrada"
 
-                    return (
-                      <tr key={x.id}>
-                        <td style={styles.td}>
-                          <strong
-                            style={{
-                              color: entrada
-                                ? "#15803d"
-                                : "#dc2626",
-                            }}
+                  {extrato.map(
+                    (movimento) => (
+                      <tr
+                        key={
+                          movimento.id
+                        }
+                      >
+
+                        {/* DATA */}
+
+                        <td className="px-3">
+                          <span className="fw-semibold">
+                            {dataBR(
+                              movimento.data
+                            )}
+                          </span>
+                        </td>
+
+                        {/* TIPO */}
+
+                        <td>
+
+                          {movimento.tipo ===
+                          "entrada" ? (
+                            <span className="badge bg-success-subtle text-success">
+                              <i className="bi bi-arrow-down-left me-1"></i>
+                              Entrada
+                            </span>
+                          ) : (
+                            <span className="badge bg-danger-subtle text-danger">
+                              <i className="bi bi-arrow-up-right me-1"></i>
+                              Saída
+                            </span>
+                          )}
+
+                        </td>
+
+                        {/* DESCRIÇÃO */}
+
+                        <td>
+
+                          <div className="d-flex align-items-center gap-2">
+
+                            <div
+                              className={`rounded-circle d-flex align-items-center justify-content-center ${
+                                movimento.tipo ===
+                                "entrada"
+                                  ? "bg-success bg-opacity-10 text-success"
+                                  : "bg-danger bg-opacity-10 text-danger"
+                              }`}
+                              style={{
+                                width: "36px",
+                                height: "36px",
+                                minWidth: "36px",
+                              }}
+                            >
+
+                              <i
+                                className={
+                                  movimento.tipo ===
+                                  "entrada"
+                                    ? "bi bi-arrow-down-left"
+                                    : "bi bi-arrow-up-right"
+                                }
+                              ></i>
+
+                            </div>
+
+                            <div>
+
+                              <div className="fw-semibold">
+                                {
+                                  movimento.descricao
+                                }
+                              </div>
+
+                            </div>
+
+                          </div>
+
+                        </td>
+
+                        {/* CATEGORIA */}
+
+                        <td>
+                          <span className="text-muted">
+                            {
+                              movimento.categoria
+                            }
+                          </span>
+                        </td>
+
+                        {/* FORMA */}
+
+                        <td>
+                          <span className="text-muted">
+                            {
+                              movimento.forma
+                            }
+                          </span>
+                        </td>
+
+                        {/* VALOR */}
+
+                        <td className="text-end">
+
+                          <span
+                            className={`fw-bold ${
+                              movimento.tipo ===
+                              "entrada"
+                                ? "text-success"
+                                : "text-danger"
+                            }`}
                           >
-                            {entrada ? "🟢 ENTRADA" : "🔴 SAÍDA"}
-                          </strong>
+
+                            {movimento.tipo ===
+                            "entrada"
+                              ? "+"
+                              : "-"}
+
+                            {" "}
+
+                            {moeda(
+                              movimento.valor
+                            )}
+
+                          </span>
+
                         </td>
 
-                        <td style={styles.td}>
-                          {dataBR(x.data)}
+                        {/* SALDO */}
+
+                        <td className="text-end px-3">
+
+                          <span
+                            className={`fw-semibold ${
+                              movimento.saldo >=
+                              0
+                                ? "text-success"
+                                : "text-danger"
+                            }`}
+                          >
+                            {moeda(
+                              movimento.saldo
+                            )}
+                          </span>
+
                         </td>
 
-                        <td style={styles.td}>
-                          <strong>{x.descricao}</strong>
-                        </td>
-
-                        <td style={styles.td}>
-                          {x.categoria}
-                        </td>
-
-                        <td style={styles.td}>
-                          {x.forma}
-                        </td>
-
-                        <td
-                          style={{
-                            ...styles.td,
-                            textAlign: "right",
-                            fontWeight: 700,
-                            color: entrada
-                              ? "#16a34a"
-                              : "#dc2626",
-                          }}
-                        >
-                          {entrada ? "+" : "-"} {moeda(x.valor)}
-                        </td>
-
-                        <td
-                          style={{
-                            ...styles.td,
-                            textAlign: "right",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {moeda(x.saldo)}
-                        </td>
                       </tr>
                     )
-                  })}
+                  )}
+
                 </tbody>
+
               </table>
+
             </div>
+
           )}
 
-          {!loading && extrato.length > 0 && (
-            <div style={styles.rodape}>
-              <span>
-                Saldo anterior:{" "}
-                <strong>{moeda(saldoAnterior)}</strong>
-              </span>
+        </div>
 
-              <span style={{ color: "#15803d" }}>
-                🟢 Entradas:{" "}
-                <strong>{moeda(entradas)}</strong>
-              </span>
+      </div>
 
-              <span style={{ color: "#dc2626" }}>
-                🔴 Saídas:{" "}
-                <strong>{moeda(saidas)}</strong>
-              </span>
+      {/* ========================================
+          RESUMO DE ENTRADAS E SAÍDAS
+      ======================================== */}
 
-              <span>
-                Saldo final:{" "}
-                <strong>{moeda(saldoPeriodo)}</strong>
-              </span>
+      <div className="row g-3 mb-4">
+
+        {/* ENTRADAS */}
+
+        <div className="col-12 col-lg-6">
+
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-center mb-3">
+
+                <div>
+                  <h5 className="fw-bold mb-1">
+                    Entradas
+                  </h5>
+
+                  <small className="text-muted">
+                    Recebimentos no período
+                  </small>
+                </div>
+
+                <div
+                  className="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-arrow-down-left fs-5"></i>
+                </div>
+
+              </div>
+
+              <div className="d-flex justify-content-between align-items-center">
+
+                <span className="text-muted">
+                  Total recebido
+                </span>
+
+                <strong className="text-success fs-5">
+                  {moeda(entradas)}
+                </strong>
+
+              </div>
+
             </div>
-          )}
+
+          </div>
+
+        </div>
+
+        {/* SAÍDAS */}
+
+        <div className="col-12 col-lg-6">
+
+          <div className="card shadow-sm border-0 h-100">
+
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-center mb-3">
+
+                <div>
+                  <h5 className="fw-bold mb-1">
+                    Saídas
+                  </h5>
+
+                  <small className="text-muted">
+                    Despesas no período
+                  </small>
+                </div>
+
+                <div
+                  className="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                  }}
+                >
+                  <i className="bi bi-arrow-up-right fs-5"></i>
+                </div>
+
+              </div>
+
+              <div className="d-flex justify-content-between align-items-center">
+
+                <span className="text-muted">
+                  Total gasto
+                </span>
+
+                <strong className="text-danger fs-5">
+                  {moeda(saidas)}
+                </strong>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
         </section>
       </div>
     </main>
   )
 }
-
 const styles = {
   main: {
     minHeight: "100vh",
@@ -684,3 +1732,5 @@ const styles = {
     background: "#fafafa",
   },
 }
+
+      </div>
