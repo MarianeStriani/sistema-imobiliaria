@@ -434,7 +434,7 @@ export default function Clientes() {
       {/* RESUMO DOS CLIENTES */}
       <div className="row g-3 mb-4">
 
-        <div className="col-12 col-md-4">
+        <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
 
@@ -466,7 +466,7 @@ export default function Clientes() {
           </div>
         </div>
 
-        <div className="col-12 col-md-4">
+        <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
 
@@ -512,9 +512,6 @@ export default function Clientes() {
                 Clientes cadastrados
               </h5>
 
-              <p className="text-muted mb-0">
-                Consulte, pesquise e gerencie os clientes cadastrados.
-              </p>
             </div>
 
             <button
@@ -745,6 +742,7 @@ export default function Clientes() {
                             }
                           >
                             <i className="bi bi-pencil"></i>
+                          Editar
                           </button>
 
                           <button
@@ -756,6 +754,7 @@ export default function Clientes() {
                             }
                           >
                             <i className="bi bi-trash"></i>
+                          Excluir
                           </button>
 
                         </div>
