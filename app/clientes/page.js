@@ -282,17 +282,6 @@ export default function Clientes() {
             ImobGest - Clientes
           </h2>
         </div>
-
-        <div className="d-flex gap-2 mt-3 mt-md-0">
-          <button
-            className="btn btn-outline-primary"
-            onClick={carregarClientes}
-            disabled={loading}
-          >
-            <i className="bi bi-arrow-clockwise me-2"></i>
-            Atualizar
-          </button>
-        </div>
       </div>
 
       {/* ACESSO RÁPIDO */}
