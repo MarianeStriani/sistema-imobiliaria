@@ -15,7 +15,7 @@ export default function Clientes() {
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState(null)
 
-  const [consultandoCep, setConsultandoCep] = useState(false)
+  const hoje = new Date()
 
   const [form, setForm] = useState({
     nome: "",
