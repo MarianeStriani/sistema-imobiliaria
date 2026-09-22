@@ -498,39 +498,8 @@ export default function Clientes() {
           </div>
         </div>
 
-        <div className="col-12 col-md-4">
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-body">
-
-              <div className="d-flex justify-content-between align-items-start">
-
-                <div>
-                  <p className="text-muted mb-1">
-                    Cadastro
-                  </p>
-
-                  <h3 className="fw-bold mb-0">
-                    Ativo
-                  </h3>
-                </div>
-
-                <div
-                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                  }}
-                >
-                  <i className="bi bi-person-check text-success fs-4"></i>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        </div>
-
       </div>
+
 {/* LISTA DE CLIENTES */}
       <div className="card shadow-sm border-0">
 
