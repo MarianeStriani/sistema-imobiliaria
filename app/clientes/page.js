@@ -275,18 +275,10 @@ export default function Clientes() {
   return (
     <div className="container-fluid py-4">
 
-      {/* CABEÇALHO */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="fw-bold mb-1">
-            ImobGest - Clientes
-          </h2>
-        </div>
-      </div>
-
       {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm border-0 mb-4">
         <div className="card-body">
+
           <div className="d-flex align-items-center mb-3">
             <div
               className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
@@ -306,6 +298,7 @@ export default function Clientes() {
           </div>
 
           <div className="row g-2">
+
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 className="btn btn-outline-primary w-100 py-2"
@@ -375,187 +368,223 @@ export default function Clientes() {
                 Financeiro
               </button>
             </div>
+
           </div>
         </div>
       </div>
 
+      {/* CABEÇALHO */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
-        {/* CONTEÚDO PRINCIPAL */}
-        <div className="container-fluid py-4">
-          {/* CABEÇALHO */}
-          <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
-            <div>
-              <h2 className="fw-bold mb-1">
-                ImobGest - Clientes
-              </h2>
-            </div>
+        <div>
+          <h2 className="fw-bold mb-1">
+            ImobGest - Clientes
+          </h2>
+        </div>
 
-            <div className="d-flex gap-2 mt-3 mt-md-0">
-              <button
-                className="btn btn-outline-primary"
-                onClick={carregarClientes}
-                disabled={loading}
-              >
-                <i className="bi bi-arrow-clockwise me-2"></i>
-                Atualizar
-              </button>
-            </div>
-          </div>
+        <div className="d-flex gap-2 mt-3 mt-md-0">
+          <button
+            className="btn btn-outline-primary"
+            onClick={carregarClientes}
+            disabled={loading}
+          >
+            <i className="bi bi-arrow-clockwise me-2"></i>
+            Atualizar
+          </button>
+        </div>
 
-          {/* MENSAGEM DE ERRO */}
-          {erro && (
-            <div
-              className="alert alert-danger alert-dismissible fade show"
-              role="alert"
-            >
-              <i className="bi bi-exclamation-triangle me-2"></i>
+      </div>
 
-              {erro}
+      {/* MENSAGEM DE ERRO */}
+      {erro && (
+        <div
+          className="alert alert-danger alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-triangle me-2"></i>
 
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setErro("")}
-              ></button>
-            </div>
-          )}
+          {erro}
 
-          {/* MENSAGEM DE SUCESSO */}
-          {sucesso && (
-            <div
-              className="alert alert-success alert-dismissible fade show"
-              role="alert"
-            >
-              <i className="bi bi-check-circle me-2"></i>
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setErro("")}
+          ></button>
+        </div>
+      )}
 
-              {sucesso}
+      {/* MENSAGEM DE SUCESSO */}
+      {sucesso && (
+        <div
+          className="alert alert-success alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-check-circle me-2"></i>
 
-              <button
-                type="button"
-                className="btn-close"
-                onClick={fecharMensagemSucesso}
-              ></button>
-            </div>
-          )}
+          {sucesso}
 
-{/* RESUMO DOS CLIENTES */}
-          <div className="row g-3 mb-4">
-            <div className="col-12 col-md-4">
-              <div className="card shadow-sm border-0 h-100">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-start">
-                    <div>
-                      <p className="text-muted mb-1">
-                        Total de clientes
-                      </p>
+          <button
+            type="button"
+            className="btn-close"
+            onClick={fecharMensagemSucesso}
+          ></button>
+        </div>
+      )}
 
-                      <h3 className="fw-bold mb-0">
-                        {clientes.length}
-                      </h3>
-                    </div>
+      {/* RESUMO DOS CLIENTES */}
+      <div className="row g-3 mb-4">
 
-                    <div
-                      className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                      }}
-                    >
-                      <i className="bi bi-people text-primary fs-4"></i>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-4">
-              <div className="card shadow-sm border-0 h-100">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-start">
-                    <div>
-                      <p className="text-muted mb-1">
-                        Resultados
-                      </p>
-
-                      <h3 className="fw-bold mb-0">
-                        {clientesFiltrados.length}
-                      </h3>
-                    </div>
-
-                    <div
-                      className="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                      }}
-                    >
-                      <i className="bi bi-search text-info fs-4"></i>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-4">
-              <div className="card shadow-sm border-0 h-100">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-start">
-                    <div>
-                      <p className="text-muted mb-1">
-                        Cadastro
-                      </p>
-
-                      <h3 className="fw-bold mb-0">
-                        Ativo
-                      </h3>
-                    </div>
-
-                    <div
-                      className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                      }}
-                    >
-                      <i className="bi bi-person-check text-success fs-4"></i>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* LISTA DE CLIENTES */}
-          <div className="card shadow-sm border-0 mb-4">
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
-              <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+
+              <div className="d-flex justify-content-between align-items-start">
+
                 <div>
-                  <h5 className="fw-bold mb-1">
-                    Clientes cadastrados
-                  </h5>
+                  <p className="text-muted mb-1">
+                    Total de clientes
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {clientes.length}
+                  </h3>
                 </div>
 
-                <button
-                  className="btn btn-primary mt-3 mt-md-0"
-                  onClick={abrirNovoCliente}
+                <div
+                  className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
                 >
-                  <i className="bi bi-person-plus me-2"></i>
-                  Novo cliente
-                </button>
+                  <i className="bi bi-people text-primary fs-4"></i>
+                </div>
+
               </div>
 
-              {/* BUSCA */}
-              <div className="row g-2 mb-4">
-                <div className="col-12 col-md-9">
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Resultados
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {clientesFiltrados.length}
+                  </h3>
+                </div>
+
+                <div
+                  className="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-search text-info fs-4"></i>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <p className="text-muted mb-1">
+                    Cadastro
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    Ativo
+                  </h3>
+                </div>
+
+                <div
+                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-person-check text-success fs-4"></i>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+{/* LISTA DE CLIENTES */}
+      <div className="card shadow-sm border-0">
+
+        <div className="card-body">
+
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+
+            <div>
+              <h5 className="fw-bold mb-1">
+                Clientes cadastrados
+              </h5>
+
+              <p className="text-muted mb-0">
+                Consulte, pesquise e gerencie os clientes cadastrados.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={abrirNovoCliente}
+            >
+              <i className="bi bi-plus-lg me-2"></i>
+              Novo cliente
+            </button>
+
+          </div>
+
+          {/* FILTRO */}
+          <div className="card border-0 bg-light mb-4">
+            <div className="card-body">
+
+              <div className="row g-3 align-items-end">
+
+                <div className="col-12 col-md-8">
+
+                  <label
+                    htmlFor="buscaCliente"
+                    className="form-label fw-semibold"
+                  >
+                    Pesquisar cliente
+                  </label>
+
                   <div className="input-group">
+
                     <span className="input-group-text bg-white">
                       <i className="bi bi-search"></i>
                     </span>
 
                     <input
+                      id="buscaCliente"
                       type="text"
                       className="form-control"
-                      placeholder="Buscar por nome, CPF, telefone ou e-mail..."
+                      placeholder="Nome, CPF, telefone ou e-mail"
                       value={busca}
                       onChange={(e) =>
                         setBusca(e.target.value)
@@ -571,392 +600,450 @@ export default function Clientes() {
                         <i className="bi bi-x-lg"></i>
                       </button>
                     )}
+
                   </div>
+
                 </div>
 
-                <div className="col-12 col-md-3">
+                <div className="col-12 col-md-4">
+
                   <button
-                    className="btn btn-outline-primary w-100"
-                    onClick={carregarClientes}
-                    disabled={loading}
+                    type="button"
+                    className="btn btn-primary w-100"
+                    onClick={abrirNovoCliente}
                   >
-                    <i className="bi bi-arrow-clockwise me-2"></i>
-                    Atualizar lista
+                    <i className="bi bi-person-plus me-2"></i>
+                    Cadastrar cliente
                   </button>
+
                 </div>
+
               </div>
 
-              {/* ÁREA DA TABELA */}
-              {loading ? (
-                <div className="text-center py-5">
-                  <div
-                    className="spinner-border text-primary"
-                    role="status"
-                  >
-                    <span className="visually-hidden">
-                      Carregando...
-                    </span>
-                  </div>
-
-                  <p className="text-muted mt-3 mb-0">
-                    Carregando clientes...
-                  </p>
-                </div>
-              ) : clientesFiltrados.length === 0 ? (
-                <div className="text-center py-5">
-                  <div
-                    className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto"
-                    style={{
-                      width: "70px",
-                      height: "70px",
-                    }}
-                  >
-                    <i className="bi bi-people text-primary fs-2"></i>
-                  </div>
-
-                  <h5 className="fw-bold mt-3">
-                    Nenhum cliente encontrado
-                  </h5>
-
-                  <p className="text-muted mb-3">
-                    {busca
-                      ? "Tente alterar os termos da busca."
-                      : "Comece cadastrando o primeiro cliente."}
-                  </p>
-
-                  {!busca && (
-                    <button
-                      className="btn btn-primary"
-                      onClick={abrirNovoCliente}
-                    >
-                      <i className="bi bi-person-plus me-2"></i>
-                      Cadastrar cliente
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th>Cliente</th>
-                        <th>CPF</th>
-                        <th>Telefone</th>
-                        <th>E-mail</th>
-                        <th className="text-end">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {clientesFiltrados.map((cliente) => (
-                        <tr key={cliente.id}>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              <div
-                                className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
-                                style={{
-                                  width: "40px",
-                                  height: "40px",
-                                }}
-                              >
-                                <i className="bi bi-person text-primary"></i>
-                              </div>
-
-                              <div>
-                                <div className="fw-semibold">
-                                  {cliente.nome || "-"}
-                                </div>
-
-                                {cliente.email && (
-                                  <small className="text-muted">
-                                    {cliente.email}
-                                  </small>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          <td>
-                            {formatarCpf(cliente.cpf)}
-                          </td>
-
-                          <td>
-                            {formatarTelefone(
-                              cliente.telefone
-                            )}
-                          </td>
-
-                          <td>
-                            {cliente.email || "-"}
-                          </td>
-
-                          <td className="text-end">
-                            <div className="btn-group">
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-primary"
-                                title="Editar cliente"
-                                onClick={() =>
-                                  abrirEditarCliente(
-                                    cliente
-                                  )
-                                }
-                              >
-                                <i className="bi bi-pencil me-1"></i>
-                                Editar
-                              </button>
-
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                title="Excluir cliente"
-                                onClick={() =>
-                                  excluirCliente(
-                                    cliente
-                                  )
-                                }
-                              >
-                                <i className="bi bi-trash me-1"></i>
-                                Excluir
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-{/* MODAL - NOVO / EDITAR CLIENTE */}
-              {modalAberto && (
-                <div
-                  className="modal fade show d-block"
-                  tabIndex="-1"
-                  role="dialog"
-                  style={{
-                    backgroundColor: "rgba(0, 0, 0, 0.5)",
-                  }}
-                >
-                  <div
-                    className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
-                    role="document"
-                  >
-                    <div className="modal-content border-0 shadow">
-                      <div className="modal-header">
-                        <div>
-                          <h5 className="modal-title fw-bold">
-                            {editando
-                              ? "Editar cliente"
-                              : "Novo cliente"}
-                          </h5>
-
-                          <small className="text-muted">
-                            {editando
-                              ? "Atualize os dados do cliente"
-                              : "Cadastre um novo cliente no sistema"}
-                          </small>
-                        </div>
-
-                        <button
-                          type="button"
-                          className="btn-close"
-                          onClick={fecharModal}
-                          disabled={salvando}
-                        ></button>
-                      </div>
-
-                      <form onSubmit={salvarCliente}>
-                        <div className="modal-body">
-                          <div className="mb-4">
-                            <div className="d-flex align-items-center mb-3">
-                              <div
-                                className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
-                                style={{
-                                  width: "38px",
-                                  height: "38px",
-                                }}
-                              >
-                                <i className="bi bi-person text-primary"></i>
-                              </div>
-
-                              <div>
-                                <h6 className="fw-bold mb-0">
-                                  Dados pessoais
-                                </h6>
-
-                                <small className="text-muted">
-                                  Informações básicas do cliente
-                                </small>
-                              </div>
-                            </div>
-
-                            <div className="row g-3">
-                              <div className="col-12 col-md-8">
-                                <label className="form-label fw-semibold">
-                                  Nome completo
-                                  <span className="text-danger ms-1">
-                                    *
-                                  </span>
-                                </label>
-
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="Digite o nome completo"
-                                  value={form.nome}
-                                  onChange={(e) =>
-                                    alterarCampo(
-                                      "nome",
-                                      e.target.value
-                                    )
-                                  }
-                                  required
-                                />
-                              </div>
-
-                              <div className="col-12 col-md-4">
-                                <label className="form-label fw-semibold">
-                                  CPF
-                                </label>
-
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="000.000.000-00"
-                                  value={form.cpf}
-                                  onChange={(e) =>
-                                    alterarCampo(
-                                      "cpf",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-
-                              <div className="col-12 col-md-4">
-                                <label className="form-label fw-semibold">
-                                  RG
-                                </label>
-
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="Digite o RG"
-                                  value={form.rg}
-                                  onChange={(e) =>
-                                    alterarCampo(
-                                      "rg",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-
-                              <div className="col-12 col-md-4">
-                                <label className="form-label fw-semibold">
-                                  Telefone
-                                </label>
-
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="(00) 00000-0000"
-                                  value={form.telefone}
-                                  onChange={(e) =>
-                                    alterarCampo(
-                                      "telefone",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-
-                              <div className="col-12 col-md-4">
-                                <label className="form-label fw-semibold">
-                                  E-mail
-                                </label>
-
-                                <input
-                                  type="email"
-                                  className="form-control"
-                                  placeholder="cliente@email.com"
-                                  value={form.email}
-                                  onChange={(e) =>
-                                    alterarCampo(
-                                      "email",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="modal-footer">
-                          <button
-                            type="button"
-                            className="btn btn-outline-secondary"
-                            onClick={fecharModal}
-                            disabled={salvando}
-                          >
-                            Cancelar
-                          </button>
-
-                          <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={salvando}
-                          >
-                            {salvando ? (
-                              <>
-                                <span
-                                  className="spinner-border spinner-border-sm me-2"
-                                  role="status"
-                                ></span>
-
-                                Salvando...
-                              </>
-                            ) : (
-                              <>
-                                <i className="bi bi-check-lg me-2"></i>
-
-                                {editando
-                                  ? "Salvar alterações"
-                                  : "Cadastrar cliente"}
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        </>
-      )
-    }
 
-{/* RODAPÉ DA PÁGINA */}
-        <div className="text-center text-muted py-3">
-          <small>
-            Sistema de Gestão Imobiliária
-          </small>
+          {/* TABELA */}
+          {loading ? (
+            <div className="text-center py-5">
 
-          <div className="mt-1">
-            <small>
-              Gestão de clientes e informações cadastrais
-            </small>
+              <div
+                className="spinner-border text-primary"
+                role="status"
+              >
+                <span className="visually-hidden">
+                  Carregando...
+                </span>
+              </div>
+
+              <p className="text-muted mt-3 mb-0">
+                Carregando clientes...
+              </p>
+
+            </div>
+          ) : clientesFiltrados.length === 0 ? (
+
+            <div className="text-center py-5">
+
+              <div
+                className="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                style={{
+                  width: "72px",
+                  height: "72px",
+                }}
+              >
+                <i className="bi bi-people text-muted fs-2"></i>
+              </div>
+
+              <h5 className="fw-bold">
+                Nenhum cliente encontrado
+              </h5>
+
+              <p className="text-muted mb-3">
+                {busca
+                  ? "Não encontramos clientes para a pesquisa informada."
+                  : "Ainda não existem clientes cadastrados."}
+              </p>
+
+              {!busca && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={abrirNovoCliente}
+                >
+                  <i className="bi bi-person-plus me-2"></i>
+                  Cadastrar primeiro cliente
+                </button>
+              )}
+
+            </div>
+
+          ) : (
+
+            <div className="table-responsive">
+
+              <table className="table table-hover align-middle mb-0">
+
+                <thead className="table-light">
+
+                  <tr>
+
+                    <th>
+                      Cliente
+                    </th>
+
+                    <th>
+                      CPF
+                    </th>
+
+                    <th>
+                      Telefone
+                    </th>
+
+                    <th>
+                      E-mail
+                    </th>
+
+                    <th className="text-end">
+                      Ações
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {clientesFiltrados.map((cliente) => (
+
+                    <tr key={cliente.id}>
+
+                      <td>
+
+                        <div className="d-flex align-items-center">
+
+                          <div
+                            className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                            style={{
+                              width: "42px",
+                              height: "42px",
+                              minWidth: "42px",
+                            }}
+                          >
+                            <i className="bi bi-person text-primary"></i>
+                          </div>
+
+                          <div>
+                            <div className="fw-semibold">
+                              {cliente.nome || "-"}
+                            </div>
+
+                            {cliente.rg && (
+                              <small className="text-muted">
+                                RG: {cliente.rg}
+                              </small>
+                            )}
+                          </div>
+
+                        </div>
+
+                      </td>
+
+                      <td>
+                        {formatarCpf(cliente.cpf)}
+                      </td>
+
+                      <td>
+                        {formatarTelefone(
+                          cliente.telefone
+                        )}
+                      </td>
+
+                      <td>
+                        {cliente.email || "-"}
+                      </td>
+
+                      <td>
+
+                        <div className="d-flex justify-content-end gap-2">
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            title="Editar cliente"
+                            onClick={() =>
+                              abrirEditarCliente(cliente)
+                            }
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            title="Excluir cliente"
+                            onClick={() =>
+                              excluirCliente(cliente)
+                            }
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
+
+        </div>
+
+      </div>
+
+{/* MODAL - NOVO / EDITAR CLIENTE */}
+      {modalAberto && (
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          role="dialog"
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+          }}
+        >
+          <div
+            className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+            role="document"
+          >
+            <div className="modal-content border-0 shadow">
+
+              {/* CABEÇALHO DO MODAL */}
+              <div className="modal-header">
+
+                <div>
+                  <h5 className="modal-title fw-bold mb-1">
+                    {editando
+                      ? "Editar cliente"
+                      : "Novo cliente"}
+                  </h5>
+
+                  <p className="text-muted mb-0 small">
+                    {editando
+                      ? "Atualize os dados do cliente."
+                      : "Preencha os dados para cadastrar um novo cliente."}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-close"
+                  aria-label="Fechar"
+                  onClick={fecharModal}
+                  disabled={salvando}
+                ></button>
+
+              </div>
+
+              {/* FORMULÁRIO */}
+              <form onSubmit={salvarCliente}>
+
+                <div className="modal-body">
+
+                  <div className="row g-3">
+
+                    {/* NOME */}
+                    <div className="col-12">
+
+                      <label
+                        htmlFor="nome"
+                        className="form-label fw-semibold"
+                      >
+                        Nome completo
+                      </label>
+
+                      <input
+                        id="nome"
+                        type="text"
+                        className="form-control"
+                        value={form.nome}
+                        onChange={(e) =>
+                          alterarCampo(
+                            "nome",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Digite o nome completo"
+                        required
+                      />
+
+                    </div>
+
+                    {/* CPF */}
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        htmlFor="cpf"
+                        className="form-label fw-semibold"
+                      >
+                        CPF
+                      </label>
+
+                      <input
+                        id="cpf"
+                        type="text"
+                        className="form-control"
+                        value={form.cpf}
+                        onChange={(e) =>
+                          alterarCampo(
+                            "cpf",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Digite o CPF"
+                      />
+
+                    </div>
+
+                    {/* RG */}
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        htmlFor="rg"
+                        className="form-label fw-semibold"
+                      >
+                        RG
+                      </label>
+
+                      <input
+                        id="rg"
+                        type="text"
+                        className="form-control"
+                        value={form.rg}
+                        onChange={(e) =>
+                          alterarCampo(
+                            "rg",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Digite o RG"
+                      />
+
+                    </div>
+
+                    {/* TELEFONE */}
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        htmlFor="telefone"
+                        className="form-label fw-semibold"
+                      >
+                        Telefone
+                      </label>
+
+                      <input
+                        id="telefone"
+                        type="text"
+                        className="form-control"
+                        value={form.telefone}
+                        onChange={(e) =>
+                          alterarCampo(
+                            "telefone",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Digite o telefone"
+                      />
+
+                    </div>
+
+                    {/* E-MAIL */}
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        htmlFor="email"
+                        className="form-label fw-semibold"
+                      >
+                        E-mail
+                      </label>
+
+                      <input
+                        id="email"
+                        type="email"
+                        className="form-control"
+                        value={form.email}
+                        onChange={(e) =>
+                          alterarCampo(
+                            "email",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Digite o e-mail"
+                      />
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                {/* RODAPÉ DO MODAL */}
+                <div className="modal-footer">
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={fecharModal}
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={salvando}
+                  >
+
+                    {salvando ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden="true"
+                        ></span>
+
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-lg me-2"></i>
+
+                        {editando
+                          ? "Salvar alterações"
+                          : "Cadastrar cliente"}
+                      </>
+                    )}
+
+                  </button>
+
+                </div>
+
+              </form>
+
+            </div>
           </div>
         </div>
-      </div>
-    </>
+      )}
+
+    </div>
   )
 }
-
 
