@@ -24,14 +24,7 @@ export default function Clientes() {
     rg: "",
     telefone: "",
     email: "",
-    endereco: "",
-    numero: "",
-    complemento: "",
-    bairro: "",
-    cidade: "",
-    uf: "",
-    cep: "",
-    observacoes: "",
+    
   })
 
   async function carregarClientes() {
@@ -81,14 +74,6 @@ export default function Clientes() {
       rg: "",
       telefone: "",
       email: "",
-      endereco: "",
-      numero: "",
-      complemento: "",
-      bairro: "",
-      cidade: "",
-      uf: "",
-      cep: "",
-      observacoes: "",
     })
 
     setModalAberto(true)
@@ -105,14 +90,6 @@ export default function Clientes() {
       rg: cliente.rg || "",
       telefone: cliente.telefone || "",
       email: cliente.email || "",
-      endereco: cliente.endereco || "",
-      numero: cliente.numero || "",
-      complemento: cliente.complemento || "",
-      bairro: cliente.bairro || "",
-      cidade: cliente.cidade || "",
-      uf: cliente.uf || "",
-      cep: cliente.cep || "",
-      observacoes: cliente.observacoes || "",
     })
 
     setModalAberto(true)
@@ -131,65 +108,8 @@ export default function Clientes() {
       [campo]: valor,
     }))
   }
-async function buscarCep(cep) {
-    const cepLimpo = cep.replace(/\D/g, "")
+ 
 
-    if (cepLimpo.length !== 8) {
-      return
-    }
-
-    setConsultandoCep(true)
-    setErro("")
-
-    try {
-      const resposta = await fetch(
-        `https://viacep.com.br/ws/${cepLimpo}/json/`
-      )
-
-      if (!resposta.ok) {
-        throw new Error(
-          "Não foi possível consultar o CEP."
-        )
-      }
-
-      const dados = await resposta.json()
-
-      if (dados.erro) {
-        setErro("CEP não encontrado.")
-        return
-      }
-
-      setForm((anterior) => ({
-        ...anterior,
-        cep:
-          dados.cep ||
-          anterior.cep,
-        endereco:
-          dados.logradouro ||
-          anterior.endereco,
-        bairro:
-          dados.bairro ||
-          anterior.bairro,
-        cidade:
-          dados.localidade ||
-          anterior.cidade,
-        uf:
-          dados.uf ||
-          anterior.uf,
-      }))
-    } catch (error) {
-      console.error(
-        "Erro ao consultar CEP:",
-        error
-      )
-
-      setErro(
-        "Não foi possível consultar o CEP. Verifique sua conexão e tente novamente."
-      )
-    } finally {
-      setConsultandoCep(false)
-    }
-  }
 
   function acessarPagina(url) {
     window.location.href = url
@@ -247,14 +167,6 @@ async function buscarCep(cep) {
         rg: form.rg.trim(),
         telefone: form.telefone.trim(),
         email: form.email.trim(),
-        endereco: form.endereco.trim(),
-        numero: form.numero.trim(),
-        complemento: form.complemento.trim(),
-        bairro: form.bairro.trim(),
-        cidade: form.cidade.trim(),
-        uf: form.uf.trim().toUpperCase(),
-        cep: form.cep.trim(),
-        observacoes: form.observacoes.trim(),
       }
 
       if (editando?.id) {
@@ -295,14 +207,6 @@ async function buscarCep(cep) {
         rg: "",
         telefone: "",
         email: "",
-        endereco: "",
-        numero: "",
-        complemento: "",
-        bairro: "",
-        cidade: "",
-        uf: "",
-        cep: "",
-        observacoes: "",
       })
     } catch (error) {
       console.error(
@@ -540,56 +444,6 @@ async function buscarCep(cep) {
               </button>
             </div>
 
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/manutencoes")}
-              >
-                <i className="bi bi-tools d-block fs-5 mb-1"></i>
-                Manutenções
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/visitas")}
-              >
-                <i className="bi bi-calendar-check d-block fs-5 mb-1"></i>
-                Visitas
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/comunicacao")}
-              >
-                <i className="bi bi-whatsapp d-block fs-5 mb-1"></i>
-                Comunicação
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/relatorios")}
-              >
-                <i className="bi bi-file-earmark-bar-graph d-block fs-5 mb-1"></i>
-                Relatórios
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/configuracoes")}
-              >
-                <i className="bi bi-gear d-block fs-5 mb-1"></i>
-                Configurações
-              </button>
-            </div>
-
           </div>
         </div>
       </div>
@@ -622,10 +476,6 @@ async function buscarCep(cep) {
                 </div>
               </div>
 
-              <small className="text-muted d-block mt-3">
-                Clientes cadastrados no sistema
-              </small>
-
             </div>
           </div>
         </div>
@@ -655,10 +505,6 @@ async function buscarCep(cep) {
                   <i className="bi bi-search text-info fs-4"></i>
                 </div>
               </div>
-
-              <small className="text-muted d-block mt-3">
-                Clientes encontrados na busca
-              </small>
 
             </div>
           </div>
@@ -709,10 +555,6 @@ async function buscarCep(cep) {
               <h5 className="fw-bold mb-1">
                 Clientes cadastrados
               </h5>
-
-              <small className="text-muted">
-                Consulte, edite ou exclua clientes
-              </small>
             </div>
 
             <button
@@ -833,7 +675,6 @@ async function buscarCep(cep) {
                     <th>CPF</th>
                     <th>Telefone</th>
                     <th>E-mail</th>
-                    <th>Cidade</th>
                     <th className="text-end">
                       Ações
                     </th>
@@ -1117,263 +958,7 @@ async function buscarCep(cep) {
 
                     </div>
                   </div>
-
-                  <hr className="my-4" />
-
-                  {/* ENDEREÇO */}
-                  <div className="mb-4">
-
-                    <div className="d-flex align-items-center mb-3">
-
-                      <div
-                        className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
-                        style={{
-                          width: "38px",
-                          height: "38px",
-                        }}
-                      >
-                        <i className="bi bi-geo-alt text-success"></i>
-                      </div>
-
-                      <div>
-                        <h6 className="fw-bold mb-0">
-                          Endereço
-                        </h6>
-
-                        <small className="text-muted">
-                          Endereço residencial ou comercial
-                        </small>
-                      </div>
-
-                    </div>
-
-                    <div className="row g-3">
-
-                      {/* CEP */}
-                      <div className="col-12 col-md-3">
-                        <label className="form-label fw-semibold">
-                          CEP
-                        </label>
-
-                        <div className="input-group">
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="00000-000"
-                            maxLength="9"
-                            value={form.cep}
-                            onChange={(e) => {
-                              const valor =
-                                e.target.value
-
-                              const cepFormatado =
-                                valor
-                                  .replace(
-                                    /\D/g,
-                                    ""
-                                  )
-                                  .replace(
-                                    /^(\d{5})(\d)/,
-                                    "$1-$2"
-                                  )
-                                  .slice(0, 9)
-
-                              alterarCampo(
-                                "cep",
-                                cepFormatado
-                              )
-                            }}
-                            onBlur={(e) =>
-                              buscarCep(
-                                e.target.value
-                              )
-                            }
-                          />
-
-                          {consultandoCep && (
-                            <span className="input-group-text">
-                              <span
-                                className="spinner-border spinner-border-sm text-primary"
-                                role="status"
-                              ></span>
-                            </span>
-                          )}
-                        </div>
-
-                        <small className="text-muted">
-                          Digite o CEP para preencher o endereço.
-                        </small>
-                      </div>
-
-                      {/* ENDEREÇO */}
-                      <div className="col-12 col-md-7">
-                        <label className="form-label fw-semibold">
-                          Logradouro
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Rua, Avenida, Estrada..."
-                          value={form.endereco}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "endereco",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-
-                      {/* NÚMERO */}
-                      <div className="col-12 col-md-2">
-                        <label className="form-label fw-semibold">
-                          Número
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Nº"
-                          value={form.numero}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "numero",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-{/* COMPLEMENTO */}
-                      <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">
-                          Complemento
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Apartamento, bloco..."
-                          value={form.complemento}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "complemento",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-
-                      {/* BAIRRO */}
-                      <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">
-                          Bairro
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Digite o bairro"
-                          value={form.bairro}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "bairro",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-
-                      {/* CIDADE */}
-                      <div className="col-12 col-md-3">
-                        <label className="form-label fw-semibold">
-                          Cidade
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="Digite a cidade"
-                          value={form.cidade}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "cidade",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </div>
-
-                      {/* UF */}
-                      <div className="col-12 col-md-1">
-                        <label className="form-label fw-semibold">
-                          UF
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control text-uppercase"
-                          maxLength="2"
-                          placeholder="SP"
-                          value={form.uf}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "uf",
-                              e.target.value.toUpperCase()
-                            )
-                          }
-                        />
-                      </div>
-
-                    </div>
-                  </div>
-
-                  <hr className="my-4" />
-
-                  {/* OBSERVAÇÕES */}
-                  <div>
-
-                    <div className="d-flex align-items-center mb-3">
-
-                      <div
-                        className="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
-                        style={{
-                          width: "38px",
-                          height: "38px",
-                        }}
-                      >
-                        <i className="bi bi-chat-left-text text-warning"></i>
-                      </div>
-
-                      <div>
-                        <h6 className="fw-bold mb-0">
-                          Observações
-                        </h6>
-
-                        <small className="text-muted">
-                          Informações adicionais sobre o cliente
-                        </small>
-                      </div>
-
-                    </div>
-
-                    <textarea
-                      className="form-control"
-                      rows="4"
-                      placeholder="Digite observações, informações adicionais ou anotações..."
-                      value={form.observacoes}
-                      onChange={(e) =>
-                        alterarCampo(
-                          "observacoes",
-                          e.target.value
-                        )
-                      }
-                    ></textarea>
-
-                  </div>
-
                 </div>
-
                 {/* RODAPÉ DO MODAL */}
                 <div className="modal-footer">
 
