@@ -565,12 +565,9 @@ export default function Contratos() {
 
         <div>
           <h2 className="fw-bold mb-1">
-            Contratos
+            ImobGest - Contratos
           </h2>
 
-          <p className="text-muted mb-0">
-            Gerencie os contratos cadastrados no sistema.
-          </p>
         </div>
 
         <div className="d-flex gap-2">
