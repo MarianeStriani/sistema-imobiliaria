@@ -410,10 +410,6 @@ export default function Dashboard() {
               <h5 className="fw-bold mb-0">
                 Acesso rápido
               </h5>
-
-              <small className="text-muted">
-                Acesse rapidamente as principais áreas
-              </small>
             </div>
           </div>
 
@@ -482,16 +478,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
 {/* CABEÇALHO */}
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold mb-1">
             ImobGest - Dashboard
           </h2>
-
-          <p className="text-muted mb-0">
-            Visão geral da gestão imobiliária
-          </p>
         </div>
       </div>
 
@@ -832,10 +825,6 @@ export default function Dashboard() {
                   <h5 className="fw-bold mb-1">
                     Status dos imóveis
                   </h5>
-
-                  <small className="text-muted">
-                    Distribuição atual da carteira
-                  </small>
                 </div>
 
                 <button
@@ -957,10 +946,6 @@ export default function Dashboard() {
                   <h5 className="fw-bold mb-1">
                     Alertas
                   </h5>
-
-                  <small className="text-muted">
-                    Itens que precisam de atenção
-                  </small>
                 </div>
 
                 <i className="bi bi-bell text-warning fs-4"></i>
