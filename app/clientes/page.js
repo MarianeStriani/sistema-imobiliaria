@@ -727,16 +727,6 @@ export default function Clientes() {
                         {cliente.email || "-"}
                       </td>
 
-                      <td>
-                        {cliente.cidade
-                          ? `${cliente.cidade}${
-                              cliente.uf
-                                ? ` - ${cliente.uf}`
-                                : ""
-                            }`
-                          : "-"}
-                      </td>
-
                       <td className="text-end">
                         <div className="btn-group">
 
@@ -749,6 +739,7 @@ export default function Clientes() {
                             }
                           >
                             <i className="bi bi-pencil"></i>
+                           Editar
                           </button>
 
                           <button
@@ -760,6 +751,7 @@ export default function Clientes() {
                             }
                           >
                             <i className="bi bi-trash"></i>
+                           Excluir
                           </button>
 
                         </div>
