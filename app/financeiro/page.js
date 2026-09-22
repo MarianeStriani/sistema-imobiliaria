@@ -1,18 +1,11 @@
+```javascript
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
 export default function Financeiro() {
-  // ========================================
-  // DATA ATUAL
-  // ========================================
-
   const hoje = new Date()
-
-  // ========================================
-  // FILTRO DE PERÍODO
-  // ========================================
 
   const [mes, setMes] = useState(
     hoje.getMonth() + 1
@@ -22,32 +15,12 @@ export default function Financeiro() {
     hoje.getFullYear()
   )
 
-  // ========================================
-  // DADOS
-  // ========================================
+  const [recebimentos, setRecebimentos] = useState([])
+  const [despesas, setDespesas] = useState([])
 
-  const [recebimentos, setRecebimentos] =
-    useState([])
-
-  const [despesas, setDespesas] =
-    useState([])
-
-  // ========================================
-  // CONTROLE
-  // ========================================
-
-  const [loading, setLoading] =
-    useState(true)
-
-  const [erro, setErro] =
-    useState("")
-
-  const [sucesso, setSucesso] =
-    useState("")
-
-  // ========================================
-  // MESES
-  // ========================================
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState("")
+  const [sucesso, setSucesso] = useState("")
 
   const meses = [
     "Janeiro",
@@ -64,25 +37,23 @@ export default function Financeiro() {
     "Dezembro",
   ]
 
-  // ========================================
-  // CARREGAR DADOS
-  // ========================================
-
   async function carregarDados() {
     setLoading(true)
     setErro("")
 
     try {
-      const [recebimentosResult, despesasResult] =
-        await Promise.all([
-          supabase
-            .from("recebimentos")
-            .select("*"),
+      const [
+        recebimentosResult,
+        despesasResult,
+      ] = await Promise.all([
+        supabase
+          .from("recebimentos")
+          .select("*"),
 
-          supabase
-            .from("despesas")
-            .select("*"),
-        ])
+        supabase
+          .from("despesas")
+          .select("*"),
+      ])
 
       if (recebimentosResult.error) {
         throw recebimentosResult.error
@@ -114,43 +85,23 @@ export default function Financeiro() {
     }
   }
 
-  // ========================================
-  // CARREGAMENTO INICIAL
-  // ========================================
-
   useEffect(() => {
     carregarDados()
   }, [])
-
-  // ========================================
-  // LIMPAR MENSAGENS
-  // ========================================
 
   function limparMensagens() {
     setErro("")
     setSucesso("")
   }
 
-  // ========================================
-  // CONVERSÃO DE NÚMERO
-  // ========================================
-
   function numero(valor) {
     const n = Number(valor)
 
-    return Number.isNaN(n)
-      ? 0
-      : n
+    return Number.isNaN(n) ? 0 : n
   }
 
-  // ========================================
-  // VERIFICAR STATUS PAGO
-  // ========================================
-
   function pago(status) {
-    const s = String(
-      status || ""
-    )
+    const s = String(status || "")
       .trim()
       .toLowerCase()
 
@@ -161,10 +112,6 @@ export default function Financeiro() {
       "realizado",
     ].includes(s)
   }
-
-  // ========================================
-  // VALIDAR DATA
-  // ========================================
 
   function dataValida(data) {
     if (!data) {
@@ -179,10 +126,6 @@ export default function Financeiro() {
     )
   }
 
-  // ========================================
-  // FORMATAR DATA
-  // ========================================
-
   function dataBR(data) {
     if (!dataValida(data)) {
       return "-"
@@ -190,19 +133,11 @@ export default function Financeiro() {
 
     return new Date(
       `${data}T00:00:00`
-    ).toLocaleDateString(
-      "pt-BR"
-    )
+    ).toLocaleDateString("pt-BR")
   }
 
-  // ========================================
-  // FORMATAR MOEDA
-  // ========================================
-
   function moeda(valor) {
-    return Number(
-      valor || 0
-    ).toLocaleString(
+    return Number(valor || 0).toLocaleString(
       "pt-BR",
       {
         style: "currency",
@@ -211,85 +146,56 @@ export default function Financeiro() {
     )
   }
 
-  // ========================================
-  // MONTAR MOVIMENTAÇÕES
-  // ========================================
-
   const movimentos = useMemo(() => {
-    const entradas =
-      recebimentos
-        .filter(
-          (item) =>
-            pago(item.status) &&
-            dataValida(
-              item.data_recebimento
-            )
-        )
-        .map((item) => ({
-          id: `e-${item.id}`,
+    const entradas = recebimentos
+      .filter(
+        (item) =>
+          pago(item.status) &&
+          dataValida(item.data_recebimento)
+      )
+      .map((item) => ({
+        id: `e-${item.id}`,
+        tipo: "entrada",
+        data: item.data_recebimento,
+        descricao:
+          item.descricao ||
+          item.observacoes ||
+          item["observações"] ||
+          "Recebimento",
+        categoria:
+          item.categoria ||
+          "Recebimento",
+        forma:
+          item.forma_pagamento ||
+          "-",
+        valor: numero(item.valor),
+        criado: item.created_at || "",
+      }))
 
-          tipo: "entrada",
-
-          data:
-            item.data_recebimento,
-
-          descricao:
-            item.descricao ||
-            item.observacoes ||
-            "Recebimento",
-
-          categoria:
-            item.categoria ||
-            "Recebimento",
-
-          forma:
-            item.forma_pagamento ||
-            "-",
-
-          valor:
-            numero(item.valor),
-
-          criado:
-            item.created_at || "",
-        }))
-
-    const saidas =
-      despesas
-        .filter(
-          (item) =>
-            pago(item.status) &&
-            dataValida(
-              item.data_despesa
-            )
-        )
-        .map((item) => ({
-          id: `s-${item.id}`,
-
-          tipo: "saida",
-
-          data:
-            item.data_despesa,
-
-          descricao:
-            item.descricao ||
-            item.observacoes ||
-            item["observações"] ||
-            "Despesa",
-
-          categoria:
-            item.categoria ||
-            "Despesa",
-
-          forma:
-            item.forma_pagamento ||
-            "-",
-
-          valor:
-            numero(item.valor),
-
-          criado:
-            item.created_at || "",
-        }))
+    const saidas = despesas
+      .filter(
+        (item) =>
+          pago(item.status) &&
+          dataValida(item.data_despesa)
+      )
+      .map((item) => ({
+        id: `s-${item.id}`,
+        tipo: "saida",
+        data: item.data_despesa,
+        descricao:
+          item.descricao ||
+          item.observacoes ||
+          item["observações"] ||
+          "Despesa",
+        categoria:
+          item.categoria ||
+          "Despesa",
+        forma:
+          item.forma_pagamento ||
+          "-",
+        valor: numero(item.valor),
+        criado: item.created_at || "",
+      }))
 
     return [
       ...entradas,
@@ -300,199 +206,136 @@ export default function Financeiro() {
     despesas,
   ])
 
-  // ========================================
-  // SALDO ATUAL
-  // ========================================
+  const saldoAtual = useMemo(() => {
+    return movimentos.reduce(
+      (saldo, movimento) =>
+        movimento.tipo === "entrada"
+          ? saldo + movimento.valor
+          : saldo - movimento.valor,
+      0
+    )
+  }, [movimentos])
 
-  const saldoAtual =
-    useMemo(() => {
-      return movimentos.reduce(
-        (saldo, movimento) =>
-          movimento.tipo ===
-          "entrada"
-            ? saldo +
-              movimento.valor
-            : saldo -
-              movimento.valor,
-        0
-      )
-    }, [movimentos])
-
-  // ========================================
-  // MOVIMENTAÇÕES DO PERÍODO
-  // ========================================
-
-  const periodo =
-    useMemo(() => {
-      return movimentos.filter(
-        (movimento) => {
-          const data =
-            new Date(
-              `${movimento.data}T00:00:00`
-            )
-
-          return (
-            data.getMonth() + 1 ===
-              mes &&
-            data.getFullYear() ===
-              ano
+  const periodo = useMemo(() => {
+    return movimentos.filter(
+      (movimento) => {
+        const data =
+          new Date(
+            `${movimento.data}T00:00:00`
           )
-        }
+
+        return (
+          data.getMonth() + 1 === mes &&
+          data.getFullYear() === ano
+        )
+      }
+    )
+  }, [
+    movimentos,
+    mes,
+    ano,
+  ])
+
+  const saldoAnterior = useMemo(() => {
+    const inicio =
+      new Date(
+        ano,
+        mes - 1,
+        1
       )
-    }, [
-      movimentos,
-      mes,
-      ano,
-    ])
 
-  // ========================================
-  // SALDO ANTERIOR
-  // ========================================
+    return movimentos.reduce(
+      (saldo, movimento) => {
+        const data =
+          new Date(
+            `${movimento.data}T00:00:00`
+          )
 
-  const saldoAnterior =
-    useMemo(() => {
-      const inicio =
+        if (data < inicio) {
+          return movimento.tipo === "entrada"
+            ? saldo + movimento.valor
+            : saldo - movimento.valor
+        }
+
+        return saldo
+      },
+      0
+    )
+  }, [
+    movimentos,
+    mes,
+    ano,
+  ])
+
+  const extrato = useMemo(() => {
+    const lista = [
+      ...periodo,
+    ].sort((a, b) => {
+      const dataA =
         new Date(
-          ano,
-          mes - 1,
-          1
-        )
+          `${a.data}T00:00:00`
+        ).getTime()
 
-      return movimentos.reduce(
-        (
+      const dataB =
+        new Date(
+          `${b.data}T00:00:00`
+        ).getTime()
+
+      if (dataA !== dataB) {
+        return dataA - dataB
+      }
+
+      return String(a.criado).localeCompare(
+        String(b.criado)
+      )
+    })
+
+    let saldo = saldoAnterior
+
+    return lista
+      .map((movimento) => {
+        saldo =
+          movimento.tipo === "entrada"
+            ? saldo + movimento.valor
+            : saldo - movimento.valor
+
+        return {
+          ...movimento,
           saldo,
-          movimento
-        ) => {
-          const data =
-            new Date(
-              `${movimento.data}T00:00:00`
-            )
-
-          if (data < inicio) {
-            return movimento.tipo ===
-              "entrada"
-              ? saldo +
-                movimento.valor
-              : saldo -
-                movimento.valor
-          }
-
-          return saldo
-        },
-        0
-      )
-    }, [
-      movimentos,
-      mes,
-      ano,
-    ])
-
-  // ========================================
-  // EXTRATO
-  // ========================================
-
-  const extrato =
-    useMemo(() => {
-      const lista = [
-        ...periodo,
-      ].sort((a, b) => {
-        const dataA =
-          new Date(
-            `${a.data}T00:00:00`
-          ).getTime()
-
-        const dataB =
-          new Date(
-            `${b.data}T00:00:00`
-          ).getTime()
-
-        if (
-          dataA !== dataB
-        ) {
-          return (
-            dataA - dataB
-          )
         }
-
-        return String(
-          a.criado
-        ).localeCompare(
-          String(b.criado)
-        )
       })
+      .reverse()
+  }, [
+    periodo,
+    saldoAnterior,
+  ])
 
-      let saldo =
-        saldoAnterior
+  const entradas = periodo
+    .filter(
+      (item) =>
+        item.tipo === "entrada"
+    )
+    .reduce(
+      (total, item) =>
+        total + item.valor,
+      0
+    )
 
-      return lista
-        .map((movimento) => {
-          saldo =
-            movimento.tipo ===
-            "entrada"
-              ? saldo +
-                movimento.valor
-              : saldo -
-                movimento.valor
-
-          return {
-            ...movimento,
-            saldo,
-          }
-        })
-        .reverse()
-    }, [
-      periodo,
-      saldoAnterior,
-    ])
-
-  // ========================================
-  // ENTRADAS DO PERÍODO
-  // ========================================
-
-  const entradas =
-    periodo
-      .filter(
-        (item) =>
-          item.tipo ===
-          "entrada"
-      )
-      .reduce(
-        (total, item) =>
-          total +
-          item.valor,
-        0
-      )
-
-  // ========================================
-  // SAÍDAS DO PERÍODO
-  // ========================================
-
-  const saidas =
-    periodo
-      .filter(
-        (item) =>
-          item.tipo ===
-          "saida"
-      )
-      .reduce(
-        (total, item) =>
-          total +
-          item.valor,
-        0
-      )
-
-  // ========================================
-  // SALDO DO PERÍODO
-  // ========================================
+  const saidas = periodo
+    .filter(
+      (item) =>
+        item.tipo === "saida"
+    )
+    .reduce(
+      (total, item) =>
+        total + item.valor,
+      0
+    )
 
   const saldoPeriodo =
     saldoAnterior +
     entradas -
     saidas
-
-  // ========================================
-  // FECHAR MENSAGEM
-  // ========================================
 
   function fecharMensagemErro() {
     setErro("")
@@ -502,23 +345,14 @@ export default function Financeiro() {
     setSucesso("")
   }
 
-  // ========================================
-  // ACESSO RÁPIDO
-  // ========================================
-
   function acessarPagina(url) {
-    window.location.href =
-      url
+    window.location.href = url
   }
-
-  // ========================================
-  // RENDERIZAÇÃO
-  // ========================================
 
   return (
     <div className="container-fluid py-4">
 
-     {/* ACESSO RÁPIDO */}
+      {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm border-0 mb-4">
         <div className="card-body">
 
@@ -545,7 +379,9 @@ export default function Financeiro() {
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/")}
+                onClick={() =>
+                  acessarPagina("/")
+                }
               >
                 <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
                 Dashboard
@@ -554,8 +390,10 @@ export default function Financeiro() {
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-primary w-100 py-2"
-                onClick={() => acessarPagina("/clientes")}
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/clientes")
+                }
               >
                 <i className="bi bi-people d-block fs-5 mb-1"></i>
                 Clientes
@@ -565,7 +403,9 @@ export default function Financeiro() {
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/imoveis")}
+                onClick={() =>
+                  acessarPagina("/imoveis")
+                }
               >
                 <i className="bi bi-house-door d-block fs-5 mb-1"></i>
                 Imóveis
@@ -575,7 +415,9 @@ export default function Financeiro() {
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/contratos")}
+                onClick={() =>
+                  acessarPagina("/contratos")
+                }
               >
                 <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
                 Contratos
@@ -585,7 +427,9 @@ export default function Financeiro() {
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/recebimentos")}
+                onClick={() =>
+                  acessarPagina("/recebimentos")
+                }
               >
                 <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
                 Recebimentos
@@ -595,7 +439,9 @@ export default function Financeiro() {
             <div className="col-6 col-md-3 col-lg-2">
               <button
                 className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/despesas")}
+                onClick={() =>
+                  acessarPagina("/despesas")
+                }
               >
                 <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
                 Despesas
@@ -604,8 +450,10 @@ export default function Financeiro() {
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/financeiro")}
+                className="btn btn-primary w-100 py-2"
+                onClick={() =>
+                  acessarPagina("/financeiro")
+                }
               >
                 <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
                 Financeiro
@@ -616,9 +464,7 @@ export default function Financeiro() {
         </div>
       </div>
 
-
       {/* CABEÇALHO */}
-
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
 
         <div>
@@ -628,7 +474,6 @@ export default function Financeiro() {
         </div>
 
         <div className="d-flex gap-2 mt-3 mt-md-0">
-
           <button
             className="btn btn-outline-primary"
             onClick={carregarDados}
@@ -640,18 +485,17 @@ export default function Financeiro() {
               ? "Atualizando..."
               : "Atualizar"}
           </button>
-
         </div>
-      {/* ========================================
-          ALERTA DE ERRO
-      ======================================== */}
 
+      </div>
+
+      {/* MENSAGEM DE ERRO */}
       {erro && (
         <div
-          className="alert alert-danger alert-dismissible fade show shadow-sm"
+          className="alert alert-danger alert-dismissible fade show"
           role="alert"
         >
-          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+          <i className="bi bi-exclamation-triangle me-2"></i>
 
           {erro}
 
@@ -664,16 +508,13 @@ export default function Financeiro() {
         </div>
       )}
 
-      {/* ========================================
-          ALERTA DE SUCESSO
-      ======================================== */}
-
+      {/* MENSAGEM DE SUCESSO */}
       {sucesso && (
         <div
-          className="alert alert-success alert-dismissible fade show shadow-sm"
+          className="alert alert-success alert-dismissible fade show"
           role="alert"
         >
-          <i className="bi bi-check-circle-fill me-2"></i>
+          <i className="bi bi-check-circle me-2"></i>
 
           {sucesso}
 
@@ -686,15 +527,11 @@ export default function Financeiro() {
         </div>
       )}
 
-      {/* ========================================
-          RESUMO FINANCEIRO
-      ======================================== */}
-
+      {/* RESUMO FINANCEIRO */}
       <div className="row g-3 mb-4">
 
         {/* SALDO ATUAL */}
-
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
 
@@ -705,19 +542,19 @@ export default function Financeiro() {
                     Saldo atual
                   </p>
 
-                  <h4 className="fw-bold mb-0">
+                  <h3 className="fw-bold mb-0">
                     {moeda(saldoAtual)}
-                  </h4>
+                  </h3>
                 </div>
 
                 <div
-                  className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
+                  className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
                   style={{
-                    width: "42px",
-                    height: "42px",
+                    width: "48px",
+                    height: "48px",
                   }}
                 >
-                  <i className="bi bi-wallet2 fs-5"></i>
+                  <i className="bi bi-wallet2 text-primary fs-4"></i>
                 </div>
 
               </div>
@@ -727,8 +564,7 @@ export default function Financeiro() {
         </div>
 
         {/* ENTRADAS */}
-
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
 
@@ -739,19 +575,19 @@ export default function Financeiro() {
                     Entradas
                   </p>
 
-                  <h4 className="fw-bold text-success mb-0">
+                  <h3 className="fw-bold text-success mb-0">
                     {moeda(entradas)}
-                  </h4>
+                  </h3>
                 </div>
 
                 <div
-                  className="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center"
+                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
                   style={{
-                    width: "42px",
-                    height: "42px",
+                    width: "48px",
+                    height: "48px",
                   }}
                 >
-                  <i className="bi bi-arrow-down-left fs-5"></i>
+                  <i className="bi bi-arrow-down-left text-success fs-4"></i>
                 </div>
 
               </div>
@@ -765,8 +601,7 @@ export default function Financeiro() {
         </div>
 
         {/* SAÍDAS */}
-
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
 
@@ -777,19 +612,19 @@ export default function Financeiro() {
                     Saídas
                   </p>
 
-                  <h4 className="fw-bold text-danger mb-0">
+                  <h3 className="fw-bold text-danger mb-0">
                     {moeda(saidas)}
-                  </h4>
+                  </h3>
                 </div>
 
                 <div
-                  className="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center"
+                  className="bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
                   style={{
-                    width: "42px",
-                    height: "42px",
+                    width: "48px",
+                    height: "48px",
                   }}
                 >
-                  <i className="bi bi-arrow-up-right fs-5"></i>
+                  <i className="bi bi-arrow-up-right text-danger fs-4"></i>
                 </div>
 
               </div>
@@ -803,8 +638,7 @@ export default function Financeiro() {
         </div>
 
         {/* SALDO DO PERÍODO */}
-
-        <div className="col-12 col-md-6 col-xl-3">
+        <div className="col-12 col-md-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
 
@@ -815,7 +649,7 @@ export default function Financeiro() {
                     Saldo do período
                   </p>
 
-                  <h4
+                  <h3
                     className={`fw-bold mb-0 ${
                       saldoPeriodo >= 0
                         ? "text-success"
@@ -823,21 +657,27 @@ export default function Financeiro() {
                     }`}
                   >
                     {moeda(saldoPeriodo)}
-                  </h4>
+                  </h3>
                 </div>
 
                 <div
-                  className={`bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center ${
+                  className={`rounded-circle d-flex align-items-center justify-content-center ${
                     saldoPeriodo >= 0
-                      ? "bg-success text-success"
-                      : "bg-danger text-danger"
+                      ? "bg-success bg-opacity-10"
+                      : "bg-danger bg-opacity-10"
                   }`}
                   style={{
-                    width: "42px",
-                    height: "42px",
+                    width: "48px",
+                    height: "48px",
                   }}
                 >
-                  <i className="bi bi-graph-up-arrow fs-5"></i>
+                  <i
+                    className={`bi bi-graph-up-arrow fs-4 ${
+                      saldoPeriodo >= 0
+                        ? "text-success"
+                        : "text-danger"
+                    }`}
+                  ></i>
                 </div>
 
               </div>
@@ -852,10 +692,7 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ========================================
-          FILTRO DE PERÍODO
-      ======================================== */}
-
+      {/* FILTRO DE PERÍODO */}
       <div className="card shadow-sm border-0 mb-4">
 
         <div className="card-body">
@@ -884,9 +721,7 @@ export default function Financeiro() {
 
           </div>
 
-          <div className="row g-3">
-
-            {/* MÊS */}
+          <div className="row g-3 align-items-end">
 
             <div className="col-12 col-md-6">
 
@@ -908,10 +743,7 @@ export default function Financeiro() {
                 }
               >
                 {meses.map(
-                  (
-                    nome,
-                    indice
-                  ) => (
+                  (nome, indice) => (
                     <option
                       key={indice + 1}
                       value={indice + 1}
@@ -923,8 +755,6 @@ export default function Financeiro() {
               </select>
 
             </div>
-
-            {/* ANO */}
 
             <div className="col-12 col-md-6">
 
@@ -971,10 +801,7 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ========================================
-          RESUMO DO PERÍODO
-      ======================================== */}
-
+      {/* RESUMO DO PERÍODO */}
       <div className="card shadow-sm border-0 mb-4">
 
         <div className="card-body">
@@ -1009,13 +836,13 @@ export default function Financeiro() {
                 <div className="d-flex align-items-center">
 
                   <div
-                    className="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3"
+                    className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
                     style={{
                       width: "40px",
                       height: "40px",
                     }}
                   >
-                    <i className="bi bi-arrow-down-left"></i>
+                    <i className="bi bi-arrow-down-left text-success"></i>
                   </div>
 
                   <div>
@@ -1041,13 +868,13 @@ export default function Financeiro() {
                 <div className="d-flex align-items-center">
 
                   <div
-                    className="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center me-3"
+                    className="bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
                     style={{
                       width: "40px",
                       height: "40px",
                     }}
                   >
-                    <i className="bi bi-arrow-up-right"></i>
+                    <i className="bi bi-arrow-up-right text-danger"></i>
                   </div>
 
                   <div>
@@ -1075,15 +902,21 @@ export default function Financeiro() {
                   <div
                     className={`rounded-circle d-flex align-items-center justify-content-center me-3 ${
                       saldoPeriodo >= 0
-                        ? "bg-success bg-opacity-10 text-success"
-                        : "bg-danger bg-opacity-10 text-danger"
+                        ? "bg-success bg-opacity-10"
+                        : "bg-danger bg-opacity-10"
                     }`}
                     style={{
                       width: "40px",
                       height: "40px",
                     }}
                   >
-                    <i className="bi bi-cash-stack"></i>
+                    <i
+                      className={`bi bi-cash-stack ${
+                        saldoPeriodo >= 0
+                          ? "text-success"
+                          : "text-danger"
+                      }`}
+                    ></i>
                   </div>
 
                   <div>
@@ -1099,8 +932,7 @@ export default function Financeiro() {
                       }
                     >
                       {moeda(
-                        entradas -
-                          saidas
+                        entradas - saidas
                       )}
                     </strong>
                   </div>
@@ -1117,47 +949,36 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ========================================
-          EXTRATO FINANCEIRO
-      ======================================== */}
-
+      {/* EXTRATO FINANCEIRO */}
       <div className="card shadow-sm border-0 mb-4">
 
-        <div className="card-body p-0">
+        <div className="card-body">
 
-          {/* CABEÇALHO DO CARD */}
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
 
-          <div className="p-3 border-bottom">
+            <div>
+              <h5 className="fw-bold mb-1">
+                <i className="bi bi-list-ul text-primary me-2"></i>
+                Extrato financeiro
+              </h5>
 
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-
-              <div>
-                <h5 className="fw-bold mb-1">
-                  <i className="bi bi-list-ul text-primary me-2"></i>
-                  Extrato financeiro
-                </h5>
-
-                <p className="text-muted mb-0 small">
-                  Movimentações de{" "}
-                  {meses[mes - 1]} de {ano}
-                </p>
-              </div>
-
-              <span className="badge bg-primary">
-                {extrato.length}{" "}
-                movimentação
-                {extrato.length !== 1
-                  ? "s"
-                  : ""}
-              </span>
-
+              <small className="text-muted">
+                Movimentações de{" "}
+                {meses[mes - 1]} de {ano}
+              </small>
             </div>
+
+            <span className="badge bg-primary">
+              {extrato.length} movimentação
+              {extrato.length !== 1
+                ? "s"
+                : ""}
+            </span>
 
           </div>
 
-          {/* CARREGANDO */}
-
           {loading ? (
+
             <div className="text-center py-5">
 
               <div
@@ -1177,12 +998,16 @@ export default function Financeiro() {
 
           ) : extrato.length === 0 ? (
 
-            /* SEM MOVIMENTAÇÕES */
+            <div className="text-center py-5">
 
-            <div className="text-center py-5 px-3">
-
-              <div className="text-muted fs-1 mb-3">
-                <i className="bi bi-receipt"></i>
+              <div
+                className="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                style={{
+                  width: "72px",
+                  height: "72px",
+                }}
+              >
+                <i className="bi bi-receipt text-muted fs-2"></i>
               </div>
 
               <h5 className="fw-bold">
@@ -1199,8 +1024,6 @@ export default function Financeiro() {
 
           ) : (
 
-            /* TABELA */
-
             <div className="table-responsive">
 
               <table className="table table-hover align-middle mb-0">
@@ -1209,7 +1032,7 @@ export default function Financeiro() {
 
                   <tr>
 
-                    <th className="px-3">
+                    <th>
                       Data
                     </th>
 
@@ -1233,7 +1056,7 @@ export default function Financeiro() {
                       Valor
                     </th>
 
-                    <th className="text-end px-3">
+                    <th className="text-end">
                       Saldo
                     </th>
 
@@ -1245,87 +1068,82 @@ export default function Financeiro() {
 
                   {extrato.map(
                     (movimento) => (
+
                       <tr
                         key={
                           movimento.id
                         }
                       >
 
-                        {/* DATA */}
+                        <td>
 
-                        <td className="px-3">
                           <span className="fw-semibold">
                             {dataBR(
                               movimento.data
                             )}
                           </span>
-                        </td>
 
-                        {/* TIPO */}
+                        </td>
 
                         <td>
 
                           {movimento.tipo ===
                           "entrada" ? (
+
                             <span className="badge bg-success-subtle text-success">
                               <i className="bi bi-arrow-down-left me-1"></i>
                               Entrada
                             </span>
+
                           ) : (
+
                             <span className="badge bg-danger-subtle text-danger">
                               <i className="bi bi-arrow-up-right me-1"></i>
                               Saída
                             </span>
+
                           )}
 
                         </td>
 
-                        {/* DESCRIÇÃO */}
-
                         <td>
 
-                          <div className="d-flex align-items-center gap-2">
+                          <div className="d-flex align-items-center">
 
                             <div
-                              className={`rounded-circle d-flex align-items-center justify-content-center ${
+                              className={`rounded-circle d-flex align-items-center justify-content-center me-3 ${
                                 movimento.tipo ===
                                 "entrada"
-                                  ? "bg-success bg-opacity-10 text-success"
-                                  : "bg-danger bg-opacity-10 text-danger"
+                                  ? "bg-success bg-opacity-10"
+                                  : "bg-danger bg-opacity-10"
                               }`}
                               style={{
-                                width: "36px",
-                                height: "36px",
-                                minWidth: "36px",
+                                width: "42px",
+                                height: "42px",
+                                minWidth: "42px",
                               }}
                             >
-
                               <i
-                                className={
+                                className={`${
                                   movimento.tipo ===
                                   "entrada"
-                                    ? "bi bi-arrow-down-left"
-                                    : "bi bi-arrow-up-right"
-                                }
+                                    ? "bi bi-arrow-down-left text-success"
+                                    : "bi bi-arrow-up-right text-danger"
+                                }`}
                               ></i>
-
                             </div>
 
                             <div>
-
                               <div className="fw-semibold">
                                 {
                                   movimento.descricao
                                 }
                               </div>
-
                             </div>
 
                           </div>
 
                         </td>
-
-                        {/* CATEGORIA */}
 
                         <td>
                           <span className="text-muted">
@@ -1335,8 +1153,6 @@ export default function Financeiro() {
                           </span>
                         </td>
 
-                        {/* FORMA */}
-
                         <td>
                           <span className="text-muted">
                             {
@@ -1344,8 +1160,6 @@ export default function Financeiro() {
                             }
                           </span>
                         </td>
-
-                        {/* VALOR */}
 
                         <td className="text-end">
 
@@ -1357,30 +1171,22 @@ export default function Financeiro() {
                                 : "text-danger"
                             }`}
                           >
-
                             {movimento.tipo ===
                             "entrada"
                               ? "+"
-                              : "-"}
-
-                            {" "}
-
+                              : "-"}{" "}
                             {moeda(
                               movimento.valor
                             )}
-
                           </span>
 
                         </td>
 
-                        {/* SALDO */}
-
-                        <td className="text-end px-3">
+                        <td className="text-end">
 
                           <span
                             className={`fw-semibold ${
-                              movimento.saldo >=
-                              0
+                              movimento.saldo >= 0
                                 ? "text-success"
                                 : "text-danger"
                             }`}
@@ -1393,6 +1199,7 @@ export default function Financeiro() {
                         </td>
 
                       </tr>
+
                     )
                   )}
 
@@ -1408,55 +1215,43 @@ export default function Financeiro() {
 
       </div>
 
-      {/* ========================================
-          RESUMO DE ENTRADAS E SAÍDAS
-      ======================================== */}
-
+      {/* RESUMO DE ENTRADAS E SAÍDAS */}
       <div className="row g-3 mb-4">
 
         {/* ENTRADAS */}
-
-        <div className="col-12 col-lg-6">
+        <div className="col-12 col-md-6">
 
           <div className="card shadow-sm border-0 h-100">
 
             <div className="card-body">
 
-              <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="d-flex justify-content-between align-items-start">
 
                 <div>
-                  <h5 className="fw-bold mb-1">
+                  <p className="text-muted mb-1">
                     Entradas
-                  </h5>
+                  </p>
 
-                  <small className="text-muted">
-                    Recebimentos no período
-                  </small>
+                  <h3 className="fw-bold text-success mb-0">
+                    {moeda(entradas)}
+                  </h3>
                 </div>
 
                 <div
-                  className="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center"
+                  className="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
                   style={{
-                    width: "42px",
-                    height: "42px",
+                    width: "48px",
+                    height: "48px",
                   }}
                 >
-                  <i className="bi bi-arrow-down-left fs-5"></i>
+                  <i className="bi bi-arrow-down-left text-success fs-4"></i>
                 </div>
 
               </div>
 
-              <div className="d-flex justify-content-between align-items-center">
-
-                <span className="text-muted">
-                  Total recebido
-                </span>
-
-                <strong className="text-success fs-5">
-                  {moeda(entradas)}
-                </strong>
-
-              </div>
+              <small className="text-muted">
+                Recebimentos no período
+              </small>
 
             </div>
 
@@ -1465,48 +1260,39 @@ export default function Financeiro() {
         </div>
 
         {/* SAÍDAS */}
-
-        <div className="col-12 col-lg-6">
+        <div className="col-12 col-md-6">
 
           <div className="card shadow-sm border-0 h-100">
 
             <div className="card-body">
 
-              <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="d-flex justify-content-between align-items-start">
 
                 <div>
-                  <h5 className="fw-bold mb-1">
+                  <p className="text-muted mb-1">
                     Saídas
-                  </h5>
+                  </p>
 
-                  <small className="text-muted">
-                    Despesas no período
-                  </small>
+                  <h3 className="fw-bold text-danger mb-0">
+                    {moeda(saidas)}
+                  </h3>
                 </div>
 
                 <div
-                  className="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center"
+                  className="bg-danger bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
                   style={{
-                    width: "42px",
-                    height: "42px",
+                    width: "48px",
+                    height: "48px",
                   }}
                 >
-                  <i className="bi bi-arrow-up-right fs-5"></i>
+                  <i className="bi bi-arrow-up-right text-danger fs-4"></i>
                 </div>
 
               </div>
 
-              <div className="d-flex justify-content-between align-items-center">
-
-                <span className="text-muted">
-                  Total gasto
-                </span>
-
-                <strong className="text-danger fs-5">
-                  {moeda(saidas)}
-                </strong>
-
-              </div>
+              <small className="text-muted">
+                Despesas no período
+              </small>
 
             </div>
 
@@ -1515,9 +1301,26 @@ export default function Financeiro() {
         </div>
 
       </div>
-        </section>
+
+      {/* RODAPÉ */}
+      <div className="text-center text-muted py-3">
+
+        <small>
+          ImobGest
+        </small>
+
+        <br />
+
+        <small>
+          Dashboard atualizado em{" "}
+          {hoje.toLocaleDateString(
+            "pt-BR"
+          )}
+        </small>
+
       </div>
-    </main>
+
+    </div>
   )
 }
-
+```
