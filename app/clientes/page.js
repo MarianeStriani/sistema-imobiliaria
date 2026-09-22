@@ -397,7 +397,7 @@ export default function Clientes() {
             Atualizar
           </button>
         </div>
-      </div>
+      
 
       {/* MENSAGEM DE ERRO */}
       {erro && (
