@@ -273,107 +273,123 @@ export default function Clientes() {
   }
 
   return (
-<div className="container-fluid py-4">
-        {/* ACESSO RÁPIDO */}
-        <div className="card shadow-sm border-0 mb-4">
-          <div className="card-body">
-            <div className="d-flex align-items-center mb-3">
-              <div
-                className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
-                style={{
-                  width: "38px",
-                  height: "38px",
-                }}
-              >
-                <i className="bi bi-lightning-charge text-primary"></i>
-              </div>
+    <div className="container-fluid py-4">
 
-              <div>
-                <h5 className="fw-bold mb-0">
-                  Acesso rápido
-                </h5>
-              </div>
+      {/* CABEÇALHO */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="fw-bold mb-1">
+            ImobGest - Clientes
+          </h2>
+        </div>
+
+        <div className="d-flex gap-2 mt-3 mt-md-0">
+          <button
+            className="btn btn-outline-primary"
+            onClick={carregarClientes}
+            disabled={loading}
+          >
+            <i className="bi bi-arrow-clockwise me-2"></i>
+            Atualizar
+          </button>
+        </div>
+      </div>
+
+      {/* ACESSO RÁPIDO */}
+      <div className="card shadow-sm border-0 mb-4">
+        <div className="card-body">
+          <div className="d-flex align-items-center mb-3">
+            <div
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+              style={{
+                width: "38px",
+                height: "38px",
+              }}
+            >
+              <i className="bi bi-lightning-charge text-primary"></i>
             </div>
 
-            <div className="row g-2">
-              <div className="col-6 col-md-3 col-lg-2">
-                <button
-                  className="btn btn-outline-primary w-100 py-2"
-                  onClick={() => acessarPagina("/")}
-                >
-                  <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
-                  Dashboard
-                </button>
-              </div>
+            <div>
+              <h5 className="fw-bold mb-0">
+                Acesso rápido
+              </h5>
+            </div>
+          </div>
 
-              <div className="col-6 col-md-3 col-lg-2">
-                <button
-                  className="btn btn-primary w-100 py-2"
-                  onClick={() => acessarPagina("/clientes")}
-                >
-                  <i className="bi bi-people d-block fs-5 mb-1"></i>
-                  Clientes
-                </button>
-              </div>
+          <div className="row g-2">
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/")}
+              >
+                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
+                Dashboard
+              </button>
+            </div>
 
-              <div className="col-6 col-md-3 col-lg-2">
-                <button
-                  className="btn btn-outline-primary w-100 py-2"
-                  onClick={() => acessarPagina("/imoveis")}
-                >
-                  <i className="bi bi-house-door d-block fs-5 mb-1"></i>
-                  Imóveis
-                </button>
-              </div>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-primary w-100 py-2"
+                onClick={() => acessarPagina("/clientes")}
+              >
+                <i className="bi bi-people d-block fs-5 mb-1"></i>
+                Clientes
+              </button>
+            </div>
 
-              <div className="col-6 col-md-3 col-lg-2">
-                <button
-                  className="btn btn-outline-primary w-100 py-2"
-                  onClick={() => acessarPagina("/contratos")}
-                >
-                  <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
-                  Contratos
-                </button>
-              </div>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/imoveis")}
+              >
+                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
+                Imóveis
+              </button>
+            </div>
 
-              <div className="col-6 col-md-3 col-lg-2">
-                <button
-                  className="btn btn-outline-primary w-100 py-2"
-                  onClick={() =>
-                    acessarPagina("/recebimentos")
-                  }
-                >
-                  <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
-                  Recebimentos
-                </button>
-              </div>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/contratos")}
+              >
+                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
+                Contratos
+              </button>
+            </div>
 
-              <div className="col-6 col-md-3 col-lg-2">
-                <button
-                  className="btn btn-outline-primary w-100 py-2"
-                  onClick={() =>
-                    acessarPagina("/despesas")
-                  }
-                >
-                  <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
-                  Despesas
-                </button>
-              </div>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/recebimentos")}
+              >
+                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
+                Recebimentos
+              </button>
+            </div>
 
-              <div className="col-6 col-md-3 col-lg-2">
-                <button
-                  className="btn btn-outline-primary w-100 py-2"
-                  onClick={() =>
-                    acessarPagina("/financeiro")
-                  }
-                >
-                  <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
-                  Financeiro
-                </button>
-              </div>
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/despesas")}
+              >
+                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
+                Despesas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/financeiro")}
+              >
+                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
+                Financeiro
+              </button>
             </div>
           </div>
         </div>
+      </div>
+
 
         {/* CONTEÚDO PRINCIPAL */}
         <div className="container-fluid py-4">
