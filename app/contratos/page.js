@@ -3,16 +3,14 @@
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
-export default function Recebimentos() {
-  const hoje = new Date()
-
+export default function Contratos() {
   // ========================================
   // DADOS
   // ========================================
 
-  const [recebimentos, setRecebimentos] = useState([])
-  const [clientes, setClientes] = useState([])
   const [contratos, setContratos] = useState([])
+  const [clientes, setClientes] = useState([])
+  const [imoveis, setImoveis] = useState([])
 
   // ========================================
   // CONTROLE
@@ -25,67 +23,40 @@ export default function Recebimentos() {
   const [sucesso, setSucesso] = useState("")
 
   // ========================================
-  // PERÍODO
-  // ========================================
-
-  const [mes, setMes] = useState(
-    hoje.getMonth() + 1
-  )
-
-  const [ano, setAno] = useState(
-    hoje.getFullYear()
-  )
-
-  // ========================================
-  // BUSCA
+  // BUSCA E FILTROS
   // ========================================
 
   const [busca, setBusca] = useState("")
+  const [filtroStatus, setFiltroStatus] = useState("todos")
 
   // ========================================
-  // MODAL - CONFIRMAR RECEBIMENTO
+  // MODAL
   // ========================================
 
-  const [modalAberto, setModalAberto] =
-    useState(false)
+  const [modalAberto, setModalAberto] = useState(false)
 
-  const [
-    recebimentoSelecionado,
-    setRecebimentoSelecionado,
-  ] = useState(null)
+  const [modoEdicao, setModoEdicao] = useState(false)
 
-  const [formaPagamento, setFormaPagamento] =
-    useState("")
-
-  const [dataPagamento, setDataPagamento] =
-    useState(
-      hoje.toISOString().split("T")[0]
-    )
+  const [contratoSelecionado, setContratoSelecionado] =
+    useState(null)
 
   // ========================================
-  // MODAL - NOVO RECEBIMENTO
+  // FORMULÁRIO
   // ========================================
 
-  const [
-    novoRecebimentoAberto,
-    setNovoRecebimentoAberto,
-  ] = useState(false)
-
-  const [
-    novoRecebimento,
-    setNovoRecebimento,
-  ] = useState({
-    cliente_id: "",
-    contrato_id: "",
-    tipo: "Aluguel mensal",
-    descricao: "",
-    numero_contrato: "",
+  const formularioInicial = {
+    numero: "",
+    cliente: "",
+    imovel: "",
+    tipo: "Aluguel",
+    status: "ativo",
+    data_inicio: "",
+    data_fim: "",
     valor: "",
-    data_vencimento: "",
-    forma_pagamento: "Pix",
-    status: "Pendente",
-    observacoes: "",
-  })
+  }
+
+  const [formulario, setFormulario] =
+    useState(formularioInicial)
 
   // ========================================
   // CARREGAR DADOS
@@ -97,64 +68,64 @@ export default function Recebimentos() {
       setErro("")
 
       const [
-        recebimentosResult,
-        clientesResult,
         contratosResult,
+        clientesResult,
+        imoveisResult,
       ] = await Promise.all([
         supabase
-          .from("recebimentos")
+          .from("contratos")
           .select("*")
-          .order("data_vencimento", {
-            ascending: true,
+          .order("created_at", {
+            ascending: false,
           }),
 
         supabase
           .from("clientes")
           .select("*")
-          .order("id", {
-            ascending: false,
+          .order("nome", {
+            ascending: true,
           }),
 
         supabase
-          .from("contratos")
+          .from("imoveis")
           .select("*")
-          .order("id", {
+          .order("created_at", {
             ascending: false,
           }),
       ])
 
-      if (recebimentosResult.error) {
-        throw recebimentosResult.error
+      if (contratosResult.error) {
+        throw contratosResult.error
       }
 
       if (clientesResult.error) {
         throw clientesResult.error
       }
 
-      if (contratosResult.error) {
-        throw contratosResult.error
+      if (imoveisResult.error) {
+        throw imoveisResult.error
       }
 
-      setRecebimentos(
-        recebimentosResult.data || []
+      setContratos(
+        contratosResult.data || []
       )
 
       setClientes(
         clientesResult.data || []
       )
 
-      setContratos(
-        contratosResult.data || []
+      setImoveis(
+        imoveisResult.data || []
       )
     } catch (error) {
       console.error(
-        "Erro ao carregar recebimentos:",
+        "Erro ao carregar contratos:",
         error
       )
 
       setErro(
         error?.message ||
-          "Não foi possível carregar os recebimentos."
+          "Não foi possível carregar os contratos."
       )
     } finally {
       setLoading(false)
@@ -205,7 +176,9 @@ export default function Recebimentos() {
   }
 
   function formatarData(data) {
-    if (!data) return "-"
+    if (!data) {
+      return "-"
+    }
 
     const partes = String(data).split("-")
 
@@ -226,213 +199,34 @@ export default function Recebimentos() {
         String(item.id) === String(clienteId)
     )
 
-    return cliente?.nome || "Cliente não encontrado"
+    return (
+      cliente?.nome ||
+      "Cliente não encontrado"
+    )
   }
 
-  function obterNumeroContrato(contratoId) {
-    const contrato = contratos.find(
+  function obterNomeImovel(imovelId) {
+    const imovel = imoveis.find(
       (item) =>
-        String(item.id) === String(contratoId)
+        String(item.id) === String(imovelId)
     )
 
-    return contrato?.numero || "-"
+    return (
+      imovel?.titulo ||
+      imovel?.nome ||
+      "Imóvel não encontrado"
+    )
   }
 
   // ========================================
-  // FILTRO POR PERÍODO
+  // ALTERAR FORMULÁRIO
   // ========================================
 
-  const recebimentosDoPeriodo = useMemo(() => {
-    return recebimentos.filter((recebimento) => {
-      const data =
-        recebimento.data_vencimento
-
-      if (!data) return false
-
-      const partes = String(data).split("-")
-
-      if (partes.length !== 3) {
-        return false
-      }
-
-      const anoRecebimento =
-        Number(partes[0])
-
-      const mesRecebimento =
-        Number(partes[1])
-
-      return (
-        anoRecebimento === Number(ano) &&
-        mesRecebimento === Number(mes)
-      )
-    })
-  }, [recebimentos, mes, ano])
-
-  // ========================================
-  // BUSCA
-  // ========================================
-
-  const recebimentosFiltrados = useMemo(() => {
-    const termo =
-      busca.trim().toLowerCase()
-
-    if (!termo) {
-      return recebimentosDoPeriodo
-    }
-
-    return recebimentosDoPeriodo.filter(
-      (recebimento) => {
-        const nomeCliente =
-          obterNomeCliente(
-            recebimento.cliente_id
-          )
-
-        const numeroContrato =
-          recebimento.numero_contrato ||
-          obterNumeroContrato(
-            recebimento.contrato_id
-          )
-
-        const tipo =
-          recebimento.tipo_recebimento ||
-          recebimento.tipo ||
-          ""
-
-        const descricao =
-          recebimento.descricao || ""
-
-        return (
-          String(nomeCliente)
-            .toLowerCase()
-            .includes(termo) ||
-          String(numeroContrato)
-            .toLowerCase()
-            .includes(termo) ||
-          String(tipo)
-            .toLowerCase()
-            .includes(termo) ||
-          String(descricao)
-            .toLowerCase()
-            .includes(termo)
-        )
-      }
-    )
-  }, [
-    recebimentosDoPeriodo,
-    busca,
-    clientes,
-    contratos,
-  ])
-
-  // ========================================
-  // RESUMOS
-  // ========================================
-
-  const totalRecebimentos =
-    recebimentosDoPeriodo.length
-
-  const recebidos =
-    recebimentosDoPeriodo.filter(
-      (recebimento) =>
-        String(
-          recebimento.status || ""
-        ).toLowerCase() === "recebido"
-    )
-
-  const pendentes =
-    recebimentosDoPeriodo.filter(
-      (recebimento) =>
-        String(
-          recebimento.status || ""
-        ).toLowerCase() === "pendente"
-    )
-
-  const valorRecebido =
-    recebidos.reduce(
-      (total, recebimento) =>
-        total +
-        Number(
-          recebimento.valor || 0
-        ),
-      0
-    )
-
-  const valorPendente =
-    pendentes.reduce(
-      (total, recebimento) =>
-        total +
-        Number(
-          recebimento.valor || 0
-        ),
-      0
-    )
-
-  // ========================================
-  // STATUS
-  // ========================================
-
-  function classeStatus(status) {
-    const valor =
-      String(status || "").toLowerCase()
-
-    if (valor === "recebido") {
-      return "bg-success"
-    }
-
-    if (valor === "pendente") {
-      return "bg-warning text-dark"
-    }
-
-    if (valor === "cancelado") {
-      return "bg-danger"
-    }
-
-    return "bg-secondary"
-  }
-
-  function textoStatus(status) {
-    const valor =
-      String(status || "").toLowerCase()
-
-    if (valor === "recebido") {
-      return "Recebido"
-    }
-
-    if (valor === "pendente") {
-      return "Pendente"
-    }
-
-    if (valor === "cancelado") {
-      return "Cancelado"
-    }
-
-    return status || "-"
-  }
-
-  // ========================================
-  // NOVO RECEBIMENTO
-  // ========================================
-
-  function formularioInicial() {
-    return {
-      cliente_id: "",
-      contrato_id: "",
-      tipo: "Aluguel mensal",
-      descricao: "",
-      numero_contrato: "",
-      valor: "",
-      data_vencimento: "",
-      forma_pagamento: "Pix",
-      status: "Pendente",
-      observacoes: "",
-    }
-  }
-
-  function alterarNovoRecebimento(
+  function alterarFormulario(
     campo,
     valor
   ) {
-    setNovoRecebimento(
+    setFormulario(
       (anterior) => ({
         ...anterior,
         [campo]: valor,
@@ -440,241 +234,197 @@ export default function Recebimentos() {
     )
   }
 
-  function abrirNovoRecebimento() {
+  // ========================================
+  // ABRIR NOVO CONTRATO
+  // ========================================
+
+  function abrirNovoContrato() {
     limparMensagens()
 
-    setNovoRecebimento(
-      formularioInicial()
-    )
+    setModoEdicao(false)
 
-    setNovoRecebimentoAberto(true)
-  }
+    setContratoSelecionado(null)
 
-  function fecharNovoRecebimento() {
-    if (salvando) return
-
-    setNovoRecebimentoAberto(false)
-
-    setNovoRecebimento(
-      formularioInicial()
-    )
-  }
-
-  // ========================================
-  // SALVAR NOVO RECEBIMENTO
-  // ========================================
-
-  async function salvarNovoRecebimento() {
-    try {
-      setSalvando(true)
-      limparMensagens()
-
-      if (!novoRecebimento.cliente_id) {
-        setErro("Selecione um cliente.")
-        return
-      }
-
-      if (!novoRecebimento.valor) {
-        setErro("Informe o valor do recebimento.")
-        return
-      }
-
-      if (!novoRecebimento.data_vencimento) {
-        setErro("Informe a data de vencimento.")
-        return
-      }
-
-      const dados = {
-        cliente_id:
-          novoRecebimento.cliente_id,
-
-        contrato_id:
-          novoRecebimento.contrato_id || null,
-
-        /*
-         * A coluna utilizada na tabela é
-         * tipo_recebimento.
-         */
-        tipo_recebimento:
-          novoRecebimento.tipo,
-
-        descricao:
-          novoRecebimento.descricao || null,
-
-        numero_contrato:
-          novoRecebimento.numero_contrato ||
-          null,
-
-        valor:
-          Number(novoRecebimento.valor),
-
-        data_vencimento:
-          novoRecebimento.data_vencimento,
-
-        forma_pagamento:
-          novoRecebimento.forma_pagamento ||
-          null,
-
-        status:
-          novoRecebimento.status,
-
-        observacoes:
-          novoRecebimento.observacoes ||
-          null,
-      }
-
-      const { error } = await supabase
-        .from("recebimentos")
-        .insert([dados])
-
-      if (error) {
-        throw error
-      }
-
-      setSucesso(
-        "Recebimento cadastrado com sucesso."
-      )
-
-      setNovoRecebimentoAberto(false)
-
-      setNovoRecebimento(
-        formularioInicial()
-      )
-
-      await carregarDados()
-    } catch (error) {
-      console.error(
-        "Erro ao salvar recebimento:",
-        error
-      )
-
-      setErro(
-        error?.message ||
-          "Não foi possível cadastrar o recebimento."
-      )
-    } finally {
-      setSalvando(false)
-    }
-  }
-
-  // ========================================
-  // ABRIR CONFIRMAÇÃO DE PAGAMENTO
-  // ========================================
-
-  function abrirConfirmarRecebimento(
-    recebimento
-  ) {
-    limparMensagens()
-
-    setRecebimentoSelecionado(
-      recebimento
-    )
-
-    setFormaPagamento(
-      recebimento.forma_pagamento ||
-        "Pix"
-    )
-
-    setDataPagamento(
-      recebimento.data_pagamento ||
-        hoje.toISOString().split("T")[0]
+    setFormulario(
+      formularioInicial
     )
 
     setModalAberto(true)
   }
 
   // ========================================
-  // FECHAR CONFIRMAÇÃO
+  // ABRIR EDIÇÃO
   // ========================================
 
-  function fecharConfirmacao() {
-    if (salvando) return
+  function abrirEdicao(contrato) {
+    limparMensagens()
+
+    setModoEdicao(true)
+
+    setContratoSelecionado(
+      contrato
+    )
+
+    setFormulario({
+      numero:
+        contrato.numero || "",
+
+      cliente:
+        contrato.cliente || "",
+
+      imovel:
+        contrato.imovel || "",
+
+      tipo:
+        contrato.tipo || "Aluguel",
+
+      status:
+        contrato.status || "ativo",
+
+      data_inicio:
+        contrato.data_inicio || "",
+
+      data_fim:
+        contrato.data_fim || "",
+
+      valor:
+        contrato.valor ?? "",
+    })
+
+    setModalAberto(true)
+  }
+
+  // ========================================
+  // FECHAR MODAL
+  // ========================================
+
+  function fecharModal() {
+    if (salvando) {
+      return
+    }
 
     setModalAberto(false)
 
-    setRecebimentoSelecionado(null)
+    setModoEdicao(false)
 
-    setFormaPagamento("")
+    setContratoSelecionado(null)
 
-    setDataPagamento(
-      hoje.toISOString().split("T")[0]
+    setFormulario(
+      formularioInicial
     )
   }
 
   // ========================================
-  // CONFIRMAR PAGAMENTO
+  // SALVAR CONTRATO
   // ========================================
 
-  async function confirmarPagamento() {
-    if (!recebimentoSelecionado) {
-      return
-    }
-
+  async function salvarContrato() {
     try {
       setSalvando(true)
       limparMensagens()
 
-      if (!formaPagamento) {
+      if (!formulario.numero) {
         setErro(
-          "Selecione a forma de pagamento."
+          "Informe o número do contrato."
         )
         return
       }
 
-      if (!dataPagamento) {
+      if (!formulario.cliente) {
         setErro(
-          "Informe a data do pagamento."
+          "Selecione um cliente."
         )
         return
       }
 
-      const { error } = await supabase
-        .from("recebimentos")
-        .update({
-          status: "Recebido",
-          forma_pagamento:
-            formaPagamento,
-          data_pagamento:
-            dataPagamento,
-        })
-        .eq(
-          "id",
-          recebimentoSelecionado.id
+      if (!formulario.imovel) {
+        setErro(
+          "Selecione um imóvel."
         )
+        return
+      }
 
-      if (error) {
-        throw error
+      if (!formulario.data_inicio) {
+        setErro(
+          "Informe a data de início."
+        )
+        return
+      }
+
+      if (!formulario.valor) {
+        setErro(
+          "Informe o valor do contrato."
+        )
+        return
+      }
+
+      const dados = {
+        numero: formulario.numero,
+        cliente: formulario.cliente,
+        imovel: formulario.imovel,
+        tipo: formulario.tipo,
+        status: formulario.status,
+        data_inicio:
+          formulario.data_inicio,
+        data_fim:
+          formulario.data_fim || null,
+        valor:
+          Number(formulario.valor),
+      }
+
+      let resultado
+
+      if (
+        modoEdicao &&
+        contratoSelecionado
+      ) {
+        resultado = await supabase
+          .from("contratos")
+          .update(dados)
+          .eq(
+            "id",
+            contratoSelecionado.id
+          )
+      } else {
+        resultado = await supabase
+          .from("contratos")
+          .insert([dados])
+      }
+
+      if (resultado.error) {
+        throw resultado.error
       }
 
       setSucesso(
-        "Recebimento confirmado com sucesso."
+        modoEdicao
+          ? "Contrato atualizado com sucesso."
+          : "Contrato cadastrado com sucesso."
       )
 
-      fecharConfirmacao()
+      fecharModal()
 
       await carregarDados()
     } catch (error) {
       console.error(
-        "Erro ao confirmar recebimento:",
+        "Erro ao salvar contrato:",
         error
       )
 
       setErro(
         error?.message ||
-          "Não foi possível confirmar o recebimento."
+          "Não foi possível salvar o contrato."
       )
     } finally {
       setSalvando(false)
     }
   }
-
   // ========================================
-  // EXCLUIR RECEBIMENTO
+  // EXCLUIR CONTRATO
   // ========================================
 
-  async function excluirRecebimento(id) {
+  async function excluirContrato(contrato) {
     const confirmar = window.confirm(
-      "Tem certeza que deseja excluir este recebimento?"
+      `Deseja realmente excluir o contrato ${contrato.numero || ""}?`
     )
 
     if (!confirmar) {
@@ -685,79 +435,304 @@ export default function Recebimentos() {
       limparMensagens()
 
       const { error } = await supabase
-        .from("recebimentos")
+        .from("contratos")
         .delete()
-        .eq("id", id)
+        .eq("id", contrato.id)
 
       if (error) {
         throw error
       }
 
       setSucesso(
-        "Recebimento excluído com sucesso."
+        "Contrato excluído com sucesso."
       )
 
       await carregarDados()
     } catch (error) {
       console.error(
-        "Erro ao excluir recebimento:",
+        "Erro ao excluir contrato:",
         error
       )
 
       setErro(
         error?.message ||
-          "Não foi possível excluir o recebimento."
+          "Não foi possível excluir o contrato."
       )
     }
   }
 
   // ========================================
-  // INÍCIO DA INTERFACE
+  // STATUS
+  // ========================================
+
+  function obterTextoStatus(status) {
+    switch (status) {
+      case "ativo":
+        return "Ativo"
+
+      case "encerrado":
+        return "Encerrado"
+
+      case "vencido":
+        return "Vencido"
+
+      case "cancelado":
+        return "Cancelado"
+
+      default:
+        return status || "-"
+    }
+  }
+
+  function obterClasseStatus(status) {
+    switch (status) {
+      case "ativo":
+        return "bg-success"
+
+      case "encerrado":
+        return "bg-secondary"
+
+      case "vencido":
+        return "bg-warning text-dark"
+
+      case "cancelado":
+        return "bg-danger"
+
+      default:
+        return "bg-secondary"
+    }
+  }
+
+  // ========================================
+  // VERIFICAR VENCIMENTO
+  // ========================================
+
+  function contratoEstaVencendo(contrato) {
+    if (!contrato.data_fim) {
+      return false
+    }
+
+    if (
+      contrato.status !== "ativo"
+    ) {
+      return false
+    }
+
+    const hoje = new Date()
+
+    hoje.setHours(
+      0,
+      0,
+      0,
+      0
+    )
+
+    const fim = new Date(
+      `${contrato.data_fim}T00:00:00`
+    )
+
+    const diferenca =
+      fim.getTime() -
+      hoje.getTime()
+
+    const dias =
+      diferenca /
+      (1000 * 60 * 60 * 24)
+
+    return (
+      dias >= 0 &&
+      dias <= 30
+    )
+  }
+
+  // ========================================
+  // INDICADORES
+  // ========================================
+
+  const totalContratos =
+    contratos.length
+
+  const contratosAtivos =
+    contratos.filter(
+      (contrato) =>
+        contrato.status === "ativo"
+    ).length
+
+  const contratosEncerrados =
+    contratos.filter(
+      (contrato) =>
+        contrato.status === "encerrado"
+    ).length
+
+  const contratosVencendo =
+    contratos.filter(
+      (contrato) =>
+        contratoEstaVencendo(
+          contrato
+        )
+    ).length
+
+  // ========================================
+  // FILTRAGEM
+  // ========================================
+
+  const contratosFiltrados =
+    useMemo(() => {
+      const texto =
+        busca
+          .trim()
+          .toLowerCase()
+
+      return contratos.filter(
+        (contrato) => {
+          const nomeCliente =
+            obterNomeCliente(
+              contrato.cliente
+            )
+
+          const nomeImovel =
+            obterNomeImovel(
+              contrato.imovel
+            )
+
+          const correspondeBusca =
+            !texto ||
+            String(
+              contrato.numero || ""
+            )
+              .toLowerCase()
+              .includes(texto) ||
+            String(
+              nomeCliente || ""
+            )
+              .toLowerCase()
+              .includes(texto) ||
+            String(
+              nomeImovel || ""
+            )
+              .toLowerCase()
+              .includes(texto)
+
+          const correspondeStatus =
+            filtroStatus === "todos" ||
+            contrato.status ===
+              filtroStatus
+
+          return (
+            correspondeBusca &&
+            correspondeStatus
+          )
+        }
+      )
+    }, [
+      contratos,
+      busca,
+      filtroStatus,
+      clientes,
+      imoveis,
+    ])
+
+  // ========================================
+  // RENDERIZAÇÃO
   // ========================================
 
   return (
     <div className="container-fluid py-4">
-      {/* ================================== */}
-      {/* ACESSO RÁPIDO */}
-      {/* ================================== */}
+      {/* ==================================
+          CABEÇALHO
+      ================================== */}
+
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+          <h1 className="fw-bold mb-1">
+            Contratos
+          </h1>
+
+          <p className="text-muted mb-0">
+            Gerencie os contratos da imobiliária
+          </p>
+        </div>
+
+        <div className="d-flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={carregarDados}
+            disabled={loading}
+          >
+            <i className="bi bi-arrow-clockwise me-2"></i>
+
+            Atualizar
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={abrirNovoContrato}
+          >
+            <i className="bi bi-plus-lg me-2"></i>
+
+            Novo contrato
+          </button>
+        </div>
+      </div>
+
+      {/* ==================================
+          ALERTA DE ERRO
+      ================================== */}
+
+      {erro && (
+        <div
+          className="alert alert-danger alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+
+          {erro}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setErro("")}
+            aria-label="Fechar"
+          ></button>
+        </div>
+      )}
+
+      {/* ==================================
+          ALERTA DE SUCESSO
+      ================================== */}
+
+      {sucesso && (
+        <div
+          className="alert alert-success alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-check-circle-fill me-2"></i>
+
+          {sucesso}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setSucesso("")}
+            aria-label="Fechar"
+          ></button>
+        </div>
+      )}
+
+      {/* ==================================
+          ACESSO RÁPIDO
+      ================================== */}
 
       <div className="card border-0 shadow-sm mb-4">
-
         <div className="card-body">
-
-          <div className="d-flex align-items-center mb-3">
-
-            <div
-              className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center me-3"
-              style={{
-                width: "42px",
-                height: "42px",
-              }}
-            >
-              <i className="bi bi-grid fs-5"></i>
-            </div>
-
-            <div>
-              <h5 className="fw-bold mb-0">
-                Acesso rápido
-              </h5>
-            </div>
-
-          </div>
+          <h5 className="fw-bold mb-3">
+            <i className="bi bi-lightning-charge-fill text-warning me-2"></i>
+            Acesso rápido
+          </h5>
 
           <div className="d-flex flex-wrap gap-2">
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/dashboard")
-              }
-            >
-              <i className="bi bi-speedometer2 me-1"></i>
-              Dashboard
-            </button>
-
             <button
               type="button"
               className="btn btn-outline-primary"
@@ -765,40 +740,29 @@ export default function Recebimentos() {
                 acessarPagina("/clientes")
               }
             >
-              <i className="bi bi-people me-1"></i>
+              <i className="bi bi-people me-2"></i>
               Clientes
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/imoveis")
-              }
-            >
-              <i className="bi bi-house me-1"></i>
-              Imóveis
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/contratos")
-              }
-            >
-              <i className="bi bi-file-earmark-text me-1"></i>
-              Contratos
             </button>
 
             <button
               type="button"
               className="btn btn-primary"
               onClick={() =>
+                acessarPagina("/contratos")
+              }
+            >
+              <i className="bi bi-file-earmark-text me-2"></i>
+              Contratos
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={() =>
                 acessarPagina("/recebimentos")
               }
             >
-              <i className="bi bi-cash-coin me-1"></i>
+              <i className="bi bi-cash-coin me-2"></i>
               Recebimentos
             </button>
 
@@ -809,7 +773,7 @@ export default function Recebimentos() {
                 acessarPagina("/despesas")
               }
             >
-              <i className="bi bi-receipt me-1"></i>
+              <i className="bi bi-wallet2 me-2"></i>
               Despesas
             </button>
 
@@ -820,477 +784,240 @@ export default function Recebimentos() {
                 acessarPagina("/financeiro")
               }
             >
-              <i className="bi bi-bar-chart-line me-1"></i>
+              <i className="bi bi-bar-chart-line me-2"></i>
               Financeiro
             </button>
-
           </div>
-
         </div>
       </div>
 
-      {/* ================================== */}
-      {/* CABEÇALHO */}
-      {/* ================================== */}
-
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-
-        <div>
-
-          <div className="d-flex align-items-center gap-2 mb-1">
-
-            <div
-              className="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
-              style={{
-                width: "40px",
-                height: "40px",
-              }}
-            >
-              <i className="bi bi-cash-coin fs-5"></i>
-            </div>
-
-            <h2 className="fw-bold mb-0">
-              Recebimentos
-            </h2>
-
-          </div>
-
-          <p className="text-muted mb-0">
-            Gerencie os recebimentos do sistema.
-          </p>
-
-        </div>
-
-        <div className="d-flex flex-wrap gap-2">
-
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => {
-              limparMensagens()
-              carregarDados()
-            }}
-          >
-            <i className="bi bi-arrow-clockwise me-1"></i>
-            Atualizar
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={abrirNovoRecebimento}
-          >
-            <i className="bi bi-plus-lg me-1"></i>
-            Novo recebimento
-          </button>
-
-        </div>
-
-      </div>
-
-      {/* ================================== */}
-      {/* ALERTA DE ERRO */}
-      {/* ================================== */}
-
-      {erro && (
-        <div
-          className="alert alert-danger alert-dismissible fade show"
-          role="alert"
-        >
-          <i className="bi bi-exclamation-triangle me-2"></i>
-
-          {erro}
-
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setErro("")}
-          ></button>
-        </div>
-      )}
-
-      {/* ================================== */}
-      {/* ALERTA DE SUCESSO */}
-      {/* ================================== */}
-
-      {sucesso && (
-        <div
-          className="alert alert-success alert-dismissible fade show"
-          role="alert"
-        >
-          <i className="bi bi-check-circle me-2"></i>
-
-          {sucesso}
-
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setSucesso("")}
-          ></button>
-        </div>
-      )}
-      {/* ================================== */}
-      {/* PERÍODO */}
-      {/* ================================== */}
-
-      <div className="card border-0 shadow-sm mb-4">
-
-        <div className="card-body">
-
-          <div className="row g-3 align-items-end">
-
-            <div className="col-12 col-md-5">
-
-              <label className="form-label fw-semibold">
-                Mês
-              </label>
-
-              <select
-                className="form-select"
-                value={mes}
-                onChange={(e) =>
-                  setMes(Number(e.target.value))
-                }
-              >
-                <option value={1}>
-                  Janeiro
-                </option>
-
-                <option value={2}>
-                  Fevereiro
-                </option>
-
-                <option value={3}>
-                  Março
-                </option>
-
-                <option value={4}>
-                  Abril
-                </option>
-
-                <option value={5}>
-                  Maio
-                </option>
-
-                <option value={6}>
-                  Junho
-                </option>
-
-                <option value={7}>
-                  Julho
-                </option>
-
-                <option value={8}>
-                  Agosto
-                </option>
-
-                <option value={9}>
-                  Setembro
-                </option>
-
-                <option value={10}>
-                  Outubro
-                </option>
-
-                <option value={11}>
-                  Novembro
-                </option>
-
-                <option value={12}>
-                  Dezembro
-                </option>
-              </select>
-
-            </div>
-
-            <div className="col-12 col-md-4">
-
-              <label className="form-label fw-semibold">
-                Ano
-              </label>
-
-              <select
-                className="form-select"
-                value={ano}
-                onChange={(e) =>
-                  setAno(Number(e.target.value))
-                }
-              >
-                {Array.from(
-                  {
-                    length: 5,
-                  },
-                  (_, indice) =>
-                    hoje.getFullYear() -
-                    2 +
-                    indice
-                ).map((anoOpcao) => (
-                  <option
-                    key={anoOpcao}
-                    value={anoOpcao}
-                  >
-                    {anoOpcao}
-                  </option>
-                ))}
-              </select>
-
-            </div>
-
-            <div className="col-12 col-md-3">
-
-              <div className="text-muted small">
-                Período selecionado
-              </div>
-
-              <div className="fw-bold">
-                {String(mes).padStart(2, "0")}/{ano}
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-      </div>
-
-      {/* ================================== */}
-      {/* CARDS DE RESUMO */}
-      {/* ================================== */}
+      {/* ==================================
+          CARDS DE RESUMO
+      ================================== */}
 
       <div className="row g-3 mb-4">
-
-        {/* TOTAL */}
         <div className="col-12 col-sm-6 col-xl-3">
-
           <div className="card border-0 shadow-sm h-100">
-
             <div className="card-body">
-
-              <div className="d-flex justify-content-between align-items-center">
-
+              <div className="d-flex justify-content-between align-items-start">
                 <div>
-
                   <p className="text-muted mb-1">
                     Total
                   </p>
 
                   <h3 className="fw-bold mb-0">
-                    {totalRecebimentos}
+                    {totalContratos}
                   </h3>
-
                 </div>
 
-                <div className="fs-2 text-primary">
-                  <i className="bi bi-cash-stack"></i>
+                <div className="text-primary fs-3">
+                  <i className="bi bi-file-earmark-text"></i>
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
 
-        {/* RECEBIDOS */}
         <div className="col-12 col-sm-6 col-xl-3">
-
           <div className="card border-0 shadow-sm h-100">
-
             <div className="card-body">
-
-              <div className="d-flex justify-content-between align-items-center">
-
+              <div className="d-flex justify-content-between align-items-start">
                 <div>
-
                   <p className="text-muted mb-1">
-                    Recebidos
-                  </p>
-
-                  <h3 className="fw-bold mb-0 text-success">
-                    {formatarMoeda(
-                      valorRecebido
-                    )}
-                  </h3>
-
-                </div>
-
-                <div className="fs-2 text-success">
-                  <i className="bi bi-check-circle"></i>
-                </div>
-
-              </div>
-
-              <small className="text-muted">
-                {recebidos.length} recebimento(s)
-              </small>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* PENDENTES */}
-        <div className="col-12 col-sm-6 col-xl-3">
-
-          <div className="card border-0 shadow-sm h-100">
-
-            <div className="card-body">
-
-              <div className="d-flex justify-content-between align-items-center">
-
-                <div>
-
-                  <p className="text-muted mb-1">
-                    Pendentes
-                  </p>
-
-                  <h3 className="fw-bold mb-0 text-warning">
-                    {formatarMoeda(
-                      valorPendente
-                    )}
-                  </h3>
-
-                </div>
-
-                <div className="fs-2 text-warning">
-                  <i className="bi bi-clock-history"></i>
-                </div>
-
-              </div>
-
-              <small className="text-muted">
-                {pendentes.length} recebimento(s)
-              </small>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* EM ABERTO */}
-        <div className="col-12 col-sm-6 col-xl-3">
-
-          <div className="card border-0 shadow-sm h-100">
-
-            <div className="card-body">
-
-              <div className="d-flex justify-content-between align-items-center">
-
-                <div>
-
-                  <p className="text-muted mb-1">
-                    Em aberto
+                    Ativos
                   </p>
 
                   <h3 className="fw-bold mb-0">
-                    {pendentes.length}
+                    {contratosAtivos}
                   </h3>
-
                 </div>
 
-                <div className="fs-2 text-danger">
-                  <i className="bi bi-exclamation-circle"></i>
+                <div className="text-success fs-3">
+                  <i className="bi bi-check-circle"></i>
                 </div>
-
               </div>
-
-              <small className="text-muted">
-                aguardando recebimento
-              </small>
-
             </div>
-
           </div>
-
         </div>
 
-      </div>
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted mb-1">
+                    Encerrados
+                  </p>
 
-      {/* ================================== */}
-      {/* FILTROS */}
-      {/* ================================== */}
+                  <h3 className="fw-bold mb-0">
+                    {contratosEncerrados}
+                  </h3>
+                </div>
+
+                <div className="text-secondary fs-3">
+                  <i className="bi bi-archive"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-sm-6 col-xl-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted mb-1">
+                    Vencendo
+                  </p>
+
+                  <h3 className="fw-bold mb-0">
+                    {contratosVencendo}
+                  </h3>
+                </div>
+
+                <div className="text-warning fs-3">
+                  <i className="bi bi-calendar-event"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* ==================================
+          FILTROS
+      ================================== */}
 
       <div className="card border-0 shadow-sm mb-4">
-
         <div className="card-body">
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h5 className="fw-bold mb-0">
+              <i className="bi bi-funnel me-2"></i>
+              Filtros
+            </h5>
 
-          <div className="row g-3 align-items-end">
+            {(busca || filtroStatus !== "todos") && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => {
+                  setBusca("")
+                  setFiltroStatus("todos")
+                }}
+              >
+                <i className="bi bi-x-circle me-1"></i>
+                Limpar filtros
+              </button>
+            )}
+          </div>
 
-            <div className="col-12 col-md-9">
-
-              <label className="form-label fw-semibold">
+          <div className="row g-3">
+            <div className="col-12 col-lg-8">
+              <label
+                htmlFor="buscaContrato"
+                className="form-label fw-semibold"
+              >
                 Buscar
               </label>
 
               <div className="input-group">
-
                 <span className="input-group-text">
                   <i className="bi bi-search"></i>
                 </span>
 
                 <input
+                  id="buscaContrato"
                   type="text"
                   className="form-control"
+                  placeholder="Número, cliente ou imóvel..."
                   value={busca}
                   onChange={(e) =>
                     setBusca(e.target.value)
                   }
-                  placeholder="Buscar por cliente, contrato, tipo ou descrição..."
                 />
-
               </div>
-
             </div>
 
-            <div className="col-12 col-md-3">
+            <div className="col-12 col-lg-4">
+              <label
+                htmlFor="filtroStatus"
+                className="form-label fw-semibold"
+              >
+                Status
+              </label>
+
+              <select
+                id="filtroStatus"
+                className="form-select"
+                value={filtroStatus}
+                onChange={(e) =>
+                  setFiltroStatus(e.target.value)
+                }
+              >
+                <option value="todos">
+                  Todos
+                </option>
+
+                <option value="ativo">
+                  Ativos
+                </option>
+
+                <option value="encerrado">
+                  Encerrados
+                </option>
+
+                <option value="vencido">
+                  Vencidos
+                </option>
+
+                <option value="cancelado">
+                  Cancelados
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ==================================
+          TABELA
+      ================================== */}
+
+      <div className="card border-0 shadow-sm">
+        <div className="card-body p-0">
+          <div className="p-3 border-bottom">
+            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <h5 className="fw-bold mb-1">
+                  Contratos cadastrados
+                </h5>
+
+                <p className="text-muted mb-0 small">
+                  {contratosFiltrados.length}{" "}
+                  contrato
+                  {contratosFiltrados.length !== 1
+                    ? "s"
+                    : ""}{" "}
+                  encontrado
+                  {contratosFiltrados.length !== 1
+                    ? "s"
+                    : ""}
+                </p>
+              </div>
 
               <button
                 type="button"
-                className="btn btn-outline-secondary w-100"
-                onClick={() => setBusca("")}
+                className="btn btn-primary"
+                onClick={abrirNovoContrato}
               >
-                <i className="bi bi-x-circle me-1"></i>
-                Limpar busca
+                <i className="bi bi-plus-lg me-2"></i>
+                Novo contrato
               </button>
-
             </div>
-
-          </div>
-
-        </div>
-
-      </div>
-      {/* ================================== */}
-      {/* LISTA DE RECEBIMENTOS */}
-      {/* ================================== */}
-
-      <div className="card border-0 shadow-sm">
-
-        <div className="card-body">
-
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-
-            <div>
-
-              <h5 className="fw-bold mb-1">
-                Recebimentos cadastrados
-              </h5>
-
-              <p className="text-muted mb-0">
-                {recebimentosFiltrados.length} recebimento(s) encontrado(s).
-              </p>
-
-            </div>
-
           </div>
 
           {loading ? (
-
             <div className="text-center py-5">
-
               <div
                 className="spinner-border text-primary"
                 role="status"
@@ -1301,50 +1028,52 @@ export default function Recebimentos() {
               </div>
 
               <p className="text-muted mt-3 mb-0">
-                Carregando recebimentos...
+                Carregando contratos...
               </p>
-
             </div>
-
-          ) : recebimentosFiltrados.length === 0 ? (
-
-            <div className="text-center py-5">
-
+          ) : contratosFiltrados.length === 0 ? (
+            <div className="text-center py-5 px-3">
               <div className="fs-1 text-muted mb-3">
-                <i className="bi bi-cash-stack"></i>
+                <i className="bi bi-file-earmark-x"></i>
               </div>
 
               <h5 className="fw-bold">
-                Nenhum recebimento encontrado
+                Nenhum contrato encontrado
               </h5>
 
-              <p className="text-muted">
-                Não há recebimentos para o período ou busca selecionada.
+              <p className="text-muted mb-3">
+                {busca || filtroStatus !== "todos"
+                  ? "Tente alterar os filtros utilizados."
+                  : "Cadastre o primeiro contrato para começar."}
               </p>
 
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={abrirNovoRecebimento}
-              >
-                <i className="bi bi-plus-lg me-1"></i>
-                Cadastrar recebimento
-              </button>
-
+              {!busca &&
+                filtroStatus === "todos" && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={abrirNovoContrato}
+                  >
+                    <i className="bi bi-plus-lg me-2"></i>
+                    Novo contrato
+                  </button>
+                )}
             </div>
-
           ) : (
-
             <div className="table-responsive">
-
               <table className="table table-hover align-middle mb-0">
-
-                <thead>
-
+                <thead className="table-light">
                   <tr>
+                    <th className="px-3">
+                      Nº contrato
+                    </th>
 
                     <th>
                       Cliente
+                    </th>
+
+                    <th>
+                      Imóvel
                     </th>
 
                     <th>
@@ -1352,11 +1081,7 @@ export default function Recebimentos() {
                     </th>
 
                     <th>
-                      Referente
-                    </th>
-
-                    <th>
-                      Vencimento
+                      Período
                     </th>
 
                     <th>
@@ -1364,566 +1089,486 @@ export default function Recebimentos() {
                     </th>
 
                     <th>
-                      Forma de pagamento
-                    </th>
-
-                    <th>
                       Status
                     </th>
 
-                    <th className="text-end">
+                    <th className="text-end px-3">
                       Ações
                     </th>
-
                   </tr>
-
                 </thead>
 
                 <tbody>
-
-                  {recebimentosFiltrados.map(
-                    (recebimento) => (
-
-                      <tr
-                        key={recebimento.id}
-                      >
+                  {contratosFiltrados.map(
+                    (contrato) => (
+                      <tr key={contrato.id}>
+                        <td className="px-3">
+                          <span className="fw-semibold">
+                            {contrato.numero || "-"}
+                          </span>
+                        </td>
 
                         <td>
+                          <div className="d-flex align-items-center gap-2">
+                            <div
+                              className="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+                              style={{
+                                width: "36px",
+                                height: "36px",
+                                minWidth: "36px",
+                              }}
+                            >
+                              <i className="bi bi-person"></i>
+                            </div>
 
-                          <div className="fw-semibold">
-                            {obterNomeCliente(
-                              recebimento.cliente_id
-                            )}
+                            <span>
+                              {obterNomeCliente(
+                                contrato.cliente
+                              )}
+                            </span>
                           </div>
-
                         </td>
 
                         <td>
-                          {recebimento.tipo_recebimento ||
-                            recebimento.tipo ||
-                            "-"}
+                          <div className="d-flex align-items-center gap-2">
+                            <i className="bi bi-house text-primary"></i>
+
+                            <span>
+                              {obterNomeImovel(
+                                contrato.imovel
+                              )}
+                            </span>
+                          </div>
                         </td>
 
                         <td>
-                          {recebimento.numero_contrato ||
-                            obterNumeroContrato(
-                              recebimento.contrato_id
+                          {contrato.tipo || "-"}
+                        </td>
+
+                        <td>
+                          <div className="small">
+                            <div>
+                              <span className="text-muted">
+                                Início:
+                              </span>{" "}
+                              {formatarData(
+                                contrato.data_inicio
+                              )}
+                            </div>
+
+                            <div>
+                              <span className="text-muted">
+                                Fim:
+                              </span>{" "}
+                              {formatarData(
+                                contrato.data_fim
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className="fw-semibold">
+                            {formatarMoeda(
+                              contrato.valor
                             )}
+                          </span>
                         </td>
 
                         <td>
-                          {formatarData(
-                            recebimento.data_vencimento
-                          )}
-                        </td>
-
-                        <td className="fw-semibold">
-                          {formatarMoeda(
-                            recebimento.valor
-                          )}
-                        </td>
-
-                        <td>
-                          {recebimento.forma_pagamento ||
-                            "-"}
-                        </td>
-
-                        <td>
-
                           <span
-                            className={`badge ${classeStatus(
-                              recebimento.status
+                            className={`badge ${obterClasseStatus(
+                              contrato.status
                             )}`}
                           >
-                            {textoStatus(
-                              recebimento.status
+                            {obterTextoStatus(
+                              contrato.status
                             )}
                           </span>
 
+                          {contratoEstaVencendo(
+                            contrato
+                          ) && (
+                            <div className="small text-warning mt-1">
+                              <i className="bi bi-exclamation-circle me-1"></i>
+                              Vence em breve
+                            </div>
+                          )}
                         </td>
 
-                        <td className="text-end">
-
+                        <td className="text-end px-3">
                           <div className="d-flex justify-content-end gap-1">
-
-                            {String(
-                              recebimento.status || ""
-                            ).toLowerCase() ===
-                              "pendente" && (
-
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-success"
-                                title="Confirmar recebimento"
-                                onClick={() =>
-                                  abrirConfirmarRecebimento(
-                                    recebimento
-                                  )
-                                }
-                              >
-                                <i className="bi bi-check-lg"></i>
-                              </button>
-
-                            )}
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary"
+                              title="Editar contrato"
+                              onClick={() =>
+                                abrirEdicao(
+                                  contrato
+                                )
+                              }
+                            >
+                              <i className="bi bi-pencil"></i>
+                            </button>
 
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-danger"
-                              title="Excluir"
+                              title="Excluir contrato"
                               onClick={() =>
-                                excluirRecebimento(
-                                  recebimento.id
+                                excluirContrato(
+                                  contrato
                                 )
                               }
                             >
                               <i className="bi bi-trash"></i>
                             </button>
-
                           </div>
-
                         </td>
-
                       </tr>
-
                     )
                   )}
-
                 </tbody>
-
               </table>
-
             </div>
-
           )}
-
         </div>
-
       </div>
 
-      {/* ================================== */}
-      {/* MODAL - NOVO RECEBIMENTO */}
-      {/* ================================== */}
+      {/* ==================================
+          MODAL DE CONTRATO
+      ================================== */}
 
-      {novoRecebimentoAberto && (
-
+      {modalAberto && (
         <div
           className="modal fade show d-block"
           tabIndex="-1"
           role="dialog"
           aria-modal="true"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor:
+              "rgba(0, 0, 0, 0.5)",
           }}
         >
-
-          <div className="modal-dialog modal-lg modal-dialog-scrollable">
-
-            <div className="modal-content">
-
-              {/* CABEÇALHO */}
-
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow">
               <div className="modal-header">
-
                 <h5 className="modal-title fw-bold">
+                  <i className="bi bi-file-earmark-text me-2"></i>
 
-                  <i className="bi bi-cash-coin me-2"></i>
-
-                  Novo recebimento
-
+                  {modoEdicao
+                    ? "Editar contrato"
+                    : "Novo contrato"}
                 </h5>
 
                 <button
                   type="button"
                   className="btn-close"
-                  onClick={fecharNovoRecebimento}
+                  onClick={fecharModal}
                   disabled={salvando}
+                  aria-label="Fechar"
                 ></button>
-
               </div>
-
-              {/* CORPO */}
 
               <div className="modal-body">
+                {erro && (
+                  <div
+                    className="alert alert-danger"
+                    role="alert"
+                  >
+                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                    {erro}
+                  </div>
+                )}
 
-                {/* CLIENTE E CONTRATO */}
+                <div className="row g-3">
+                  {/* NÚMERO */}
 
-                <div className="card border-0 bg-light mb-3">
+                  <div className="col-12 col-md-6">
+                    <label
+                      htmlFor="numero"
+                      className="form-label fw-semibold"
+                    >
+                      Nº do contrato
+                    </label>
 
-                  <div className="card-body">
-
-                    <h6 className="fw-bold mb-3">
-                      Cliente e contrato
-                    </h6>
-
-                    <div className="row g-3">
-
-                      {/* CLIENTE */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Cliente *
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.cliente_id
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "cliente_id",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="">
-                            Selecione um cliente
-                          </option>
-
-                          {clientes.map(
-                            (cliente) => (
-
-                              <option
-                                key={cliente.id}
-                                value={cliente.id}
-                              >
-                                {cliente.nome}
-                              </option>
-
-                            )
-                          )}
-
-                        </select>
-
-                      </div>
-
-                      {/* CONTRATO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Contrato
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.contrato_id
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "contrato_id",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="">
-                            Selecione um contrato
-                          </option>
-
-                          {contratos.map(
-                            (contrato) => (
-
-                              <option
-                                key={contrato.id}
-                                value={contrato.id}
-                              >
-                                {contrato.numero ||
-                                  `Contrato #${contrato.id}`}
-                              </option>
-
-                            )
-                          )}
-
-                        </select>
-
-                      </div>
-
-                    </div>
-
+                    <input
+                      id="numero"
+                      type="text"
+                      className="form-control"
+                      value={formulario.numero}
+                      onChange={(e) =>
+                        alterarFormulario(
+                          "numero",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Ex.: CT-001"
+                      disabled={salvando}
+                    />
                   </div>
 
-                </div>
+                  {/* TIPO */}
 
-                {/* DADOS DO RECEBIMENTO */}
+                  <div className="col-12 col-md-6">
+                    <label
+                      htmlFor="tipo"
+                      className="form-label fw-semibold"
+                    >
+                      Tipo
+                    </label>
 
-                <div className="card border-0 bg-light mb-3">
+                    <select
+                      id="tipo"
+                      className="form-select"
+                      value={formulario.tipo}
+                      onChange={(e) =>
+                        alterarFormulario(
+                          "tipo",
+                          e.target.value
+                        )
+                      }
+                      disabled={salvando}
+                    >
+                      <option value="Aluguel">
+                        Aluguel
+                      </option>
 
-                  <div className="card-body">
+                      <option value="Venda">
+                        Venda
+                      </option>
 
-                    <h6 className="fw-bold mb-3">
-                      Dados do recebimento
-                    </h6>
-
-                    <div className="row g-3">
-
-                      {/* TIPO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Tipo
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.tipo
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "tipo",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="Aluguel mensal">
-                            Aluguel mensal
-                          </option>
-
-                          <option value="Diária">
-                            Diária
-                          </option>
-
-                          <option value="Venda unitária">
-                            Venda unitária
-                          </option>
-
-                          <option value="Venda parcelada">
-                            Venda parcelada
-                          </option>
-
-                        </select>
-
-                      </div>
-                      {/* DESCRIÇÃO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Descrição
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={
-                            novoRecebimento.descricao
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "descricao",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Ex.: Aluguel referente ao mês"
-                        />
-
-                      </div>
-
-                      {/* NÚMERO DO CONTRATO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Nº Contrato
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={
-                            novoRecebimento.numero_contrato
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "numero_contrato",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Número do contrato"
-                        />
-
-                      </div>
-
-                      {/* VALOR */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Valor *
-                        </label>
-
-                        <div className="input-group">
-
-                          <span className="input-group-text">
-                            R$
-                          </span>
-
-                          <input
-                            type="number"
-                            className="form-control"
-                            min="0"
-                            step="0.01"
-                            value={
-                              novoRecebimento.valor
-                            }
-                            onChange={(e) =>
-                              alterarNovoRecebimento(
-                                "valor",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0,00"
-                          />
-
-                        </div>
-
-                      </div>
-
-                      {/* DATA DE VENCIMENTO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Data de vencimento *
-                        </label>
-
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={
-                            novoRecebimento.data_vencimento
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "data_vencimento",
-                              e.target.value
-                            )
-                          }
-                        />
-
-                      </div>
-
-                      {/* FORMA DE PAGAMENTO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Forma de pagamento
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.forma_pagamento
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "forma_pagamento",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="Dinheiro">
-                            Dinheiro
-                          </option>
-
-                          <option value="Cartão">
-                            Cartão
-                          </option>
-
-                          <option value="Depósito">
-                            Depósito
-                          </option>
-
-                          <option value="Pix">
-                            Pix
-                          </option>
-
-                        </select>
-
-                      </div>
-
-                      {/* STATUS */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Status
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.status
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "status",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="Pendente">
-                            Pendente
-                          </option>
-
-                          <option value="Recebido">
-                            Recebido
-                          </option>
-
-                        </select>
-
-                      </div>
-
-                      {/* OBSERVAÇÕES */}
-
-                      <div className="col-12">
-
-                        <label className="form-label">
-                          Observações
-                        </label>
-
-                        <textarea
-                          className="form-control"
-                          rows="3"
-                          value={
-                            novoRecebimento.observacoes
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "observacoes",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Observações sobre o recebimento"
-                        ></textarea>
-
-                      </div>
-
-                    </div>
-
+                      <option value="Temporada">
+                        Temporada
+                      </option>
+                    </select>
                   </div>
 
-                </div>
+                  {/* CLIENTE */}
 
+                  <div className="col-12 col-md-6">
+                    <label
+                      htmlFor="cliente"
+                      className="form-label fw-semibold"
+                    >
+                      Cliente
+                    </label>
+
+                    <select
+                      id="cliente"
+                      className="form-select"
+                      value={formulario.cliente}
+                      onChange={(e) =>
+                        alterarFormulario(
+                          "cliente",
+                          e.target.value
+                        )
+                      }
+                      disabled={salvando}
+                    >
+                      <option value="">
+                        Selecione o cliente
+                      </option>
+
+                      {clientes.map(
+                        (cliente) => (
+                          <option
+                            key={cliente.id}
+                            value={cliente.id}
+                          >
+                            {cliente.nome}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  {/* IMÓVEL */}
+
+                  <div className="col-12 col-md-6">
+                    <label
+                      htmlFor="imovel"
+                      className="form-label fw-semibold"
+                    >
+                      Imóvel
+                    </label>
+
+                    <select
+                      id="imovel"
+                      className="form-select"
+                      value={formulario.imovel}
+                      onChange={(e) =>
+                        alterarFormulario(
+                          "imovel",
+                          e.target.value
+                        )
+                      }
+                      disabled={salvando}
+                    >
+                      <option value="">
+                        Selecione o imóvel
+                      </option>
+
+                      {imoveis.map(
+                        (imovel) => (
+                          <option
+                            key={imovel.id}
+                            value={imovel.id}
+                          >
+                            {imovel.titulo ||
+                              imovel.nome ||
+                              `Imóvel ${imovel.id}`}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </div>
+                  {/* STATUS */}
+
+                  <div className="col-12 col-md-6">
+                    <label
+                      htmlFor="status"
+                      className="form-label fw-semibold"
+                    >
+                      Status
+                    </label>
+
+                    <select
+                      id="status"
+                      className="form-select"
+                      value={formulario.status}
+                      onChange={(e) =>
+                        alterarFormulario(
+                          "status",
+                          e.target.value
+                        )
+                      }
+                      disabled={salvando}
+                    >
+                      <option value="ativo">
+                        Ativo
+                      </option>
+
+                      <option value="encerrado">
+                        Encerrado
+                      </option>
+
+                      <option value="vencido">
+                        Vencido
+                      </option>
+
+                      <option value="cancelado">
+                        Cancelado
+                      </option>
+                    </select>
+                  </div>
+
+                  {/* DATA DE INÍCIO */}
+
+                  <div className="col-12 col-md-6">
+                    <label
+                      htmlFor="data_inicio"
+                      className="form-label fw-semibold"
+                    >
+                      Data de início
+                    </label>
+
+                    <input
+                      id="data_inicio"
+                      type="date"
+                      className="form-control"
+                      value={
+                        formulario.data_inicio
+                      }
+                      onChange={(e) =>
+                        alterarFormulario(
+                          "data_inicio",
+                          e.target.value
+                        )
+                      }
+                      disabled={salvando}
+                    />
+                  </div>
+
+                  {/* DATA DE FIM */}
+
+                  <div className="col-12 col-md-6">
+                    <label
+                      htmlFor="data_fim"
+                      className="form-label fw-semibold"
+                    >
+                      Data de fim
+                    </label>
+
+                    <input
+                      id="data_fim"
+                      type="date"
+                      className="form-control"
+                      value={
+                        formulario.data_fim
+                      }
+                      onChange={(e) =>
+                        alterarFormulario(
+                          "data_fim",
+                          e.target.value
+                        )
+                      }
+                      disabled={salvando}
+                    />
+
+                    <div className="form-text">
+                      Deixe em branco caso não tenha
+                      data de encerramento definida.
+                    </div>
+                  </div>
+
+                  {/* VALOR */}
+
+                  <div className="col-12 col-md-6">
+                    <label
+                      htmlFor="valor"
+                      className="form-label fw-semibold"
+                    >
+                      Valor
+                    </label>
+
+                    <div className="input-group">
+                      <span className="input-group-text">
+                        R$
+                      </span>
+
+                      <input
+                        id="valor"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-control"
+                        value={
+                          formulario.valor
+                        }
+                        onChange={(e) =>
+                          alterarFormulario(
+                            "valor",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0,00"
+                        disabled={salvando}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* RODAPÉ */}
+              {/* ==================================
+                  RODAPÉ DO MODAL
+              ================================== */}
 
               <div className="modal-footer">
-
                 <button
                   type="button"
                   className="btn btn-outline-secondary"
-                  onClick={fecharNovoRecebimento}
+                  onClick={fecharModal}
                   disabled={salvando}
                 >
                   Cancelar
@@ -1932,10 +1577,9 @@ export default function Recebimentos() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={salvarNovoRecebimento}
+                  onClick={salvarContrato}
                   disabled={salvando}
                 >
-
                   {salvando ? (
                     <>
                       <span
@@ -1948,219 +1592,19 @@ export default function Recebimentos() {
                     </>
                   ) : (
                     <>
-                      <i className="bi bi-check-lg me-1"></i>
-                      Cadastrar recebimento
+                      <i className="bi bi-check-lg me-2"></i>
+
+                      {modoEdicao
+                        ? "Salvar alterações"
+                        : "Cadastrar contrato"}
                     </>
                   )}
-
                 </button>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       )}
-
-      {/* ================================== */}
-      {/* MODAL - CONFIRMAR RECEBIMENTO */}
-      {/* ================================== */}
-
-      {modalAberto &&
-        recebimentoSelecionado && (
-
-          <div
-            className="modal fade show d-block"
-            tabIndex="-1"
-            role="dialog"
-            aria-modal="true"
-            style={{
-              backgroundColor:
-                "rgba(0, 0, 0, 0.5)",
-            }}
-          >
-
-            <div className="modal-dialog modal-dialog-centered">
-
-              <div className="modal-content">
-
-                <div className="modal-header">
-
-                  <h5 className="modal-title fw-bold">
-
-                    <i className="bi bi-check-circle text-success me-2"></i>
-
-                    Confirmar recebimento
-
-                  </h5>
-
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={fecharConfirmacao}
-                    disabled={salvando}
-                  ></button>
-
-                </div>
-
-                <div className="modal-body">
-
-                  <div className="alert alert-info">
-
-                    <i className="bi bi-info-circle me-2"></i>
-
-                    Confirme os dados do pagamento para
-                    registrar este recebimento.
-
-                  </div>
-
-                  <div className="mb-3">
-
-                    <label className="form-label fw-semibold">
-                      Cliente
-                    </label>
-
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={
-                        obterNomeCliente(
-                          recebimentoSelecionado.cliente_id
-                        )
-                      }
-                      disabled
-                    />
-
-                  </div>
-
-                  <div className="mb-3">
-
-                    <label className="form-label fw-semibold">
-                      Valor
-                    </label>
-
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={formatarMoeda(
-                        recebimentoSelecionado.valor
-                      )}
-                      disabled
-                    />
-
-                  </div>
-
-                  <div className="mb-3">
-
-                    <label className="form-label fw-semibold">
-                      Forma de pagamento *
-                    </label>
-
-                    <select
-                      className="form-select"
-                      value={formaPagamento}
-                      onChange={(e) =>
-                        setFormaPagamento(
-                          e.target.value
-                        )
-                      }
-                    >
-
-                      <option value="">
-                        Selecione
-                      </option>
-
-                      <option value="Dinheiro">
-                        Dinheiro
-                      </option>
-
-                      <option value="Cartão">
-                        Cartão
-                      </option>
-
-                      <option value="Depósito">
-                        Depósito
-                      </option>
-
-                      <option value="Pix">
-                        Pix
-                      </option>
-
-                    </select>
-
-                  </div>
-
-                  <div className="mb-3">
-
-                    <label className="form-label fw-semibold">
-                      Data do pagamento *
-                    </label>
-
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={dataPagamento}
-                      onChange={(e) =>
-                        setDataPagamento(
-                          e.target.value
-                        )
-                      }
-                    />
-
-                  </div>
-
-                </div>
-
-                <div className="modal-footer">
-
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={fecharConfirmacao}
-                    disabled={salvando}
-                  >
-                    Cancelar
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-success"
-                    onClick={confirmarPagamento}
-                    disabled={salvando}
-                  >
-
-                    {salvando ? (
-                      <>
-                        <span
-                          className="spinner-border spinner-border-sm me-2"
-                          role="status"
-                          aria-hidden="true"
-                        ></span>
-
-                        Confirmando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-check-lg me-1"></i>
-                        Confirmar recebimento
-                      </>
-                    )}
-
-                  </button>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        )}
-
     </div>
   )
 }
