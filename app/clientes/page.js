@@ -1008,8 +1008,24 @@ export default function Clientes() {
 
             </div>
           </div>
-        </div>
+                </div>
       )}
+
+      {/* RODAPÉ */}
+      <div className="text-center text-muted py-3">
+
+        <small>
+          ImobGest
+        </small>
+
+        <br />
+
+        <small>
+          Dashboard atualizado em{" "}
+          {hoje.toLocaleDateString("pt-BR")}
+        </small>
+
+      </div>
 
     </div>
   )
