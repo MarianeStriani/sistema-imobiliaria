@@ -516,66 +516,6 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/financeiro")}
-              >
-                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
-                Financeiro
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/manutencoes")}
-              >
-                <i className="bi bi-tools d-block fs-5 mb-1"></i>
-                Manutenções
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/visitas")}
-              >
-                <i className="bi bi-calendar-check d-block fs-5 mb-1"></i>
-                Visitas
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/comunicacao")}
-              >
-                <i className="bi bi-whatsapp d-block fs-5 mb-1"></i>
-                Comunicação
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/relatorios")}
-              >
-                <i className="bi bi-file-earmark-bar-graph d-block fs-5 mb-1"></i>
-                Relatórios
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/configuracoes")}
-              >
-                <i className="bi bi-gear d-block fs-5 mb-1"></i>
-                Configurações
-              </button>
-            </div>
-
           </div>
         </div>
       </div>
