@@ -13,9 +13,10 @@ export default function Clientes() {
   const [sucesso, setSucesso] = useState("")
 
   const [busca, setBusca] = useState("")
-
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState(null)
+
+  const [consultandoCep, setConsultandoCep] = useState(false)
 
   const [form, setForm] = useState({
     nome: "",
@@ -28,7 +29,7 @@ export default function Clientes() {
     complemento: "",
     bairro: "",
     cidade: "",
-    estado: "",
+    uf: "",
     cep: "",
     observacoes: "",
   })
@@ -85,7 +86,7 @@ export default function Clientes() {
       complemento: "",
       bairro: "",
       cidade: "",
-      estado: "",
+      uf: "",
       cep: "",
       observacoes: "",
     })
@@ -109,7 +110,7 @@ export default function Clientes() {
       complemento: cliente.complemento || "",
       bairro: cliente.bairro || "",
       cidade: cliente.cidade || "",
-      estado: cliente.estado || "",
+      uf: cliente.uf || "",
       cep: cliente.cep || "",
       observacoes: cliente.observacoes || "",
     })
@@ -129,6 +130,65 @@ export default function Clientes() {
       ...anterior,
       [campo]: valor,
     }))
+  }
+async function buscarCep(cep) {
+    const cepLimpo = cep.replace(/\D/g, "")
+
+    if (cepLimpo.length !== 8) {
+      return
+    }
+
+    setConsultandoCep(true)
+    setErro("")
+
+    try {
+      const resposta = await fetch(
+        `https://viacep.com.br/ws/${cepLimpo}/json/`
+      )
+
+      if (!resposta.ok) {
+        throw new Error(
+          "Não foi possível consultar o CEP."
+        )
+      }
+
+      const dados = await resposta.json()
+
+      if (dados.erro) {
+        setErro("CEP não encontrado.")
+        return
+      }
+
+      setForm((anterior) => ({
+        ...anterior,
+        cep:
+          dados.cep ||
+          anterior.cep,
+        endereco:
+          dados.logradouro ||
+          anterior.endereco,
+        bairro:
+          dados.bairro ||
+          anterior.bairro,
+        cidade:
+          dados.localidade ||
+          anterior.cidade,
+        uf:
+          dados.uf ||
+          anterior.uf,
+      }))
+    } catch (error) {
+      console.error(
+        "Erro ao consultar CEP:",
+        error
+      )
+
+      setErro(
+        "Não foi possível consultar o CEP. Verifique sua conexão e tente novamente."
+      )
+    } finally {
+      setConsultandoCep(false)
+    }
   }
 
   function acessarPagina(url) {
@@ -167,6 +227,7 @@ export default function Clientes() {
       )
     })
   }, [clientes, busca])
+
   async function salvarCliente(e) {
     e.preventDefault()
 
@@ -191,7 +252,7 @@ export default function Clientes() {
         complemento: form.complemento.trim(),
         bairro: form.bairro.trim(),
         cidade: form.cidade.trim(),
-        estado: form.estado.trim(),
+        uf: form.uf.trim().toUpperCase(),
         cep: form.cep.trim(),
         observacoes: form.observacoes.trim(),
       }
@@ -206,7 +267,9 @@ export default function Clientes() {
           throw error
         }
 
-        setSucesso("Cliente atualizado com sucesso.")
+        setSucesso(
+          "Cliente atualizado com sucesso."
+        )
       } else {
         const { error } = await supabase
           .from("clientes")
@@ -216,7 +279,9 @@ export default function Clientes() {
           throw error
         }
 
-        setSucesso("Cliente cadastrado com sucesso.")
+        setSucesso(
+          "Cliente cadastrado com sucesso."
+        )
       }
 
       await carregarClientes()
@@ -235,12 +300,15 @@ export default function Clientes() {
         complemento: "",
         bairro: "",
         cidade: "",
-        estado: "",
+        uf: "",
         cep: "",
         observacoes: "",
       })
     } catch (error) {
-      console.error("Erro ao salvar cliente:", error)
+      console.error(
+        "Erro ao salvar cliente:",
+        error
+      )
 
       setErro(
         error?.message ||
@@ -272,11 +340,16 @@ export default function Clientes() {
         throw error
       }
 
-      setSucesso("Cliente excluído com sucesso.")
+      setSucesso(
+        "Cliente excluído com sucesso."
+      )
 
       await carregarClientes()
     } catch (error) {
-      console.error("Erro ao excluir cliente:", error)
+      console.error(
+        "Erro ao excluir cliente:",
+        error
+      )
 
       setErro(
         error?.message ||
@@ -287,13 +360,11 @@ export default function Clientes() {
 
   function formatarTelefone(valor) {
     if (!valor) return "-"
-
     return valor
   }
 
   function formatarCpf(valor) {
     if (!valor) return "-"
-
     return valor
   }
 
@@ -303,10 +374,8 @@ export default function Clientes() {
 
   return (
     <div className="container-fluid py-4">
-
-      {/* CABEÇALHO */}
+{/* CABEÇALHO */}
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
-
         <div>
           <h2 className="fw-bold mb-1">
             Clientes
@@ -318,7 +387,6 @@ export default function Clientes() {
         </div>
 
         <div className="d-flex gap-2 mt-3 mt-md-0">
-
           <button
             className="btn btn-outline-primary"
             onClick={carregarClientes}
@@ -335,9 +403,7 @@ export default function Clientes() {
             <i className="bi bi-person-plus me-2"></i>
             Novo cliente
           </button>
-
         </div>
-
       </div>
 
       {/* MENSAGEM DE ERRO */}
@@ -378,11 +444,9 @@ export default function Clientes() {
 
       {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm border-0 mb-4">
-
         <div className="card-body">
 
           <div className="d-flex align-items-center mb-3">
-
             <div
               className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
               style={{
@@ -402,7 +466,6 @@ export default function Clientes() {
                 Acesse rapidamente as principais áreas
               </small>
             </div>
-
           </div>
 
           <div className="row g-2">
@@ -528,10 +591,9 @@ export default function Clientes() {
             </div>
 
           </div>
-
         </div>
       </div>
-      {/* RESUMO DOS CLIENTES */}
+{/* RESUMO DOS CLIENTES */}
       <div className="row g-3 mb-4">
 
         <div className="col-12 col-md-4">
@@ -539,7 +601,6 @@ export default function Clientes() {
             <div className="card-body">
 
               <div className="d-flex justify-content-between align-items-start">
-
                 <div>
                   <p className="text-muted mb-1">
                     Total de clientes
@@ -559,7 +620,6 @@ export default function Clientes() {
                 >
                   <i className="bi bi-people text-primary fs-4"></i>
                 </div>
-
               </div>
 
               <small className="text-muted d-block mt-3">
@@ -575,7 +635,6 @@ export default function Clientes() {
             <div className="card-body">
 
               <div className="d-flex justify-content-between align-items-start">
-
                 <div>
                   <p className="text-muted mb-1">
                     Resultados
@@ -595,7 +654,6 @@ export default function Clientes() {
                 >
                   <i className="bi bi-search text-info fs-4"></i>
                 </div>
-
               </div>
 
               <small className="text-muted d-block mt-3">
@@ -611,7 +669,6 @@ export default function Clientes() {
             <div className="card-body">
 
               <div className="d-flex justify-content-between align-items-start">
-
                 <div>
                   <p className="text-muted mb-1">
                     Cadastro
@@ -631,7 +688,6 @@ export default function Clientes() {
                 >
                   <i className="bi bi-person-check text-success fs-4"></i>
                 </div>
-
               </div>
 
               <small className="text-muted d-block mt-3">
@@ -646,12 +702,9 @@ export default function Clientes() {
 
       {/* LISTA DE CLIENTES */}
       <div className="card shadow-sm border-0 mb-4">
-
         <div className="card-body">
 
-          {/* CABEÇALHO DA LISTA */}
           <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
-
             <div>
               <h5 className="fw-bold mb-1">
                 Clientes cadastrados
@@ -669,14 +722,12 @@ export default function Clientes() {
               <i className="bi bi-person-plus me-2"></i>
               Novo cliente
             </button>
-
           </div>
 
           {/* BUSCA */}
           <div className="row g-2 mb-4">
 
             <div className="col-12 col-md-9">
-
               <div className="input-group">
 
                 <span className="input-group-text bg-white">
@@ -688,7 +739,9 @@ export default function Clientes() {
                   className="form-control"
                   placeholder="Buscar por nome, CPF, telefone ou e-mail..."
                   value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
+                  onChange={(e) =>
+                    setBusca(e.target.value)
+                  }
                 />
 
                 {busca && (
@@ -702,11 +755,9 @@ export default function Clientes() {
                 )}
 
               </div>
-
             </div>
 
             <div className="col-12 col-md-3">
-
               <button
                 className="btn btn-outline-primary w-100"
                 onClick={carregarClientes}
@@ -715,14 +766,12 @@ export default function Clientes() {
                 <i className="bi bi-arrow-clockwise me-2"></i>
                 Atualizar lista
               </button>
-
             </div>
 
           </div>
 
           {/* TABELA */}
           {loading ? (
-
             <div className="text-center py-5">
 
               <div
@@ -739,9 +788,7 @@ export default function Clientes() {
               </p>
 
             </div>
-
           ) : clientesFiltrados.length === 0 ? (
-
             <div className="text-center py-5">
 
               <div
@@ -775,53 +822,29 @@ export default function Clientes() {
               )}
 
             </div>
-
           ) : (
-
             <div className="table-responsive">
 
               <table className="table table-hover align-middle mb-0">
 
                 <thead className="table-light">
-
                   <tr>
-
-                    <th>
-                      Cliente
-                    </th>
-
-                    <th>
-                      CPF
-                    </th>
-
-                    <th>
-                      Telefone
-                    </th>
-
-                    <th>
-                      E-mail
-                    </th>
-
-                    <th>
-                      Cidade
-                    </th>
-
+                    <th>Cliente</th>
+                    <th>CPF</th>
+                    <th>Telefone</th>
+                    <th>E-mail</th>
+                    <th>Cidade</th>
                     <th className="text-end">
                       Ações
                     </th>
-
                   </tr>
-
                 </thead>
 
                 <tbody>
-
                   {clientesFiltrados.map((cliente) => (
-
                     <tr key={cliente.id}>
 
                       <td>
-
                         <div className="d-flex align-items-center">
 
                           <div
@@ -835,7 +858,6 @@ export default function Clientes() {
                           </div>
 
                           <div>
-
                             <div className="fw-semibold">
                               {cliente.nome || "-"}
                             </div>
@@ -845,11 +867,9 @@ export default function Clientes() {
                                 {cliente.email}
                               </small>
                             )}
-
                           </div>
 
                         </div>
-
                       </td>
 
                       <td>
@@ -869,15 +889,14 @@ export default function Clientes() {
                       <td>
                         {cliente.cidade
                           ? `${cliente.cidade}${
-                              cliente.estado
-                                ? ` - ${cliente.estado}`
+                              cliente.uf
+                                ? ` - ${cliente.uf}`
                                 : ""
                             }`
                           : "-"}
                       </td>
 
                       <td className="text-end">
-
                         <div className="btn-group">
 
                           <button
@@ -903,25 +922,20 @@ export default function Clientes() {
                           </button>
 
                         </div>
-
                       </td>
 
                     </tr>
-
                   ))}
-
                 </tbody>
 
               </table>
 
             </div>
-
           )}
 
         </div>
-
       </div>
-      {/* MODAL - NOVO / EDITAR CLIENTE */}
+{/* MODAL - NOVO / EDITAR CLIENTE */}
       {modalAberto && (
         <div
           className="modal fade show d-block"
@@ -999,7 +1013,6 @@ export default function Clientes() {
 
                       {/* NOME */}
                       <div className="col-12 col-md-8">
-
                         <label className="form-label fw-semibold">
                           Nome completo
                           <span className="text-danger ms-1">
@@ -1020,12 +1033,10 @@ export default function Clientes() {
                           }
                           required
                         />
-
                       </div>
 
                       {/* CPF */}
                       <div className="col-12 col-md-4">
-
                         <label className="form-label fw-semibold">
                           CPF
                         </label>
@@ -1042,12 +1053,10 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
 
                       {/* RG */}
                       <div className="col-12 col-md-4">
-
                         <label className="form-label fw-semibold">
                           RG
                         </label>
@@ -1064,12 +1073,10 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
 
                       {/* TELEFONE */}
                       <div className="col-12 col-md-4">
-
                         <label className="form-label fw-semibold">
                           Telefone
                         </label>
@@ -1086,12 +1093,10 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
 
                       {/* E-MAIL */}
                       <div className="col-12 col-md-4">
-
                         <label className="form-label fw-semibold">
                           E-mail
                         </label>
@@ -1108,11 +1113,9 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
 
                     </div>
-
                   </div>
 
                   <hr className="my-4" />
@@ -1148,29 +1151,62 @@ export default function Clientes() {
 
                       {/* CEP */}
                       <div className="col-12 col-md-3">
-
                         <label className="form-label fw-semibold">
                           CEP
                         </label>
 
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="00000-000"
-                          value={form.cep}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "cep",
-                              e.target.value
-                            )
-                          }
-                        />
+                        <div className="input-group">
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="00000-000"
+                            maxLength="9"
+                            value={form.cep}
+                            onChange={(e) => {
+                              const valor =
+                                e.target.value
 
+                              const cepFormatado =
+                                valor
+                                  .replace(
+                                    /\D/g,
+                                    ""
+                                  )
+                                  .replace(
+                                    /^(\d{5})(\d)/,
+                                    "$1-$2"
+                                  )
+                                  .slice(0, 9)
+
+                              alterarCampo(
+                                "cep",
+                                cepFormatado
+                              )
+                            }}
+                            onBlur={(e) =>
+                              buscarCep(
+                                e.target.value
+                              )
+                            }
+                          />
+
+                          {consultandoCep && (
+                            <span className="input-group-text">
+                              <span
+                                className="spinner-border spinner-border-sm text-primary"
+                                role="status"
+                              ></span>
+                            </span>
+                          )}
+                        </div>
+
+                        <small className="text-muted">
+                          Digite o CEP para preencher o endereço.
+                        </small>
                       </div>
 
                       {/* ENDEREÇO */}
                       <div className="col-12 col-md-7">
-
                         <label className="form-label fw-semibold">
                           Logradouro
                         </label>
@@ -1187,12 +1223,10 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
 
                       {/* NÚMERO */}
                       <div className="col-12 col-md-2">
-
                         <label className="form-label fw-semibold">
                           Número
                         </label>
@@ -1209,12 +1243,9 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
-
-                      {/* COMPLEMENTO */}
+{/* COMPLEMENTO */}
                       <div className="col-12 col-md-4">
-
                         <label className="form-label fw-semibold">
                           Complemento
                         </label>
@@ -1231,12 +1262,10 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
 
                       {/* BAIRRO */}
                       <div className="col-12 col-md-4">
-
                         <label className="form-label fw-semibold">
                           Bairro
                         </label>
@@ -1253,12 +1282,10 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
 
                       {/* CIDADE */}
                       <div className="col-12 col-md-3">
-
                         <label className="form-label fw-semibold">
                           Cidade
                         </label>
@@ -1275,12 +1302,10 @@ export default function Clientes() {
                             )
                           }
                         />
-
                       </div>
 
-                      {/* ESTADO */}
+                      {/* UF */}
                       <div className="col-12 col-md-1">
-
                         <label className="form-label fw-semibold">
                           UF
                         </label>
@@ -1290,19 +1315,17 @@ export default function Clientes() {
                           className="form-control text-uppercase"
                           maxLength="2"
                           placeholder="SP"
-                          value={form.estado}
+                          value={form.uf}
                           onChange={(e) =>
                             alterarCampo(
-                              "estado",
+                              "uf",
                               e.target.value.toUpperCase()
                             )
                           }
                         />
-
                       </div>
 
                     </div>
-
                   </div>
 
                   <hr className="my-4" />
@@ -1393,11 +1416,11 @@ export default function Clientes() {
                 </div>
 
               </form>
-
             </div>
           </div>
         </div>
       )}
+
       {/* RODAPÉ DA PÁGINA */}
       <div className="text-center text-muted py-3">
 
