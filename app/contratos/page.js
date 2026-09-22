@@ -46,6 +46,7 @@ export default function Contratos() {
       setContratos(data || [])
     } catch (error) {
       console.error("Erro ao carregar contratos:", error)
+
       setErro(
         error?.message ||
           "Não foi possível carregar os contratos."
@@ -67,6 +68,7 @@ export default function Contratos() {
       setClientes(data || [])
     } catch (error) {
       console.error("Erro ao carregar clientes:", error)
+
       setErro(
         error?.message ||
           "Não foi possível carregar os clientes."
@@ -86,6 +88,7 @@ export default function Contratos() {
       setImoveis(data || [])
     } catch (error) {
       console.error("Erro ao carregar imóveis:", error)
+
       setErro(
         error?.message ||
           "Não foi possível carregar os imóveis."
@@ -147,9 +150,11 @@ export default function Contratos() {
 
     setForm({
       numero: contrato.numero || "",
-      cliente_id: contrato.cliente_id || "",
 
-      // A coluna do imóvel no banco é "imovel"
+      // No banco a coluna se chama "cliente"
+      cliente_id: contrato.cliente || "",
+
+      // No banco a coluna se chama "imovel"
       imovel_id: contrato.imovel || "",
 
       tipo: contrato.tipo || "Aluguel",
@@ -200,12 +205,23 @@ export default function Contratos() {
         return
       }
 
+      /*
+       * IMPORTANTE:
+       * As colunas obrigatórias no Supabase são:
+       * cliente
+       * imovel
+       *
+       * Portanto, não enviamos cliente_id/imovel_id
+       * para a tabela contratos.
+       */
+
       const dados = {
         numero: form.numero.trim(),
-        cliente_id: form.cliente_id,
 
-        // IMPORTANTE:
-        // No Supabase a coluna se chama "imovel"
+        // Coluna real do banco
+        cliente: form.cliente_id,
+
+        // Coluna real do banco
         imovel: form.imovel_id,
 
         tipo: form.tipo,
@@ -223,7 +239,9 @@ export default function Contratos() {
 
         if (error) throw error
 
-        setSucesso("Contrato atualizado com sucesso.")
+        setSucesso(
+          "Contrato atualizado com sucesso."
+        )
       } else {
         const { error } = await supabase
           .from("contratos")
@@ -231,7 +249,9 @@ export default function Contratos() {
 
         if (error) throw error
 
-        setSucesso("Contrato cadastrado com sucesso.")
+        setSucesso(
+          "Contrato cadastrado com sucesso."
+        )
       }
 
       setModalAberto(false)
@@ -240,7 +260,10 @@ export default function Contratos() {
 
       await carregarContratos()
     } catch (error) {
-      console.error("Erro ao salvar contrato:", error)
+      console.error(
+        "Erro ao salvar contrato:",
+        error
+      )
 
       setErro(
         error?.message ||
@@ -268,11 +291,16 @@ export default function Contratos() {
 
       if (error) throw error
 
-      setSucesso("Contrato excluído com sucesso.")
+      setSucesso(
+        "Contrato excluído com sucesso."
+      )
 
       await carregarContratos()
     } catch (error) {
-      console.error("Erro ao excluir contrato:", error)
+      console.error(
+        "Erro ao excluir contrato:",
+        error
+      )
 
       setErro(
         error?.message ||
@@ -308,11 +336,15 @@ export default function Contratos() {
     const termo = busca.trim().toLowerCase()
 
     return contratos.filter((contrato) => {
+      /*
+       * IMPORTANTE:
+       * As colunas reais do banco são "cliente" e "imovel".
+       */
+
       const nomeCliente = obterNomeCliente(
-        contrato.cliente_id
+        contrato.cliente
       )
 
-      // A coluna do imóvel no banco é "imovel"
       const nomeImovel = obterNomeImovel(
         contrato.imovel
       )
@@ -908,7 +940,7 @@ export default function Contratos() {
 
                         <td>
                           {obterNomeCliente(
-                            contrato.cliente_id
+                            contrato.cliente
                           )}
                         </td>
 
