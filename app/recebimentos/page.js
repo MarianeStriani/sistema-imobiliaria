@@ -740,9 +740,7 @@ export default function Recebimentos() {
                 Acesso rápido
               </h5>
 
-              <small className="text-muted">
-                Acesse rapidamente os principais módulos
-              </small>
+              
             </div>
 
           </div>
@@ -1379,7 +1377,7 @@ export default function Recebimentos() {
                     </th>
 
                     <th>
-                      Contrato
+                     Referente
                     </th>
 
                     <th>
@@ -1730,12 +1728,12 @@ export default function Recebimentos() {
 
                       </div>
 
-                      {/* NÚMERO DO CONTRATO */}
+                      {/* Mês referente */}
 
                       <div className="col-12 col-md-6">
 
                         <label className="form-label">
-                          N° Contrato
+                         Mês referente 
                         </label>
 
                         <input
@@ -1750,35 +1748,12 @@ export default function Recebimentos() {
                               e.target.value
                             )
                           }
-                          placeholder="Ex.: 001/2026"
+                          placeholder="Ex.: 01/2026"
                         />
 
                       </div>
 
-                      {/* DESCRIÇÃO */}
-
-                      <div className="col-12">
-
-                        <label className="form-label">
-                          Descrição
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={
-                            novoRecebimento.descricao
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "descricao",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Descrição do recebimento"
-                        />
-
-                      </div>
+                      
 
                       {/* VALOR */}
 
