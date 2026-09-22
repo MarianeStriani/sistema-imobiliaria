@@ -13,7 +13,6 @@ export default function Contratos() {
 
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
-
   const [busca, setBusca] = useState("")
   const [filtroStatus, setFiltroStatus] = useState("todos")
 
@@ -39,13 +38,20 @@ export default function Contratos() {
       const { data, error } = await supabase
         .from("contratos")
         .select("*")
-        .order("id", { ascending: false })
+        .order("id", {
+          ascending: false,
+        })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
       setContratos(data || [])
     } catch (error) {
-      console.error("Erro ao carregar contratos:", error)
+      console.error(
+        "Erro ao carregar contratos:",
+        error
+      )
 
       setErro(
         error?.message ||
@@ -61,13 +67,20 @@ export default function Contratos() {
       const { data, error } = await supabase
         .from("clientes")
         .select("*")
-        .order("nome", { ascending: true })
+        .order("nome", {
+          ascending: true,
+        })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
       setClientes(data || [])
     } catch (error) {
-      console.error("Erro ao carregar clientes:", error)
+      console.error(
+        "Erro ao carregar clientes:",
+        error
+      )
 
       setErro(
         error?.message ||
@@ -81,13 +94,20 @@ export default function Contratos() {
       const { data, error } = await supabase
         .from("imoveis")
         .select("*")
-        .order("id", { ascending: false })
+        .order("id", {
+          ascending: false,
+        })
 
-      if (error) throw error
+      if (error) {
+        throw error
+      }
 
       setImoveis(data || [])
     } catch (error) {
-      console.error("Erro ao carregar imóveis:", error)
+      console.error(
+        "Erro ao carregar imóveis:",
+        error
+      )
 
       setErro(
         error?.message ||
@@ -107,6 +127,7 @@ export default function Contratos() {
 
     carregarDados()
   }, [])
+
   function limparMensagens() {
     setErro("")
     setSucesso("")
@@ -138,6 +159,7 @@ export default function Contratos() {
 
   function abrirNovoContrato() {
     limparMensagens()
+
     setEditando(null)
     setForm(formularioInicial())
     setModalAberto(true)
@@ -151,17 +173,24 @@ export default function Contratos() {
     setForm({
       numero: contrato.numero || "",
 
-      // No banco a coluna se chama "cliente"
+      // A coluna real do banco é "cliente"
       cliente_id: contrato.cliente || "",
 
-      // No banco a coluna se chama "imovel"
+      // A coluna real do banco é "imovel"
       imovel_id: contrato.imovel || "",
 
       tipo: contrato.tipo || "Aluguel",
+
       status: contrato.status || "ativo",
-      data_inicio: contrato.data_inicio || "",
-      data_fim: contrato.data_fim || "",
-      valor: contrato.valor ?? "",
+
+      data_inicio:
+        contrato.data_inicio || "",
+
+      data_fim:
+        contrato.data_fim || "",
+
+      valor:
+        contrato.valor ?? "",
     })
 
     setModalAberto(true)
@@ -174,302 +203,11 @@ export default function Contratos() {
     setEditando(null)
     setForm(formularioInicial())
   }
-
-  async function salvarContrato() {
-    try {
-      setSalvando(true)
-      limparMensagens()
-
-      if (!form.numero.trim()) {
-        setErro("Informe o número do contrato.")
-        return
-      }
-
-      if (!form.cliente_id) {
-        setErro("Selecione um cliente.")
-        return
-      }
-
-      if (!form.imovel_id) {
-        setErro("Selecione um imóvel.")
-        return
-      }
-
-      if (!form.data_inicio) {
-        setErro("Informe a data de início.")
-        return
-      }
-
-      if (!form.valor) {
-        setErro("Informe o valor do contrato.")
-        return
-      }
-
-      /*
-       * IMPORTANTE:
-       * As colunas obrigatórias no Supabase são:
-       * cliente
-       * imovel
-       *
-       * Portanto, não enviamos cliente_id/imovel_id
-       * para a tabela contratos.
-       */
-
-      const dados = {
-        numero: form.numero.trim(),
-
-        // Coluna real do banco
-        cliente: form.cliente_id,
-
-        // Coluna real do banco
-        imovel: form.imovel_id,
-
-        tipo: form.tipo,
-        status: form.status,
-        data_inicio: form.data_inicio,
-        data_fim: form.data_fim || null,
-        valor: Number(form.valor),
-      }
-
-      if (editando) {
-        const { error } = await supabase
-          .from("contratos")
-          .update(dados)
-          .eq("id", editando.id)
-
-        if (error) throw error
-
-        setSucesso(
-          "Contrato atualizado com sucesso."
-        )
-      } else {
-        const { error } = await supabase
-          .from("contratos")
-          .insert([dados])
-
-        if (error) throw error
-
-        setSucesso(
-          "Contrato cadastrado com sucesso."
-        )
-      }
-
-      setModalAberto(false)
-      setEditando(null)
-      setForm(formularioInicial())
-
-      await carregarContratos()
-    } catch (error) {
-      console.error(
-        "Erro ao salvar contrato:",
-        error
-      )
-
-      setErro(
-        error?.message ||
-          "Não foi possível salvar o contrato."
-      )
-    } finally {
-      setSalvando(false)
-    }
-  }
-
-  async function excluirContrato(id) {
-    const confirmar = window.confirm(
-      "Tem certeza que deseja excluir este contrato?"
-    )
-
-    if (!confirmar) return
-
-    try {
-      limparMensagens()
-
-      const { error } = await supabase
-        .from("contratos")
-        .delete()
-        .eq("id", id)
-
-      if (error) throw error
-
-      setSucesso(
-        "Contrato excluído com sucesso."
-      )
-
-      await carregarContratos()
-    } catch (error) {
-      console.error(
-        "Erro ao excluir contrato:",
-        error
-      )
-
-      setErro(
-        error?.message ||
-          "Não foi possível excluir o contrato."
-      )
-    }
-  }
-  function obterNomeCliente(clienteId) {
-    const cliente = clientes.find(
-      (item) => String(item.id) === String(clienteId)
-    )
-
-    return cliente?.nome || "Cliente não encontrado"
-  }
-
-  function obterNomeImovel(imovelId) {
-    const imovel = imoveis.find(
-      (item) => String(item.id) === String(imovelId)
-    )
-
-    if (!imovel) {
-      return "Imóvel não encontrado"
-    }
-
-    return (
-      imovel.titulo ||
-      imovel.endereco ||
-      `Imóvel #${imovel.id}`
-    )
-  }
-
-  const contratosFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase()
-
-    return contratos.filter((contrato) => {
-      /*
-       * IMPORTANTE:
-       * As colunas reais do banco são "cliente" e "imovel".
-       */
-
-      const nomeCliente = obterNomeCliente(
-        contrato.cliente
-      )
-
-      const nomeImovel = obterNomeImovel(
-        contrato.imovel
-      )
-
-      const correspondeBusca =
-        !termo ||
-        String(contrato.numero || "")
-          .toLowerCase()
-          .includes(termo) ||
-        String(nomeCliente)
-          .toLowerCase()
-          .includes(termo) ||
-        String(nomeImovel)
-          .toLowerCase()
-          .includes(termo) ||
-        String(contrato.tipo || "")
-          .toLowerCase()
-          .includes(termo)
-
-      const correspondeStatus =
-        filtroStatus === "todos" ||
-        String(contrato.status || "").toLowerCase() ===
-          filtroStatus.toLowerCase()
-
-      return (
-        correspondeBusca &&
-        correspondeStatus
-      )
-    })
-  }, [
-    contratos,
-    clientes,
-    imoveis,
-    busca,
-    filtroStatus,
-  ])
-
-  const totalContratos = contratos.length
-
-  const contratosAtivos = contratos.filter(
-    (contrato) =>
-      String(contrato.status || "").toLowerCase() ===
-      "ativo"
-  ).length
-
-  const contratosEncerrados = contratos.filter(
-    (contrato) =>
-      String(contrato.status || "").toLowerCase() ===
-      "encerrado"
-  ).length
-
-  const contratosCancelados = contratos.filter(
-    (contrato) =>
-      String(contrato.status || "").toLowerCase() ===
-      "cancelado"
-  ).length
-
-  function formatarData(data) {
-    if (!data) return "-"
-
-    const partes = String(data).split("-")
-
-    if (partes.length !== 3) {
-      return data
-    }
-
-    return `${partes[2]}/${partes[1]}/${partes[0]}`
-  }
-
-  function formatarValor(valor) {
-    if (
-      valor === null ||
-      valor === undefined ||
-      valor === ""
-    ) {
-      return "R$ 0,00"
-    }
-
-    return Number(valor).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    })
-  }
-
-  function classeStatus(status) {
-    const valor = String(status || "").toLowerCase()
-
-    if (valor === "ativo") {
-      return "bg-success"
-    }
-
-    if (valor === "encerrado") {
-      return "bg-secondary"
-    }
-
-    if (valor === "cancelado") {
-      return "bg-danger"
-    }
-
-    return "bg-warning text-dark"
-  }
-
-  function textoStatus(status) {
-    const valor = String(status || "").toLowerCase()
-
-    if (valor === "ativo") {
-      return "Ativo"
-    }
-
-    if (valor === "encerrado") {
-      return "Encerrado"
-    }
-
-    if (valor === "cancelado") {
-      return "Cancelado"
-    }
-
-    return status || "-"
-  }
-
   return (
     <div className="container-fluid py-4">
 
       {/* ACESSO RÁPIDO */}
-      <div className="card shadow-sm border-0 mb-4">
+      <div className="card border-0 shadow-sm mb-4">
         <div className="card-body">
 
           <h5 className="fw-bold mb-3">
@@ -557,6 +295,7 @@ export default function Contratos() {
             </button>
 
           </div>
+
         </div>
       </div>
 
@@ -567,7 +306,6 @@ export default function Contratos() {
           <h2 className="fw-bold mb-1">
             ImobGest - Contratos
           </h2>
-
         </div>
 
         <div className="d-flex gap-2">
@@ -596,6 +334,7 @@ export default function Contratos() {
           </button>
 
         </div>
+
       </div>
 
       {/* ALERTA DE ERRO */}
@@ -605,6 +344,7 @@ export default function Contratos() {
           role="alert"
         >
           <i className="bi bi-exclamation-triangle me-2"></i>
+
           {erro}
 
           <button
@@ -622,6 +362,7 @@ export default function Contratos() {
           role="alert"
         >
           <i className="bi bi-check-circle me-2"></i>
+
           {sucesso}
 
           <button
@@ -631,6 +372,7 @@ export default function Contratos() {
           ></button>
         </div>
       )}
+
       {/* RESUMO */}
       <div className="row g-3 mb-4">
 
@@ -742,6 +484,7 @@ export default function Contratos() {
 
       {/* FILTROS */}
       <div className="card border-0 shadow-sm mb-4">
+
         <div className="card-body">
 
           <h5 className="fw-bold mb-3">
@@ -769,7 +512,9 @@ export default function Contratos() {
                   placeholder="Número, cliente, imóvel ou tipo..."
                   value={busca}
                   onChange={(e) =>
-                    setBusca(e.target.value)
+                    setBusca(
+                      e.target.value
+                    )
                   }
                 />
 
@@ -787,7 +532,9 @@ export default function Contratos() {
                 className="form-select"
                 value={filtroStatus}
                 onChange={(e) =>
-                  setFiltroStatus(e.target.value)
+                  setFiltroStatus(
+                    e.target.value
+                  )
                 }
               >
                 <option value="todos">
@@ -811,27 +558,34 @@ export default function Contratos() {
             </div>
 
           </div>
+
         </div>
+
       </div>
 
-      {/* TABELA */}
+      {/* =====================================================
+          LISTA DE CONTRATOS
+          ===================================================== */}
+
       <div className="card border-0 shadow-sm">
 
         <div className="card-body">
 
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
 
             <div>
-
               <h5 className="fw-bold mb-1">
                 Contratos cadastrados
               </h5>
 
               <p className="text-muted mb-0">
-                {contratosFiltrados.length} contrato(s) encontrado(s).
+                Visualize e gerencie os contratos cadastrados.
               </p>
-
             </div>
+
+            <span className="text-muted small">
+              {contratosFiltrados.length} contrato(s)
+            </span>
 
           </div>
 
@@ -858,26 +612,36 @@ export default function Contratos() {
 
             <div className="text-center py-5">
 
-              <div className="fs-1 text-muted mb-3">
-                <i className="bi bi-file-earmark-x"></i>
-              </div>
+              <i
+                className="bi bi-file-earmark-text text-muted"
+                style={{
+                  fontSize: "3rem",
+                }}
+              ></i>
 
-              <h5 className="fw-bold">
+              <h6 className="fw-bold mt-3">
                 Nenhum contrato encontrado
-              </h5>
+              </h6>
 
-              <p className="text-muted">
-                Não há contratos que correspondam aos filtros selecionados.
+              <p className="text-muted mb-3">
+                {busca || filtroStatus !== "todos"
+                  ? "Nenhum contrato corresponde aos filtros informados."
+                  : "Ainda não há contratos cadastrados."}
               </p>
 
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={abrirNovoContrato}
-              >
-                <i className="bi bi-plus-lg me-1"></i>
-                Cadastrar contrato
-              </button>
+              {!busca &&
+                filtroStatus === "todos" && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={
+                      abrirNovoContrato
+                    }
+                  >
+                    <i className="bi bi-plus-lg me-1"></i>
+                    Novo contrato
+                  </button>
+                )}
 
             </div>
 
@@ -887,11 +651,12 @@ export default function Contratos() {
 
               <table className="table table-hover align-middle mb-0">
 
-                <thead>
+                <thead className="table-light">
+
                   <tr>
 
                     <th>
-                      Nº contrato
+                      Nº
                     </th>
 
                     <th>
@@ -907,7 +672,11 @@ export default function Contratos() {
                     </th>
 
                     <th>
-                      Período
+                      Início
+                    </th>
+
+                    <th>
+                      Fim
                     </th>
 
                     <th>
@@ -923,101 +692,134 @@ export default function Contratos() {
                     </th>
 
                   </tr>
+
                 </thead>
 
                 <tbody>
 
                   {contratosFiltrados.map(
                     (contrato) => (
-                      <tr key={contrato.id}>
+                      <tr
+                        key={
+                          contrato.id
+                        }
+                      >
 
-                        <td className="fw-semibold">
-                          {contrato.numero || "-"}
+                        <td>
+                          <span className="fw-semibold">
+                            {contrato.numero ||
+                              "-"}
+                          </span>
                         </td>
 
                         <td>
-                          {obterNomeCliente(
-                            contrato.cliente
-                          )}
+                          {contrato.cliente_nome ||
+                            contrato.cliente ||
+                            "-"}
                         </td>
 
                         <td>
-                          {obterNomeImovel(
-                            contrato.imovel
-                          )}
+                          {contrato.imovel_nome ||
+                            contrato.imovel ||
+                            "-"}
                         </td>
 
                         <td>
-                          {contrato.tipo || "-"}
+                          {contrato.tipo ||
+                            "-"}
                         </td>
 
                         <td>
+                          {contrato.data_inicio
+                            ? new Date(
+                                contrato.data_inicio +
+                                  "T00:00:00"
+                              ).toLocaleDateString(
+                                "pt-BR"
+                              )
+                            : "-"}
+                        </td>
 
-                          <div>
-                            {formatarData(
-                              contrato.data_inicio
+                        <td>
+                          {contrato.data_fim
+                            ? new Date(
+                                contrato.data_fim +
+                                  "T00:00:00"
+                              ).toLocaleDateString(
+                                "pt-BR"
+                              )
+                            : "-"}
+                        </td>
+
+                        <td>
+                          <span className="fw-semibold">
+                            {Number(
+                              contrato.valor || 0
+                            ).toLocaleString(
+                              "pt-BR",
+                              {
+                                style:
+                                  "currency",
+                                currency:
+                                  "BRL",
+                              }
                             )}
-                          </div>
-
-                          <small className="text-muted">
-                            até{" "}
-                            {formatarData(
-                              contrato.data_fim
-                            )}
-                          </small>
-
-                        </td>
-
-                        <td>
-                          {formatarValor(
-                            contrato.valor
-                          )}
+                          </span>
                         </td>
 
                         <td>
 
                           <span
-                            className={`badge ${classeStatus(
-                              contrato.status
-                            )}`}
+                            className={`badge ${
+                              contrato.status ===
+                              "ativo"
+                                ? "bg-success"
+                                : contrato.status ===
+                                  "cancelado"
+                                ? "bg-danger"
+                                : "bg-secondary"
+                            }`}
                           >
-                            {textoStatus(
-                              contrato.status
-                            )}
+                            {contrato.status ===
+                            "ativo"
+                              ? "Ativo"
+                              : contrato.status ===
+                                "cancelado"
+                              ? "Cancelado"
+                              : contrato.status ||
+                                "-"}
                           </span>
 
                         </td>
 
-                        <td className="text-end">
+                        <td>
 
-                          <div className="d-flex justify-content-end gap-1">
+                          <div className="d-flex justify-content-end gap-2">
 
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-primary"
-                              title="Editar"
                               onClick={() =>
                                 abrirEditarContrato(
                                   contrato
                                 )
                               }
+                              title="Editar"
                             >
                               <i className="bi bi-pencil"></i>
-                            Editar
                             </button>
 
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-danger"
-                              title="Excluir"
                               onClick={() =>
                                 excluirContrato(
-                                  contrato.id
+                                  contrato
                                 )
                               }
+                              title="Excluir"
                             >
                               <i className="bi bi-trash"></i>
-                            Excluir
                             </button>
 
                           </div>
@@ -1037,8 +839,9 @@ export default function Contratos() {
           )}
 
         </div>
+
       </div>
-      {/* MODAL */}
+      {/* MODAL - NOVO / EDITAR CONTRATO */}
       {modalAberto && (
         <div
           className="modal fade show d-block"
@@ -1049,27 +852,33 @@ export default function Contratos() {
             backgroundColor: "rgba(0, 0, 0, 0.5)",
           }}
         >
-
-          <div className="modal-dialog modal-lg modal-dialog-scrollable">
-
-            <div className="modal-content">
+          <div
+            className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+            role="document"
+          >
+            <div className="modal-content border-0 shadow">
 
               {/* CABEÇALHO DO MODAL */}
               <div className="modal-header">
 
-                <h5 className="modal-title fw-bold">
+                <div>
+                  <h5 className="modal-title fw-bold mb-1">
+                    {editando
+                      ? "Editar contrato"
+                      : "Novo contrato"}
+                  </h5>
 
-                  <i className="bi bi-file-earmark-text me-2"></i>
-
-                  {editando
-                    ? "Editar contrato"
-                    : "Novo contrato"}
-
-                </h5>
+                  <p className="text-muted mb-0 small">
+                    {editando
+                      ? "Atualize os dados do contrato."
+                      : "Preencha os dados para cadastrar um novo contrato."}
+                  </p>
+                </div>
 
                 <button
                   type="button"
                   className="btn-close"
+                  aria-label="Fechar"
                   onClick={fecharModal}
                   disabled={salvando}
                 ></button>
@@ -1079,280 +888,232 @@ export default function Contratos() {
               {/* CORPO DO MODAL */}
               <div className="modal-body">
 
-                {/* DADOS DO CONTRATO */}
-                <div className="card border-0 bg-light mb-3">
+                <div className="row g-3">
 
-                  <div className="card-body">
+                  {/* NÚMERO DO CONTRATO */}
+                  <div className="col-12 col-md-4">
 
-                    <h6 className="fw-bold mb-3">
-                      Dados do contrato
-                    </h6>
+                    <label className="form-label fw-semibold">
+                      Número do contrato *
+                    </label>
 
-                    <div className="row g-3">
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={form.numero}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "numero",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Ex.: 001/2026"
+                    />
 
-                      <div className="col-12 col-md-4">
+                  </div>
 
-                        <label className="form-label">
-                          Número do contrato *
-                        </label>
+                  {/* TIPO */}
+                  <div className="col-12 col-md-4">
 
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={form.numero}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "numero",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Ex.: 001/2026"
-                        />
+                    <label className="form-label fw-semibold">
+                      Tipo
+                    </label>
 
-                      </div>
+                    <select
+                      className="form-select"
+                      value={form.tipo}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "tipo",
+                          e.target.value
+                        )
+                      }
+                    >
+                      <option value="Aluguel">
+                        Aluguel
+                      </option>
 
-                      <div className="col-12 col-md-4">
+                      <option value="Venda">
+                        Venda
+                      </option>
+                    </select>
 
-                        <label className="form-label">
-                          Tipo
-                        </label>
+                  </div>
 
-                        <select
-                          className="form-select"
-                          value={form.tipo}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "tipo",
-                              e.target.value
-                            )
-                          }
+                  {/* STATUS */}
+                  <div className="col-12 col-md-4">
+
+                    <label className="form-label fw-semibold">
+                      Status
+                    </label>
+
+                    <select
+                      className="form-select"
+                      value={form.status}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "status",
+                          e.target.value
+                        )
+                      }
+                    >
+                      <option value="ativo">
+                        Ativo
+                      </option>
+
+                      <option value="encerrado">
+                        Encerrado
+                      </option>
+
+                      <option value="cancelado">
+                        Cancelado
+                      </option>
+                    </select>
+
+                  </div>
+
+                  {/* CLIENTE */}
+                  <div className="col-12 col-md-6">
+
+                    <label className="form-label fw-semibold">
+                      Cliente *
+                    </label>
+
+                    <select
+                      className="form-select"
+                      value={form.cliente_id}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "cliente_id",
+                          e.target.value
+                        )
+                      }
+                    >
+                      <option value="">
+                        Selecione um cliente
+                      </option>
+
+                      {clientes.map((cliente) => (
+                        <option
+                          key={cliente.id}
+                          value={cliente.id}
                         >
+                          {cliente.nome}
+                        </option>
+                      ))}
+                    </select>
 
-                          <option value="Aluguel">
-                            Aluguel
-                          </option>
+                  </div>
 
-                          <option value="Venda">
-                            Venda
-                          </option>
+                  {/* IMÓVEL */}
+                  <div className="col-12 col-md-6">
 
-                        </select>
+                    <label className="form-label fw-semibold">
+                      Imóvel *
+                    </label>
 
-                      </div>
+                    <select
+                      className="form-select"
+                      value={form.imovel_id}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "imovel_id",
+                          e.target.value
+                        )
+                      }
+                    >
+                      <option value="">
+                        Selecione um imóvel
+                      </option>
 
-                      <div className="col-12 col-md-4">
-
-                        <label className="form-label">
-                          Status
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={form.status}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "status",
-                              e.target.value
-                            )
-                          }
+                      {imoveis.map((imovel) => (
+                        <option
+                          key={imovel.id}
+                          value={imovel.id}
                         >
+                          {imovel.titulo ||
+                            imovel.endereco ||
+                            `Imóvel #${imovel.id}`}
+                        </option>
+                      ))}
+                    </select>
 
-                          <option value="ativo">
-                            Ativo
-                          </option>
+                  </div>
 
-                          <option value="encerrado">
-                            Encerrado
-                          </option>
+                  {/* DATA DE INÍCIO */}
+                  <div className="col-12 col-md-4">
 
-                          <option value="cancelado">
-                            Cancelado
-                          </option>
+                    <label className="form-label fw-semibold">
+                      Data de início *
+                    </label>
 
-                        </select>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={form.data_inicio}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "data_inicio",
+                          e.target.value
+                        )
+                      }
+                    />
 
-                      </div>
+                  </div>
+
+                  {/* DATA DE FIM */}
+                  <div className="col-12 col-md-4">
+
+                    <label className="form-label fw-semibold">
+                      Data de fim
+                    </label>
+
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={form.data_fim}
+                      onChange={(e) =>
+                        alterarCampo(
+                          "data_fim",
+                          e.target.value
+                        )
+                      }
+                    />
+
+                  </div>
+
+                  {/* VALOR */}
+                  <div className="col-12 col-md-4">
+
+                    <label className="form-label fw-semibold">
+                      Valor *
+                    </label>
+
+                    <div className="input-group">
+
+                      <span className="input-group-text">
+                        R$
+                      </span>
+
+                      <input
+                        type="number"
+                        className="form-control"
+                        min="0"
+                        step="0.01"
+                        value={form.valor}
+                        onChange={(e) =>
+                          alterarCampo(
+                            "valor",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0,00"
+                      />
 
                     </div>
 
                   </div>
-                </div>
 
-                {/* CLIENTE E IMÓVEL */}
-                <div className="card border-0 bg-light mb-3">
-
-                  <div className="card-body">
-
-                    <h6 className="fw-bold mb-3">
-                      Cliente e imóvel
-                    </h6>
-
-                    <div className="row g-3">
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Cliente *
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={form.cliente_id}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "cliente_id",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="">
-                            Selecione um cliente
-                          </option>
-
-                          {clientes.map(
-                            (cliente) => (
-                              <option
-                                key={cliente.id}
-                                value={cliente.id}
-                              >
-                                {cliente.nome}
-                              </option>
-                            )
-                          )}
-
-                        </select>
-
-                      </div>
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Imóvel *
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={form.imovel_id}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "imovel_id",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="">
-                            Selecione um imóvel
-                          </option>
-
-                          {imoveis.map(
-                            (imovel) => (
-                              <option
-                                key={imovel.id}
-                                value={imovel.id}
-                              >
-                                {imovel.titulo ||
-                                  imovel.endereco ||
-                                  `Imóvel #${imovel.id}`}
-                              </option>
-                            )
-                          )}
-
-                        </select>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* PERÍODO E VALOR */}
-                <div className="card border-0 bg-light">
-
-                  <div className="card-body">
-
-                    <h6 className="fw-bold mb-3">
-                      Período e valor
-                    </h6>
-
-                    <div className="row g-3">
-
-                      <div className="col-12 col-md-4">
-
-                        <label className="form-label">
-                          Data de início *
-                        </label>
-
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={form.data_inicio}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "data_inicio",
-                              e.target.value
-                            )
-                          }
-                        />
-
-                      </div>
-
-                      <div className="col-12 col-md-4">
-
-                        <label className="form-label">
-                          Data de fim
-                        </label>
-
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={form.data_fim}
-                          onChange={(e) =>
-                            alterarCampo(
-                              "data_fim",
-                              e.target.value
-                            )
-                          }
-                        />
-
-                      </div>
-
-                      <div className="col-12 col-md-4">
-
-                        <label className="form-label">
-                          Valor *
-                        </label>
-
-                        <div className="input-group">
-
-                          <span className="input-group-text">
-                            R$
-                          </span>
-
-                          <input
-                            type="number"
-                            className="form-control"
-                            min="0"
-                            step="0.01"
-                            value={form.valor}
-                            onChange={(e) =>
-                              alterarCampo(
-                                "valor",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0,00"
-                          />
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  </div>
                 </div>
 
               </div>
@@ -1404,22 +1165,8 @@ export default function Contratos() {
           </div>
         </div>
       )}
-      {/* RODAPÉ */}
-      <div className="text-center text-muted py-3">
-
-        <small>
-          ImobGest
-        </small>
-
-        <br />
-
-        <small>
-          Dashboard atualizado em{" "}
-          {new Date().toLocaleDateString("pt-BR")}
-        </small>
-
+      {/* FECHAMENTO DA ÁREA PRINCIPAL */}
       </div>
-
-    </div>
-  )
+    </main>
+  );
 }
