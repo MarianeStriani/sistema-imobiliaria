@@ -850,7 +850,7 @@ export default function Recebimentos() {
             </div>
 
             <h2 className="fw-bold mb-0">
-              Recebimentos
+              ImobGest - Recebimentos
             </h2>
 
           </div>
@@ -1511,6 +1511,7 @@ export default function Recebimentos() {
                               }
                             >
                               <i className="bi bi-trash"></i>
+                         Excluir
                             </button>
 
                           </div>
