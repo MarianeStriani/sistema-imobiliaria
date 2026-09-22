@@ -1425,117 +1425,11 @@ export default function Dashboard() {
 
       </div>
 
-      {/* ACESSOS ADMINISTRATIVOS */}
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <div className="mb-4">
-            <h5 className="fw-bold mb-1">
-              Gestão do sistema
-            </h5>
-
-            <small className="text-muted">
-              Acesse outras ferramentas da administração imobiliária
-            </small>
-          </div>
-
-          <div className="row g-3">
-
-            <div className="col-12 col-md-4 col-lg-3">
-
-              <button
-                className="btn btn-light border w-100 text-start p-3 h-100"
-                onClick={() => acessarPagina("/manutencoes")}
-              >
-
-                <i className="bi bi-tools text-warning fs-4 d-block mb-2"></i>
-
-                <span className="fw-semibold d-block">
-                  Manutenções
-                </span>
-
-                <small className="text-muted">
-                  Controle de serviços
-                </small>
-
-              </button>
-
-            </div>
-
-            <div className="col-12 col-md-4 col-lg-3">
-
-              <button
-                className="btn btn-light border w-100 text-start p-3 h-100"
-                onClick={() => acessarPagina("/visitas")}
-              >
-
-                <i className="bi bi-calendar-check text-primary fs-4 d-block mb-2"></i>
-
-                <span className="fw-semibold d-block">
-                  Visitas
-                </span>
-
-                <small className="text-muted">
-                  Agendamento de visitas
-                </small>
-
-              </button>
-
-            </div>
-
-            <div className="col-12 col-md-4 col-lg-3">
-
-              <button
-                className="btn btn-light border w-100 text-start p-3 h-100"
-                onClick={() => acessarPagina("/comunicacao")}
-              >
-
-                <i className="bi bi-chat-dots text-success fs-4 d-block mb-2"></i>
-
-                <span className="fw-semibold d-block">
-                  Comunicação
-                </span>
-
-                <small className="text-muted">
-                  Mensagens aos clientes
-                </small>
-
-              </button>
-
-            </div>
-
-            <div className="col-12 col-md-4 col-lg-3">
-
-              <button
-                className="btn btn-light border w-100 text-start p-3 h-100"
-                onClick={() => acessarPagina("/relatorios")}
-              >
-
-                <i className="bi bi-file-earmark-bar-graph text-info fs-4 d-block mb-2"></i>
-
-                <span className="fw-semibold d-block">
-                  Relatórios
-                </span>
-
-                <small className="text-muted">
-                  Relatórios do sistema
-                </small>
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
       {/* RODAPÉ */}
       <div className="text-center text-muted py-3">
 
         <small>
-          Sistema de Gestão Imobiliária
+          ImobGest
         </small>
 
         <br />
