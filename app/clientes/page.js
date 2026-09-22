@@ -445,7 +445,7 @@ export default function Clientes() {
               <div className="d-flex justify-content-between align-items-start">
                 <div>
                   <p className="text-muted mb-1">
-                    Total de clientes
+                    Total de clientes 
                   </p>
 
                   <h3 className="fw-bold mb-0">
