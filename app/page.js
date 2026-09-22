@@ -1039,9 +1039,7 @@ export default function Dashboard() {
                 Últimos recebimentos
               </h5>
 
-              <small className="text-muted">
-                Acompanhe os recebimentos mais recentes
-              </small>
+             
             </div>
 
             <button
