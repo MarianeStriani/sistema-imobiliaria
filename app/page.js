@@ -393,21 +393,13 @@ export default function Dashboard() {
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold mb-1">
-            Dashboard
+            ImobGest - Dashboard
           </h2>
 
           <p className="text-muted mb-0">
             Visão geral da gestão imobiliária
           </p>
         </div>
-
-        <button
-          className="btn btn-outline-primary"
-          onClick={carregarDados}
-        >
-          <i className="bi bi-arrow-clockwise me-2"></i>
-          Atualizar
-        </button>
       </div>
 
       {/* ERRO */}
