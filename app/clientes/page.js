@@ -277,74 +277,7 @@ export default function Clientes() {
   }
 
   return (
-    <div className="container-fluid py-4">
-{/* CABEÇALHO */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="fw-bold mb-1">
-            Clientes
-          </h2>
-
-          <p className="text-muted mb-0">
-            Gerencie os clientes da imobiliária
-          </p>
-        </div>
-
-        <div className="d-flex gap-2 mt-3 mt-md-0">
-          <button
-            className="btn btn-outline-primary"
-            onClick={carregarClientes}
-            disabled={loading}
-          >
-            <i className="bi bi-arrow-clockwise me-2"></i>
-            Atualizar
-          </button>
-
-          <button
-            className="btn btn-primary"
-            onClick={abrirNovoCliente}
-          >
-            <i className="bi bi-person-plus me-2"></i>
-            Novo cliente
-          </button>
-        </div>
-      </div>
-
-      {/* MENSAGEM DE ERRO */}
-      {erro && (
-        <div
-          className="alert alert-danger alert-dismissible fade show"
-          role="alert"
-        >
-          <i className="bi bi-exclamation-triangle me-2"></i>
-
-          {erro}
-
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setErro("")}
-          ></button>
-        </div>
-      )}
-
-      {/* MENSAGEM DE SUCESSO */}
-      {sucesso && (
-        <div
-          className="alert alert-success alert-dismissible fade show"
-          role="alert"
-        >
-          <i className="bi bi-check-circle me-2"></i>
-
-          {sucesso}
-
-          <button
-            type="button"
-            className="btn-close"
-            onClick={fecharMensagemSucesso}
-          ></button>
-        </div>
-      )}
+   
 
       {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm border-0 mb-4">
@@ -365,10 +298,6 @@ export default function Clientes() {
               <h5 className="fw-bold mb-0">
                 Acesso rápido
               </h5>
-
-              <small className="text-muted">
-                Acesse rapidamente as principais áreas
-              </small>
             </div>
           </div>
 
@@ -447,6 +376,65 @@ export default function Clientes() {
           </div>
         </div>
       </div>
+
+ <div className="container-fluid py-4">
+
+{/* CABEÇALHO */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="fw-bold mb-1">
+            ImobGest - Clientes
+          </h2>
+        </div>
+
+        <div className="d-flex gap-2 mt-3 mt-md-0">
+          <button
+            className="btn btn-outline-primary"
+            onClick={carregarClientes}
+            disabled={loading}
+          >
+            <i className="bi bi-arrow-clockwise me-2"></i>
+            Atualizar
+          </button>
+        </div>
+      </div>
+
+      {/* MENSAGEM DE ERRO */}
+      {erro && (
+        <div
+          className="alert alert-danger alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-triangle me-2"></i>
+
+          {erro}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setErro("")}
+          ></button>
+        </div>
+      )}
+
+      {/* MENSAGEM DE SUCESSO */}
+      {sucesso && (
+        <div
+          className="alert alert-success alert-dismissible fade show"
+          role="alert"
+        >
+          <i className="bi bi-check-circle me-2"></i>
+
+          {sucesso}
+
+          <button
+            type="button"
+            className="btn-close"
+            onClick={fecharMensagemSucesso}
+          ></button>
+        </div>
+      )}
+
 {/* RESUMO DOS CLIENTES */}
       <div className="row g-3 mb-4">
 
@@ -535,10 +523,6 @@ export default function Clientes() {
                   <i className="bi bi-person-check text-success fs-4"></i>
                 </div>
               </div>
-
-              <small className="text-muted d-block mt-3">
-                Cadastro de clientes disponível
-              </small>
 
             </div>
           </div>
