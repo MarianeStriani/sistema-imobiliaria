@@ -8,7 +8,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   const [nome, setNome] = useState("");
-  const [password, setPassword] = useState("");
+  const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
@@ -19,7 +19,7 @@ export default function LoginPage() {
     setCarregando(true);
 
     try {
-      // Busca o usuário pelo nome
+      // Localiza o administrador pelo nome
       const resposta = await fetch("/api/login", {
         method: "POST",
         headers: {
@@ -33,30 +33,32 @@ export default function LoginPage() {
       const resultado = await resposta.json();
 
       if (!resposta.ok) {
-        setErro(resultado.error || "Usuário ou senha inválidos.");
+        setErro("Nome ou senha inválidos.");
         setCarregando(false);
         return;
       }
 
-      // Autenticação do Supabase
+      // Faz a autenticação real no Supabase
       const supabase = createClient();
 
       const { error } = await supabase.auth.signInWithPassword({
         email: resultado.email,
-        password,
+        password: senha,
       });
 
       if (error) {
-        setErro("Usuário ou senha inválidos.");
+        setErro("Nome ou senha inválidos.");
         setCarregando(false);
         return;
       }
 
-      // Seu sistema não possui /dashboard.
-      // A página principal é /
+      // Não existe /dashboard.
+      // O sistema entra na página principal.
       router.replace("/");
       router.refresh();
+
     } catch (error) {
+      console.error(error);
       setErro("Não foi possível realizar o login.");
       setCarregando(false);
     }
@@ -64,13 +66,21 @@ export default function LoginPage() {
 
   return (
     <main className="min-vh-100 bg-light d-flex align-items-center justify-content-center py-5">
+
       <div className="container">
+
         <div className="row justify-content-center">
+
           <div className="col-12 col-sm-10 col-md-7 col-lg-5 col-xl-4">
+
             <div className="card border-0 shadow-sm rounded-4">
+
               <div className="card-body p-4 p-md-5">
 
+                {/* LOGO / TÍTULO */}
+
                 <div className="text-center mb-4">
+
                   <div
                     className="bg-primary text-white rounded-4 d-inline-flex align-items-center justify-content-center mb-3"
                     style={{
@@ -90,7 +100,10 @@ export default function LoginPage() {
                   <p className="text-muted mb-0">
                     Acesso administrativo
                   </p>
+
                 </div>
+
+                {/* ERRO */}
 
                 {erro && (
                   <div
@@ -101,9 +114,14 @@ export default function LoginPage() {
                   </div>
                 )}
 
+                {/* FORMULÁRIO */}
+
                 <form onSubmit={handleLogin}>
 
+                  {/* NOME */}
+
                   <div className="mb-3">
+
                     <label
                       htmlFor="nome"
                       className="form-label fw-semibold"
@@ -123,29 +141,36 @@ export default function LoginPage() {
                       autoComplete="username"
                       required
                     />
+
                   </div>
 
+                  {/* SENHA */}
+
                   <div className="mb-4">
+
                     <label
-                      htmlFor="password"
+                      htmlFor="senha"
                       className="form-label fw-semibold"
                     >
                       Senha
                     </label>
 
                     <input
-                      id="password"
+                      id="senha"
                       type="password"
                       className="form-control form-control-lg"
-                      value={password}
+                      value={senha}
                       onChange={(event) =>
-                        setPassword(event.target.value)
+                        setSenha(event.target.value)
                       }
                       placeholder="Digite sua senha"
                       autoComplete="current-password"
                       required
                     />
+
                   </div>
+
+                  {/* BOTÃO */}
 
                   <button
                     type="submit"
@@ -158,16 +183,23 @@ export default function LoginPage() {
                 </form>
 
                 <div className="text-center mt-4">
+
                   <small className="text-muted">
                     Acesso exclusivo para administradores
                   </small>
+
                 </div>
 
               </div>
+
             </div>
+
           </div>
+
         </div>
+
       </div>
+
     </main>
   );
 }
