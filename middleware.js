@@ -49,7 +49,7 @@ export async function middleware(request) {
 
   if (!user && !rotaPublica) {
     return NextResponse.redirect(
-      new URL("/login", request.url)
+      new URL("/", request.url)
     );
   }
 
