@@ -31,7 +31,7 @@ const { error } = await supabase.auth.signInWithPassword({
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/");
     router.refresh();
   }
 
@@ -57,7 +57,7 @@ const { error } = await supabase.auth.signInWithPassword({
                   </div>
 
                   <h1 className="h4 fw-bold mb-1">
-                    Sistema Imobiliária
+                    ImobGest
                   </h1>
 
                   <p className="text-muted mb-0">
