@@ -32,32 +32,7 @@ export async function middleware(request) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
-
-  const rotasPublicas = [
-    "/login",
-    "/auth",
-  ];
-
-  const rotaPublica = rotasPublicas.some((rota) =>
-    pathname.startsWith(rota)
-  );
-
-  if (!user && !rotaPublica) {
-    return NextResponse.redirect(
-      new URL("/", request.url)
-    );
-  }
-
-  if (user && pathname === "/login") {
-    return NextResponse.redirect(
-      new URL("/dashboard", request.url)
-    );
-  }
+  await supabase.auth.getUser();
 
   return response;
 }
