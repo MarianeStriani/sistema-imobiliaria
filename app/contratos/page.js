@@ -638,6 +638,103 @@ export default function Contratos() {
 
   return (
     <div className="container-fluid py-4">
+          {/* ACESSO RÁPIDO */}
+      <div className="card shadow-sm border-0 mb-4">
+        <div className="card-body">
+
+          <div className="d-flex align-items-center mb-3">
+            <div
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
+              style={{
+                width: "38px",
+                height: "38px",
+              }}
+            >
+              <i className="bi bi-lightning-charge text-primary"></i>
+            </div>
+
+            <div>
+              <h5 className="fw-bold mb-0">
+                Acesso rápido
+              </h5>
+            </div>
+          </div>
+
+          <div className="row g-2">
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/")}
+              >
+                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
+                Dashboard
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-primary w-100 py-2"
+                onClick={() => acessarPagina("/clientes")}
+              >
+                <i className="bi bi-people d-block fs-5 mb-1"></i>
+                Clientes
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/imoveis")}
+              >
+                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
+                Imóveis
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/contratos")}
+              >
+                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
+                Contratos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/recebimentos")}
+              >
+                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
+                Recebimentos
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/despesas")}
+              >
+                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
+                Despesas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/financeiro")}
+              >
+                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
+                Financeiro
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
       {/* ==================================
           CABEÇALHO
       ================================== */}
@@ -721,76 +818,7 @@ export default function Contratos() {
         </div>
       )}
 
-      {/* ==================================
-          ACESSO RÁPIDO
-      ================================== */}
-
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-body">
-          <h5 className="fw-bold mb-3">
-            <i className="bi bi-lightning-charge-fill text-warning me-2"></i>
-            Acesso rápido
-          </h5>
-
-          <div className="d-flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/clientes")
-              }
-            >
-              <i className="bi bi-people me-2"></i>
-              Clientes
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() =>
-                acessarPagina("/contratos")
-              }
-            >
-              <i className="bi bi-file-earmark-text me-2"></i>
-              Contratos
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/recebimentos")
-              }
-            >
-              <i className="bi bi-cash-coin me-2"></i>
-              Recebimentos
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/despesas")
-              }
-            >
-              <i className="bi bi-wallet2 me-2"></i>
-              Despesas
-            </button>
-
-            <button
-              type="button"
-              className="btn btn-outline-primary"
-              onClick={() =>
-                acessarPagina("/financeiro")
-              }
-            >
-              <i className="bi bi-bar-chart-line me-2"></i>
-              Financeiro
-            </button>
-          </div>
-        </div>
-      </div>
-
+      
       {/* ==================================
           CARDS DE RESUMO
       ================================== */}
