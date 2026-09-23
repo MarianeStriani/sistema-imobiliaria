@@ -215,6 +215,7 @@ export default function Recebimentos() {
 
     return data
   }
+
   // ========================================
   // NOMES RELACIONADOS
   // ========================================
@@ -304,12 +305,15 @@ export default function Recebimentos() {
           String(nomeCliente)
             .toLowerCase()
             .includes(termo) ||
+
           String(numeroContrato)
             .toLowerCase()
             .includes(termo) ||
+
           String(tipo)
             .toLowerCase()
             .includes(termo) ||
+
           String(descricao)
             .toLowerCase()
             .includes(termo)
@@ -458,6 +462,7 @@ export default function Recebimentos() {
       formularioInicial()
     )
   }
+
   // ========================================
   // SALVAR NOVO RECEBIMENTO
   // ========================================
@@ -489,10 +494,6 @@ export default function Recebimentos() {
         contrato_id:
           novoRecebimento.contrato_id || null,
 
-        /*
-         * A coluna utilizada na tabela é
-         * tipo_recebimento.
-         */
         tipo_recebimento:
           novoRecebimento.tipo,
 
@@ -709,365 +710,286 @@ export default function Recebimentos() {
     }
   }
   // ========================================
-  // INÍCIO DA INTERFACE
+  // INTERFACE
   // ========================================
 
   return (
-    <div className="container-fluid py-4">
+    <main className="container-fluid py-4">
 
-           {/* ACESSO RÁPIDO */}
-      <div className="card shadow-sm border-0 mb-4">
+      {/* ACESSO RÁPIDO */}
+      <div className="card border-0 shadow-sm rounded-4 mb-4">
+
         <div className="card-body">
 
-          <div className="d-flex align-items-center mb-3">
-            <div
-              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2"
-              style={{
-                width: "38px",
-                height: "38px",
-              }}
-            >
-              <i className="bi bi-lightning-charge text-primary"></i>
-            </div>
-
-            <div>
-              <h5 className="fw-bold mb-0">
-                Acesso rápido
-              </h5>
-            </div>
-          </div>
+          <h2 className="h6 fw-bold mb-3">
+            Acesso rápido
+          </h2>
 
           <div className="row g-2">
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/")}
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/dashboard")
+                }
               >
-                <i className="bi bi-speedometer2 d-block fs-5 mb-1"></i>
                 Dashboard
               </button>
             </div>
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-primary w-100 py-2"
-                onClick={() => acessarPagina("/clientes")}
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/imoveis")
+                }
               >
-                <i className="bi bi-people d-block fs-5 mb-1"></i>
-                Clientes
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/imoveis")}
-              >
-                <i className="bi bi-house-door d-block fs-5 mb-1"></i>
                 Imóveis
               </button>
             </div>
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/contratos")}
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/clientes")
+                }
               >
-                <i className="bi bi-file-earmark-text d-block fs-5 mb-1"></i>
+                Clientes
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/contratos")
+                }
+              >
                 Contratos
               </button>
             </div>
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/recebimentos")}
+                type="button"
+                className="btn btn-primary w-100"
               >
-                <i className="bi bi-cash-coin d-block fs-5 mb-1"></i>
                 Recebimentos
               </button>
             </div>
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/despesas")}
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/despesas")
+                }
               >
-                <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
                 Despesas
               </button>
             </div>
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-outline-primary w-100 py-2"
-                onClick={() => acessarPagina("/financeiro")}
+                type="button"
+                className="btn btn-outline-primary w-100"
+                onClick={() =>
+                  acessarPagina("/financeiro")
+                }
               >
-                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
                 Financeiro
               </button>
             </div>
 
           </div>
+
         </div>
+
       </div>
 
-      {/* ================================== */}
       {/* CABEÇALHO */}
-      {/* ================================== */}
-
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
 
         <div>
-
-          <div className="d-flex align-items-center gap-2 mb-1">
-
-            <div
-              className="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
-              style={{
-                width: "40px",
-                height: "40px",
-              }}
-            >
-              <i className="bi bi-cash-coin fs-5"></i>
-            </div>
-
-            <h2 className="fw-bold mb-0">
-              ImobGest - Recebimentos
-            </h2>
-
-          </div>
+          <h1 className="h3 fw-bold mb-1">
+            Recebimentos
+          </h1>
 
           <p className="text-muted mb-0">
-            Gerencie os recebimentos do sistema.
+            Controle dos recebimentos do sistema
           </p>
-
         </div>
 
-        <div className="d-flex flex-wrap gap-2">
-
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => {
-              limparMensagens()
-              carregarDados()
-            }}
-          >
-            <i className="bi bi-arrow-clockwise me-1"></i>
-            Atualizar
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={abrirNovoRecebimento}
-          >
-            <i className="bi bi-plus-lg me-1"></i>
-            Novo recebimento
-          </button>
-
-        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={abrirNovoRecebimento}
+        >
+          <span className="me-2">+</span>
+          Novo recebimento
+        </button>
 
       </div>
 
-      {/* ================================== */}
-      {/* ALERTA DE ERRO */}
-      {/* ================================== */}
-
+      {/* MENSAGENS */}
       {erro && (
         <div
           className="alert alert-danger alert-dismissible fade show"
           role="alert"
         >
-          <i className="bi bi-exclamation-triangle me-2"></i>
-
+          <strong>Erro:</strong>{" "}
           {erro}
 
           <button
             type="button"
             className="btn-close"
+            aria-label="Fechar"
             onClick={() => setErro("")}
-          ></button>
+          />
         </div>
       )}
-
-      {/* ================================== */}
-      {/* ALERTA DE SUCESSO */}
-      {/* ================================== */}
 
       {sucesso && (
         <div
           className="alert alert-success alert-dismissible fade show"
           role="alert"
         >
-          <i className="bi bi-check-circle me-2"></i>
-
           {sucesso}
 
           <button
             type="button"
             className="btn-close"
+            aria-label="Fechar"
             onClick={() => setSucesso("")}
-          ></button>
+          />
         </div>
       )}
 
-      {/* ================================== */}
-      {/* PERÍODO */}
-      {/* ================================== */}
+      {/* FILTROS */}
 
-      <div className="card border-0 shadow-sm mb-4">
+      <div className="card border-0 shadow-sm rounded-4 mb-4">
 
         <div className="card-body">
 
           <div className="row g-3 align-items-end">
 
-            <div className="col-12 col-md-5">
+            <div className="col-12 col-md-4">
 
-              <label className="form-label fw-semibold">
+              <label
+                htmlFor="mes"
+                className="form-label fw-semibold"
+              >
                 Mês
               </label>
 
               <select
+                id="mes"
                 className="form-select"
                 value={mes}
-                onChange={(e) =>
-                  setMes(Number(e.target.value))
+                onChange={(event) =>
+                  setMes(
+                    Number(event.target.value)
+                  )
                 }
               >
-                <option value={1}>
-                  Janeiro
-                </option>
-
-                <option value={2}>
-                  Fevereiro
-                </option>
-
-                <option value={3}>
-                  Março
-                </option>
-
-                <option value={4}>
-                  Abril
-                </option>
-
-                <option value={5}>
-                  Maio
-                </option>
-
-                <option value={6}>
-                  Junho
-                </option>
-
-                <option value={7}>
-                  Julho
-                </option>
-
-                <option value={8}>
-                  Agosto
-                </option>
-
-                <option value={9}>
-                  Setembro
-                </option>
-
-                <option value={10}>
-                  Outubro
-                </option>
-
-                <option value={11}>
-                  Novembro
-                </option>
-
-                <option value={12}>
-                  Dezembro
-                </option>
-              </select>
-
-            </div>
-
-            <div className="col-12 col-md-4">
-
-              <label className="form-label fw-semibold">
-                Ano
-              </label>
-
-              <select
-                className="form-select"
-                value={ano}
-                onChange={(e) =>
-                  setAno(Number(e.target.value))
-                }
-              >
-                {Array.from(
-                  {
-                    length: 5,
-                  },
-                  (_, indice) =>
-                    hoje.getFullYear() -
-                    2 +
-                    indice
-                ).map((anoOpcao) => (
-                  <option
-                    key={anoOpcao}
-                    value={anoOpcao}
-                  >
-                    {anoOpcao}
-                  </option>
-                ))}
+                <option value={1}>Janeiro</option>
+                <option value={2}>Fevereiro</option>
+                <option value={3}>Março</option>
+                <option value={4}>Abril</option>
+                <option value={5}>Maio</option>
+                <option value={6}>Junho</option>
+                <option value={7}>Julho</option>
+                <option value={8}>Agosto</option>
+                <option value={9}>Setembro</option>
+                <option value={10}>Outubro</option>
+                <option value={11}>Novembro</option>
+                <option value={12}>Dezembro</option>
               </select>
 
             </div>
 
             <div className="col-12 col-md-3">
 
-              <div className="text-muted small">
-                Período selecionado
-              </div>
+              <label
+                htmlFor="ano"
+                className="form-label fw-semibold"
+              >
+                Ano
+              </label>
 
-              <div className="fw-bold">
-                {String(mes).padStart(2, "0")}/{ano}
-              </div>
+              <select
+                id="ano"
+                className="form-select"
+                value={ano}
+                onChange={(event) =>
+                  setAno(
+                    Number(event.target.value)
+                  )
+                }
+              >
+                <option value={2024}>2024</option>
+                <option value={2025}>2025</option>
+                <option value={2026}>2026</option>
+                <option value={2027}>2027</option>
+                <option value={2028}>2028</option>
+              </select>
+
+            </div>
+
+            <div className="col-12 col-md-5">
+
+              <label
+                htmlFor="busca"
+                className="form-label fw-semibold"
+              >
+                Buscar
+              </label>
+
+              <input
+                id="busca"
+                type="text"
+                className="form-control"
+                value={busca}
+                onChange={(event) =>
+                  setBusca(
+                    event.target.value
+                  )
+                }
+                placeholder="Cliente, contrato ou descrição..."
+              />
 
             </div>
 
           </div>
 
         </div>
+
       </div>
-      {/* ================================== */}
-      {/* CARDS DE RESUMO */}
-      {/* ================================== */}
+
+      {/* RESUMO */}
 
       <div className="row g-3 mb-4">
 
-        {/* TOTAL */}
-        <div className="col-12 col-sm-6 col-xl-3">
+        <div className="col-12 col-md-4">
 
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card border-0 shadow-sm rounded-4 h-100">
 
             <div className="card-body">
 
-              <div className="d-flex justify-content-between align-items-center">
+              <p className="text-muted mb-2">
+                Total de recebimentos
+              </p>
 
-                <div>
-
-                  <p className="text-muted mb-1">
-                    Total
-                  </p>
-
-                  <h3 className="fw-bold mb-0">
-                    {totalRecebimentos}
-                  </h3>
-
-                
-                 <div className="fs-2 text-success">
-                  <i className="bi bi-check-circle"></i>
-                </div>
-
-              </div>
+              <h2 className="h4 fw-bold mb-0">
+                {totalRecebimentos}
+              </h2>
 
             </div>
 
@@ -1075,34 +997,21 @@ export default function Recebimentos() {
 
         </div>
 
-        {/* RECEBIDOS */}
-        <div className="col-12 col-sm-6 col-xl-3">
+        <div className="col-12 col-md-4">
 
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card border-0 shadow-sm rounded-4 h-100">
 
             <div className="card-body">
 
-              <div className="d-flex justify-content-between align-items-center">
+              <p className="text-muted mb-2">
+                Recebidos
+              </p>
 
-                <div>
-
-                  <p className="text-muted mb-1">
-                    Recebidos
-                  </p>
-
-                  <h3 className="fw-bold mb-0 text-success">
-                    {formatarMoeda(
-                      valorRecebido
-                    )}
-                  </h3>
-
-                </div>
-
-                <div className="fs-2 text-success">
-                  <i className="bi bi-check-circle"></i>
-                </div>
-
-              </div>
+              <h2 className="h4 fw-bold text-success mb-1">
+                {formatarMoeda(
+                  valorRecebido
+                )}
+              </h2>
 
               <small className="text-muted">
                 {recebidos.length} recebimento(s)
@@ -1114,34 +1023,21 @@ export default function Recebimentos() {
 
         </div>
 
-        {/* PENDENTES */}
-        <div className="col-12 col-sm-6 col-xl-3">
+        <div className="col-12 col-md-4">
 
-          <div className="card border-0 shadow-sm h-100">
+          <div className="card border-0 shadow-sm rounded-4 h-100">
 
             <div className="card-body">
 
-              <div className="d-flex justify-content-between align-items-center">
+              <p className="text-muted mb-2">
+                Pendentes
+              </p>
 
-                <div>
-
-                  <p className="text-muted mb-1">
-                    Pendentes
-                  </p>
-
-                  <h3 className="fw-bold mb-0 text-warning">
-                    {formatarMoeda(
-                      valorPendente
-                    )}
-                  </h3>
-
-                </div>
-
-                <div className="fs-2 text-warning">
-                  <i className="bi bi-clock-history"></i>
-                </div>
-
-              </div>
+              <h2 className="h4 fw-bold text-warning mb-1">
+                {formatarMoeda(
+                  valorPendente
+                )}
+              </h2>
 
               <small className="text-muted">
                 {pendentes.length} recebimento(s)
@@ -1153,129 +1049,11 @@ export default function Recebimentos() {
 
         </div>
 
-        {/* QUANTIDADE PENDENTE */}
-        <div className="col-12 col-sm-6 col-xl-3">
-
-          <div className="card border-0 shadow-sm h-100">
-
-            <div className="card-body">
-
-              <div className="d-flex justify-content-between align-items-center">
-
-                <div>
-
-                  <p className="text-muted mb-1">
-                    Em aberto
-                  </p>
-
-                  <h3 className="fw-bold mb-0">
-                    {pendentes.length}
-                  </h3>
-
-                </div>
-
-                <div className="fs-2 text-danger">
-                  <i className="bi bi-exclamation-circle"></i>
-                </div>
-
-              </div>
-
-              <small className="text-muted">
-                aguardando recebimento
-              </small>
-
-            </div>
-
-          </div>
-
-        </div>
-
       </div>
 
-      {/* ================================== */}
-      {/* FILTROS */}
-      {/* ================================== */}
+      {/* LISTA */}
 
-      <div className="card border-0 shadow-sm mb-4">
-
-        <div className="card-body">
-
-          <div className="d-flex align-items-center mb-3">
-
-            <div
-              className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center me-3"
-              style={{
-                width: "38px",
-                height: "38px",
-              }}
-            >
-              <i className="bi bi-funnel"></i>
-            </div>
-
-            <div>
-
-              <h5 className="fw-bold mb-0">
-                Filtros
-              </h5>
-
-              <small className="text-muted">
-                Pesquise nos recebimentos do período
-              </small>
-
-            </div>
-
-          </div>
-
-          <div className="row g-3">
-
-            <div className="col-12">
-
-              <label className="form-label fw-semibold">
-                Buscar
-              </label>
-
-              <div className="input-group">
-
-                <span className="input-group-text">
-                  <i className="bi bi-search"></i>
-                </span>
-
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Cliente, contrato, tipo ou descrição..."
-                  value={busca}
-                  onChange={(e) =>
-                    setBusca(e.target.value)
-                  }
-                />
-
-                {busca && (
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setBusca("")}
-                    title="Limpar busca"
-                  >
-                    <i className="bi bi-x-lg"></i>
-                  </button>
-                )}
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* ================================== */}
-      {/* LISTA DE RECEBIMENTOS */}
-      {/* ================================== */}
-
-      <div className="card border-0 shadow-sm">
+      <div className="card border-0 shadow-sm rounded-4 mb-4">
 
         <div className="card-body">
 
@@ -1283,15 +1061,19 @@ export default function Recebimentos() {
 
             <div>
 
-              <h5 className="fw-bold mb-1">
-                Recebimentos cadastrados
-              </h5>
+              <h2 className="h5 fw-bold mb-1">
+                Lista de recebimentos
+              </h2>
 
-              <p className="text-muted mb-0">
-                {recebimentosFiltrados.length} recebimento(s) encontrado(s).
+              <p className="text-muted small mb-0">
+                Recebimentos do período selecionado.
               </p>
 
             </div>
+
+            <span className="badge text-bg-light border">
+              {recebimentosFiltrados.length} registro(s)
+            </span>
 
           </div>
 
@@ -1318,16 +1100,16 @@ export default function Recebimentos() {
 
             <div className="text-center py-5">
 
-              <div className="fs-1 text-muted mb-3">
-                <i className="bi bi-cash-stack"></i>
+              <div className="fs-1 mb-3">
+                💰
               </div>
 
-              <h5 className="fw-bold">
+              <h3 className="h6 fw-bold">
                 Nenhum recebimento encontrado
-              </h5>
+              </h3>
 
-              <p className="text-muted">
-                Não há recebimentos para o período ou busca selecionada.
+              <p className="text-muted mb-3">
+                Não existem recebimentos para os filtros selecionados.
               </p>
 
               <button
@@ -1335,8 +1117,7 @@ export default function Recebimentos() {
                 className="btn btn-primary"
                 onClick={abrirNovoRecebimento}
               >
-                <i className="bi bi-plus-lg me-1"></i>
-                Cadastrar recebimento
+                Novo recebimento
               </button>
 
             </div>
@@ -1347,42 +1128,18 @@ export default function Recebimentos() {
 
               <table className="table table-hover align-middle mb-0">
 
-                <thead>
+                <thead className="table-light">
 
                   <tr>
-
-                    <th>
-                      Cliente
-                    </th>
-
-                    <th>
-                      Tipo
-                    </th>
-
-                    <th>
-                     Referente
-                    </th>
-
-                    <th>
-                      Vencimento
-                    </th>
-
-                    <th>
-                      Valor
-                    </th>
-
-                    <th>
-                      Forma de pagamento
-                    </th>
-
-                    <th>
-                      Status
-                    </th>
-
+                    <th>Cliente</th>
+                    <th>Tipo</th>
+                    <th>Contrato</th>
+                    <th>Vencimento</th>
+                    <th>Valor</th>
+                    <th>Status</th>
                     <th className="text-end">
                       Ações
                     </th>
-
                   </tr>
 
                 </thead>
@@ -1391,62 +1148,51 @@ export default function Recebimentos() {
 
                   {recebimentosFiltrados.map(
                     (recebimento) => (
+
                       <tr
                         key={recebimento.id}
                       >
 
                         <td>
-
                           <div className="fw-semibold">
                             {obterNomeCliente(
                               recebimento.cliente_id
                             )}
                           </div>
 
+                          {recebimento.descricao && (
+                            <small className="text-muted">
+                              {recebimento.descricao}
+                            </small>
+                          )}
                         </td>
 
                         <td>
-
                           {recebimento.tipo_recebimento ||
                             recebimento.tipo ||
                             "-"}
-
                         </td>
 
                         <td>
-
                           {recebimento.numero_contrato ||
                             obterNumeroContrato(
                               recebimento.contrato_id
                             )}
-
                         </td>
 
                         <td>
-
                           {formatarData(
                             recebimento.data_vencimento
                           )}
-
                         </td>
 
                         <td className="fw-semibold">
-
                           {formatarMoeda(
                             recebimento.valor
                           )}
-
                         </td>
 
                         <td>
-
-                          {recebimento.forma_pagamento ||
-                            "-"}
-
-                        </td>
-
-                        <td>
-
                           <span
                             className={`badge ${classeStatus(
                               recebimento.status
@@ -1456,12 +1202,11 @@ export default function Recebimentos() {
                               recebimento.status
                             )}
                           </span>
-
                         </td>
 
-                        <td className="text-end">
+                        <td>
 
-                          <div className="d-flex justify-content-end gap-1">
+                          <div className="d-flex justify-content-end gap-2">
 
                             {String(
                               recebimento.status || ""
@@ -1470,15 +1215,14 @@ export default function Recebimentos() {
 
                               <button
                                 type="button"
-                                className="btn btn-sm btn-outline-success"
-                                title="Confirmar recebimento"
+                                className="btn btn-sm btn-success"
                                 onClick={() =>
                                   abrirConfirmarRecebimento(
                                     recebimento
                                   )
                                 }
                               >
-                                <i className="bi bi-check-lg"></i>
+                                Receber
                               </button>
 
                             )}
@@ -1486,15 +1230,13 @@ export default function Recebimentos() {
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-danger"
-                              title="Excluir"
                               onClick={() =>
                                 excluirRecebimento(
                                   recebimento.id
                                 )
                               }
                             >
-                              <i className="bi bi-trash"></i>
-                         Excluir
+                              Excluir
                             </button>
 
                           </div>
@@ -1502,6 +1244,7 @@ export default function Recebimentos() {
                         </td>
 
                       </tr>
+
                     )
                   )}
 
@@ -1516,403 +1259,460 @@ export default function Recebimentos() {
         </div>
 
       </div>
-      {/* ================================== */}
       {/* MODAL - NOVO RECEBIMENTO */}
-      {/* ================================== */}
 
       {novoRecebimentoAberto && (
         <div
-          className="modal fade show d-block"
+          className="modal d-block"
           tabIndex="-1"
           role="dialog"
-          aria-modal="true"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor:
+              "rgba(0, 0, 0, 0.5)",
           }}
         >
 
-          <div className="modal-dialog modal-lg modal-dialog-scrollable">
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
 
-            <div className="modal-content">
-
-              {/* CABEÇALHO */}
+            <div className="modal-content border-0 rounded-4 shadow">
 
               <div className="modal-header">
 
-                <h5 className="modal-title fw-bold">
+                <div>
 
-                  <i className="bi bi-cash-coin me-2"></i>
+                  <h2 className="modal-title h5 fw-bold mb-1">
+                    Novo recebimento
+                  </h2>
 
-                  Novo recebimento
+                  <p className="text-muted small mb-0">
+                    Cadastre um novo recebimento.
+                  </p>
 
-                </h5>
+                </div>
 
                 <button
                   type="button"
                   className="btn-close"
-                  onClick={fecharNovoRecebimento}
+                  aria-label="Fechar"
+                  onClick={
+                    fecharNovoRecebimento
+                  }
                   disabled={salvando}
-                ></button>
+                />
 
               </div>
-
-              {/* CORPO */}
 
               <div className="modal-body">
 
-                {/* CLIENTE E CONTRATO */}
+                <div className="row g-3">
 
-                <div className="card border-0 bg-light mb-3">
+                  {/* CLIENTE */}
 
-                  <div className="card-body">
+                  <div className="col-12 col-md-6">
 
-                    <h6 className="fw-bold mb-3">
-                      Cliente e contrato
-                    </h6>
+                    <label
+                      htmlFor="novo-cliente"
+                      className="form-label fw-semibold"
+                    >
+                      Cliente
+                    </label>
 
-                    <div className="row g-3">
+                    <select
+                      id="novo-cliente"
+                      className="form-select"
+                      value={
+                        novoRecebimento.cliente_id
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "cliente_id",
+                          event.target.value
+                        )
+                      }
+                      required
+                    >
 
-                      {/* CLIENTE */}
+                      <option value="">
+                        Selecione o cliente
+                      </option>
 
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Cliente *
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.cliente_id
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "cliente_id",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="">
-                            Selecione um cliente
+                      {clientes.map(
+                        (cliente) => (
+                          <option
+                            key={cliente.id}
+                            value={cliente.id}
+                          >
+                            {cliente.nome}
                           </option>
+                        )
+                      )}
 
-                          {clientes.map(
-                            (cliente) => (
-                              <option
-                                key={cliente.id}
-                                value={cliente.id}
-                              >
-                                {cliente.nome}
-                              </option>
-                            )
-                          )}
-
-                        </select>
-
-                      </div>
-
-                      {/* CONTRATO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Contrato
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.contrato_id
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "contrato_id",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="">
-                            Selecione um contrato
-                          </option>
-
-                          {contratos.map(
-                            (contrato) => (
-                              <option
-                                key={contrato.id}
-                                value={contrato.id}
-                              >
-                                {contrato.numero ||
-                                  `Contrato #${contrato.id}`}
-                              </option>
-                            )
-                          )}
-
-                        </select>
-
-                      </div>
-
-                    </div>
+                    </select>
 
                   </div>
 
-                </div>
+                  {/* CONTRATO */}
 
-                {/* DADOS DO RECEBIMENTO */}
+                  <div className="col-12 col-md-6">
 
-                <div className="card border-0 bg-light mb-3">
+                    <label
+                      htmlFor="novo-contrato"
+                      className="form-label fw-semibold"
+                    >
+                      Contrato
+                    </label>
 
-                  <div className="card-body">
+                    <select
+                      id="novo-contrato"
+                      className="form-select"
+                      value={
+                        novoRecebimento.contrato_id
+                      }
+                      onChange={(event) => {
 
-                    <h6 className="fw-bold mb-3">
-                      Dados do recebimento
-                    </h6>
+                        const contratoId =
+                          event.target.value
 
-                    <div className="row g-3">
-
-                      {/* TIPO */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                          Tipo de recebimento *
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.tipo
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "tipo",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="Aluguel mensal">
-                            Aluguel mensal
-                          </option>
-
-                          <option value="Diária">
-                            Diária
-                          </option>
-
-                          <option value="Venda unitária">
-                            Venda unitária
-                          </option>
-
-                          <option value="Venda parcelada">
-                            Venda parcelada
-                          </option>
-
-                        </select>
-
-                      </div>
-
-                      {/* Mês referente */}
-
-                      <div className="col-12 col-md-6">
-
-                        <label className="form-label">
-                         Mês referente 
-                        </label>
-
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={
-                            novoRecebimento.numero_contrato
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "numero_contrato",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Ex.: 01/2026"
-                        />
-
-                      </div>
-
-                      
-
-                      {/* VALOR */}
-
-                      <div className="col-12 col-md-4">
-
-                        <label className="form-label">
-                          Valor *
-                        </label>
-
-                        <div className="input-group">
-
-                          <span className="input-group-text">
-                            R$
-                          </span>
-
-                          <input
-                            type="number"
-                            className="form-control"
-                            min="0"
-                            step="0.01"
-                            value={
-                              novoRecebimento.valor
-                            }
-                            onChange={(e) =>
-                              alterarNovoRecebimento(
-                                "valor",
-                                e.target.value
+                        const contrato =
+                          contratos.find(
+                            (item) =>
+                              String(
+                                item.id
+                              ) ===
+                              String(
+                                contratoId
                               )
-                            }
-                            placeholder="0,00"
-                          />
+                          )
 
-                        </div>
+                        alterarNovoRecebimento(
+                          "contrato_id",
+                          contratoId
+                        )
 
-                      </div>
+                        if (
+                          contrato?.numero
+                        ) {
+                          setNovoRecebimento(
+                            (anterior) => ({
+                              ...anterior,
+                              contrato_id:
+                                contratoId,
+                              numero_contrato:
+                                contrato.numero,
+                            })
+                          )
+                        }
 
-                      {/* DATA DE VENCIMENTO */}
+                      }}
+                    >
 
-                      <div className="col-12 col-md-4">
+                      <option value="">
+                        Selecione o contrato
+                      </option>
 
-                        <label className="form-label">
-                          Data de vencimento *
-                        </label>
-
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={
-                            novoRecebimento.data_vencimento
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "data_vencimento",
-                              e.target.value
-                            )
-                          }
-                        />
-
-                      </div>
-
-                      {/* FORMA DE PAGAMENTO */}
-
-                      <div className="col-12 col-md-4">
-
-                        <label className="form-label">
-                          Forma de pagamento
-                        </label>
-
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.forma_pagamento
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "forma_pagamento",
-                              e.target.value
-                            )
-                          }
-                        >
-
-                          <option value="Dinheiro">
-                            Dinheiro
+                      {contratos.map(
+                        (contrato) => (
+                          <option
+                            key={contrato.id}
+                            value={contrato.id}
+                          >
+                            {contrato.numero ||
+                              `Contrato #${contrato.id}`}
                           </option>
+                        )
+                      )}
 
-                          <option value="Cartão">
-                            Cartão
-                          </option>
+                    </select>
 
-                          <option value="Depósito">
-                            Depósito
-                          </option>
+                  </div>
 
-                          <option value="Pix">
-                            Pix
-                          </option>
+                  {/* TIPO */}
 
-                        </select>
+                  <div className="col-12 col-md-6">
 
-                      </div>
+                    <label
+                      htmlFor="novo-tipo"
+                      className="form-label fw-semibold"
+                    >
+                      Tipo de recebimento
+                    </label>
 
-                      {/* STATUS */}
+                    <select
+                      id="novo-tipo"
+                      className="form-select"
+                      value={
+                        novoRecebimento.tipo
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "tipo",
+                          event.target.value
+                        )
+                      }
+                    >
 
-                      <div className="col-12 col-md-6">
+                      <option value="Aluguel mensal">
+                        Aluguel mensal
+                      </option>
 
-                        <label className="form-label">
-                          Status
-                        </label>
+                      <option value="Diária">
+                        Diária
+                      </option>
 
-                        <select
-                          className="form-select"
-                          value={
-                            novoRecebimento.status
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "status",
-                              e.target.value
-                            )
-                          }
-                        >
+                      <option value="Venda unitária">
+                        Venda unitária
+                      </option>
 
-                          <option value="Pendente">
-                            Pendente
-                          </option>
+                      <option value="Venda parcelada">
+                        Venda parcelada
+                      </option>
 
-                          <option value="Recebido">
-                            Recebido
-                          </option>
+                    </select>
 
-                        </select>
+                  </div>
 
-                      </div>
+                  {/* NÚMERO DO CONTRATO */}
 
-                      {/* OBSERVAÇÕES */}
+                  <div className="col-12 col-md-6">
 
-                      <div className="col-12">
+                    <label
+                      htmlFor="novo-numero-contrato"
+                      className="form-label fw-semibold"
+                    >
+                      Nº do contrato
+                    </label>
 
-                        <label className="form-label">
-                          Observações
-                        </label>
+                    <input
+                      id="novo-numero-contrato"
+                      type="text"
+                      className="form-control"
+                      value={
+                        novoRecebimento.numero_contrato
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "numero_contrato",
+                          event.target.value
+                        )
+                      }
+                      placeholder="Ex.: CT-001"
+                    />
 
-                        <textarea
-                          className="form-control"
-                          rows="3"
-                          value={
-                            novoRecebimento.observacoes
-                          }
-                          onChange={(e) =>
-                            alterarNovoRecebimento(
-                              "observacoes",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Observações sobre o recebimento"
-                        ></textarea>
+                  </div>
 
-                      </div>
+                  {/* DESCRIÇÃO */}
 
-                    </div>
+                  <div className="col-12">
+
+                    <label
+                      htmlFor="novo-descricao"
+                      className="form-label fw-semibold"
+                    >
+                      Descrição
+                    </label>
+
+                    <input
+                      id="novo-descricao"
+                      type="text"
+                      className="form-control"
+                      value={
+                        novoRecebimento.descricao
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "descricao",
+                          event.target.value
+                        )
+                      }
+                      placeholder="Descrição do recebimento"
+                    />
+
+                  </div>
+
+                  {/* VALOR */}
+
+                  <div className="col-12 col-md-6">
+
+                    <label
+                      htmlFor="novo-valor"
+                      className="form-label fw-semibold"
+                    >
+                      Valor
+                    </label>
+
+                    <input
+                      id="novo-valor"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-control"
+                      value={
+                        novoRecebimento.valor
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "valor",
+                          event.target.value
+                        )
+                      }
+                      placeholder="0,00"
+                      required
+                    />
+
+                  </div>
+
+                  {/* DATA DE VENCIMENTO */}
+
+                  <div className="col-12 col-md-6">
+
+                    <label
+                      htmlFor="novo-vencimento"
+                      className="form-label fw-semibold"
+                    >
+                      Data de vencimento
+                    </label>
+
+                    <input
+                      id="novo-vencimento"
+                      type="date"
+                      className="form-control"
+                      value={
+                        novoRecebimento.data_vencimento
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "data_vencimento",
+                          event.target.value
+                        )
+                      }
+                      required
+                    />
+
+                  </div>
+
+                  {/* FORMA DE PAGAMENTO */}
+
+                  <div className="col-12 col-md-6">
+
+                    <label
+                      htmlFor="novo-forma"
+                      className="form-label fw-semibold"
+                    >
+                      Forma de pagamento
+                    </label>
+
+                    <select
+                      id="novo-forma"
+                      className="form-select"
+                      value={
+                        novoRecebimento.forma_pagamento
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "forma_pagamento",
+                          event.target.value
+                        )
+                      }
+                    >
+
+                      <option value="Pix">
+                        Pix
+                      </option>
+
+                      <option value="Dinheiro">
+                        Dinheiro
+                      </option>
+
+                      <option value="Cartão">
+                        Cartão
+                      </option>
+
+                      <option value="Depósito">
+                        Depósito
+                      </option>
+
+                    </select>
+
+                  </div>
+
+                  {/* STATUS */}
+
+                  <div className="col-12 col-md-6">
+
+                    <label
+                      htmlFor="novo-status"
+                      className="form-label fw-semibold"
+                    >
+                      Status
+                    </label>
+
+                    <select
+                      id="novo-status"
+                      className="form-select"
+                      value={
+                        novoRecebimento.status
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "status",
+                          event.target.value
+                        )
+                      }
+                    >
+
+                      <option value="Pendente">
+                        Pendente
+                      </option>
+
+                      <option value="Recebido">
+                        Recebido
+                      </option>
+
+                    </select>
+
+                  </div>
+
+                  {/* OBSERVAÇÕES */}
+
+                  <div className="col-12">
+
+                    <label
+                      htmlFor="novo-observacoes"
+                      className="form-label fw-semibold"
+                    >
+                      Observações
+                    </label>
+
+                    <textarea
+                      id="novo-observacoes"
+                      className="form-control"
+                      rows="3"
+                      value={
+                        novoRecebimento.observacoes
+                      }
+                      onChange={(event) =>
+                        alterarNovoRecebimento(
+                          "observacoes",
+                          event.target.value
+                        )
+                      }
+                      placeholder="Observações do recebimento"
+                    />
 
                   </div>
 
                 </div>
 
               </div>
-
-              {/* RODAPÉ */}
 
               <div className="modal-footer">
 
                 <button
                   type="button"
                   className="btn btn-outline-secondary"
-                  onClick={fecharNovoRecebimento}
+                  onClick={
+                    fecharNovoRecebimento
+                  }
                   disabled={salvando}
                 >
                   Cancelar
@@ -1921,28 +1721,14 @@ export default function Recebimentos() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={salvarNovoRecebimento}
+                  onClick={
+                    salvarNovoRecebimento
+                  }
                   disabled={salvando}
                 >
-
-                  {salvando ? (
-                    <>
-                      <span
-                        className="spinner-border spinner-border-sm me-2"
-                        role="status"
-                        aria-hidden="true"
-                      ></span>
-
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-check-lg me-1"></i>
-
-                      Cadastrar recebimento
-                    </>
-                  )}
-
+                  {salvando
+                    ? "Salvando..."
+                    : "Salvar recebimento"}
                 </button>
 
               </div>
@@ -1954,216 +1740,189 @@ export default function Recebimentos() {
         </div>
       )}
 
-      {/* ================================== */}
-      {/* MODAL - CONFIRMAR RECEBIMENTO */}
-      {/* ================================== */}
+      {/* MODAL - CONFIRMAR PAGAMENTO */}
 
-      {modalAberto && (
-        <div
-          className="modal fade show d-block"
-          tabIndex="-1"
-          role="dialog"
-          aria-modal="true"
-          style={{
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-          }}
-        >
+      {modalAberto &&
+        recebimentoSelecionado && (
+          <div
+            className="modal d-block"
+            tabIndex="-1"
+            role="dialog"
+            style={{
+              backgroundColor:
+                "rgba(0, 0, 0, 0.5)",
+            }}
+          >
 
-          <div className="modal-dialog">
+            <div className="modal-dialog modal-dialog-centered">
 
-            <div className="modal-content">
+              <div className="modal-content border-0 rounded-4 shadow">
 
-              {/* CABEÇALHO */}
+                <div className="modal-header">
 
-              <div className="modal-header">
+                  <div>
 
-                <h5 className="modal-title fw-bold">
+                    <h2 className="modal-title h5 fw-bold mb-1">
+                      Confirmar recebimento
+                    </h2>
 
-                  <i className="bi bi-check-circle text-success me-2"></i>
-
-                  Confirmar recebimento
-
-                </h5>
-
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={fecharConfirmacao}
-                  disabled={salvando}
-                ></button>
-
-              </div>
-
-              {/* CORPO */}
-
-              <div className="modal-body">
-
-                {recebimentoSelecionado && (
-                  <div className="mb-3">
-
-                    <div className="alert alert-light border">
-
-                      <div className="d-flex justify-content-between mb-2">
-
-                        <span className="text-muted">
-                          Cliente
-                        </span>
-
-                        <strong>
-                          {obterNomeCliente(
-                            recebimentoSelecionado.cliente_id
-                          )}
-                        </strong>
-
-                      </div>
-
-                      <div className="d-flex justify-content-between">
-
-                        <span className="text-muted">
-                          Valor
-                        </span>
-
-                        <strong className="text-success">
-                          {formatarMoeda(
-                            recebimentoSelecionado.valor
-                          )}
-                        </strong>
-
-                      </div>
-
-                    </div>
+                    <p className="text-muted small mb-0">
+                      Confirme os dados do pagamento.
+                    </p>
 
                   </div>
-                )}
 
-                <div className="mb-3">
-
-                  <label className="form-label">
-                    Forma de pagamento *
-                  </label>
-
-                  <select
-                    className="form-select"
-                    value={formaPagamento}
-                    onChange={(e) =>
-                      setFormaPagamento(
-                        e.target.value
-                      )
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Fechar"
+                    onClick={
+                      fecharConfirmacao
                     }
-                  >
-
-                    <option value="">
-                      Selecione
-                    </option>
-
-                    <option value="Dinheiro">
-                      Dinheiro
-                    </option>
-
-                    <option value="Cartão">
-                      Cartão
-                    </option>
-
-                    <option value="Depósito">
-                      Depósito
-                    </option>
-
-                    <option value="Pix">
-                      Pix
-                    </option>
-
-                  </select>
-
-                </div>
-
-                <div>
-
-                  <label className="form-label">
-                    Data do pagamento *
-                  </label>
-
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={dataPagamento}
-                    onChange={(e) =>
-                      setDataPagamento(
-                        e.target.value
-                      )
-                    }
+                    disabled={salvando}
                   />
 
                 </div>
 
-              </div>
+                <div className="modal-body">
 
-              {/* RODAPÉ */}
+                  <div className="bg-light rounded-3 p-3 mb-4">
 
-              <div className="modal-footer">
+                    <div className="d-flex justify-content-between mb-2">
 
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={fecharConfirmacao}
-                  disabled={salvando}
-                >
-                  Cancelar
-                </button>
+                      <span className="text-muted">
+                        Cliente
+                      </span>
 
-                <button
-                  type="button"
-                  className="btn btn-success"
-                  onClick={confirmarPagamento}
-                  disabled={salvando}
-                >
+                      <strong>
+                        {obterNomeCliente(
+                          recebimentoSelecionado.cliente_id
+                        )}
+                      </strong>
 
-                  {salvando ? (
-                    <>
-                      <span
-                        className="spinner-border spinner-border-sm me-2"
-                        role="status"
-                        aria-hidden="true"
-                      ></span>
+                    </div>
 
-                      Confirmando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-check-lg me-1"></i>
+                    <div className="d-flex justify-content-between">
 
-                      Confirmar pagamento
-                    </>
-                  )}
+                      <span className="text-muted">
+                        Valor
+                      </span>
 
-                </button>
+                      <strong className="text-success">
+                        {formatarMoeda(
+                          recebimentoSelecionado.valor
+                        )}
+                      </strong>
+
+                    </div>
+
+                  </div>
+
+                  <div className="mb-3">
+
+                    <label
+                      htmlFor="forma-pagamento-confirmacao"
+                      className="form-label fw-semibold"
+                    >
+                      Forma de pagamento
+                    </label>
+
+                    <select
+                      id="forma-pagamento-confirmacao"
+                      className="form-select"
+                      value={formaPagamento}
+                      onChange={(event) =>
+                        setFormaPagamento(
+                          event.target.value
+                        )
+                      }
+                    >
+
+                      <option value="">
+                        Selecione
+                      </option>
+
+                      <option value="Pix">
+                        Pix
+                      </option>
+
+                      <option value="Dinheiro">
+                        Dinheiro
+                      </option>
+
+                      <option value="Cartão">
+                        Cartão
+                      </option>
+
+                      <option value="Depósito">
+                        Depósito
+                      </option>
+
+                    </select>
+
+                  </div>
+
+                  <div className="mb-3">
+
+                    <label
+                      htmlFor="data-pagamento"
+                      className="form-label fw-semibold"
+                    >
+                      Data do pagamento
+                    </label>
+
+                    <input
+                      id="data-pagamento"
+                      type="date"
+                      className="form-control"
+                      value={dataPagamento}
+                      onChange={(event) =>
+                        setDataPagamento(
+                          event.target.value
+                        )
+                      }
+                    />
+
+                  </div>
+
+                </div>
+
+                <div className="modal-footer">
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={
+                      fecharConfirmacao
+                    }
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-success"
+                    onClick={
+                      confirmarPagamento
+                    }
+                    disabled={salvando}
+                  >
+                    {salvando
+                      ? "Confirmando..."
+                      : "Confirmar pagamento"}
+                  </button>
+
+                </div>
 
               </div>
 
             </div>
 
           </div>
+        )}
+      {/* FIM DOS MODAIS */}
 
-        </div>
-      )}
-      {/* ================================== */}
-      {/* RODAPÉ */}
-      {/* ================================== */}
-
-      <div className="text-center text-muted py-3">
-
-        <small>
-          ImobGest
-        </small>
-
-        <br />
-
-        <small>
-          Dashboard atualizado em{" "}
-          {hoje.toLocaleDateString("pt-BR")}
-        </small>
-
-      </div>
-
-    </div>
+    </main>
   )
 }
