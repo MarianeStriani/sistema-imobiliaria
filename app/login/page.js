@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "../../lib/supabase/client"; 
+import { createClient } from "../../lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [nome, setNome] = useState("");
   const [password, setPassword] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -15,24 +15,51 @@ export default function LoginPage() {
   async function handleLogin(event) {
     event.preventDefault();
 
-   setErro("");
-setCarregando(true);
+    setErro("");
+    setCarregando(true);
 
-const supabase = createClient();
+    try {
+      // Busca o usuário pelo nome
+      const resposta = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nome: nome.trim(),
+        }),
+      });
 
-const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+      const resultado = await resposta.json();
 
-    if (error) {
-      setErro("E-mail ou senha inválidos.");
+      if (!resposta.ok) {
+        setErro(resultado.error || "Usuário ou senha inválidos.");
+        setCarregando(false);
+        return;
+      }
+
+      // Autenticação do Supabase
+      const supabase = createClient();
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: resultado.email,
+        password,
+      });
+
+      if (error) {
+        setErro("Usuário ou senha inválidos.");
+        setCarregando(false);
+        return;
+      }
+
+      // Seu sistema não possui /dashboard.
+      // A página principal é /
+      router.replace("/");
+      router.refresh();
+    } catch (error) {
+      setErro("Não foi possível realizar o login.");
       setCarregando(false);
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
@@ -53,7 +80,7 @@ const { error } = await supabase.auth.signInWithPassword({
                       fontWeight: "700",
                     }}
                   >
-                    SI
+                    IG
                   </div>
 
                   <h1 className="h4 fw-bold mb-1">
@@ -75,24 +102,25 @@ const { error } = await supabase.auth.signInWithPassword({
                 )}
 
                 <form onSubmit={handleLogin}>
+
                   <div className="mb-3">
                     <label
-                      htmlFor="email"
+                      htmlFor="nome"
                       className="form-label fw-semibold"
                     >
-                      E-mail
+                      Nome do administrador
                     </label>
 
                     <input
-                      id="email"
-                      type="email"
+                      id="nome"
+                      type="text"
                       className="form-control form-control-lg"
-                      value={email}
+                      value={nome}
                       onChange={(event) =>
-                        setEmail(event.target.value)
+                        setNome(event.target.value)
                       }
-                      placeholder="Digite seu e-mail"
-                      autoComplete="email"
+                      placeholder="Digite seu nome"
+                      autoComplete="username"
                       required
                     />
                   </div>
@@ -126,6 +154,7 @@ const { error } = await supabase.auth.signInWithPassword({
                   >
                     {carregando ? "Entrando..." : "Entrar"}
                   </button>
+
                 </form>
 
                 <div className="text-center mt-4">
