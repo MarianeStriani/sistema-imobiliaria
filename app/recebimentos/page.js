@@ -1062,17 +1062,9 @@ export default function Recebimentos() {
                     {totalRecebimentos}
                   </h3>
 
-                </div>
-<div
-                  className="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                  }}
-                >
-                  <i className="bi bi-tools text-warning fs-4"></i>
-                </div>
                 
+                 <div className="fs-2 text-success">
+                  <i className="bi bi-check-circle"></i>
                 </div>
 
               </div>
