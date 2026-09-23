@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
+import LogoutButton from "../components/LogoutButton";
 
 export default function Recebimentos() {
   const hoje = new Date()
@@ -558,7 +559,7 @@ export default function Recebimentos() {
           <h2 className="h6 fw-bold mb-3">
             Acesso rápido
           </h2>
-
+         <LogoutButton/>
           <div className="row g-2">
 
             <div className="col-6 col-md-3 col-lg-2">
