@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import LogoutButton from "../components/LogoutButton";
 
 export default function DespesasPage() {
   const [despesas, setDespesas] = useState([]);
@@ -417,6 +418,7 @@ export default function DespesasPage() {
                 Acesso rápido
               </h5>
             </div>
+           <LogoutButton/>
           </div>
 
           <div className="row g-2">
