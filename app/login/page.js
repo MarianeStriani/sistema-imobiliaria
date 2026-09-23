@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -123,9 +122,7 @@ export default function LoginPage() {
                     className="btn btn-primary btn-lg w-100"
                     disabled={carregando}
                   >
-                    {carregando
-                      ? "Entrando..."
-                      : "Entrar"}
+                    {carregando ? "Entrando..." : "Entrar"}
                   </button>
                 </form>
 
