@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
+import LogoutButton from "../components/LogoutButton";
 
 export default function Imoveis() {
   const [imoveis, setImoveis] = useState([])
@@ -458,7 +459,6 @@ export default function Imoveis() {
   return (
     <div className="container-fluid py-4">
 
-      {/* ACESSO RÁPIDO */}
 {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm border-0 mb-4">
         <div className="card-body">
@@ -479,6 +479,7 @@ export default function Imoveis() {
                 Acesso rápido
               </h5>
             </div>
+           <LogoutButton/>
           </div>
 
           <div className="row g-2">
