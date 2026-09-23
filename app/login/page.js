@@ -31,7 +31,7 @@ const { error } = await supabase.auth.signInWithPassword({
       return;
     }
 
-    router.push("/");
+    router.push("/dashboard");
     router.refresh();
   }
 
