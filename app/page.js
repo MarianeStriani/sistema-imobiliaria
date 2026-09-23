@@ -1,40 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "../lib/supabase/client";
 
 export default function HomePage() {
+  const router = useRouter();
   const [supabase] = useState(() => createClient());
-
-  const [usuario, setUsuario] = useState(null);
-  const [verificando, setVerificando] = useState(true);
 
   const [nome, setNome] = useState("");
   const [senha, setSenha] = useState("");
+
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [verificando, setVerificando] = useState(true);
 
   useEffect(() => {
-    verificarUsuario();
+    verificarSessao();
+  }, []);
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUsuario(session?.user ?? null);
-      setVerificando(false);
-    });
+  async function verificarSessao() {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
+      if (session?.user) {
+        router.replace("/dashboard");
+        return;
+      }
+    } catch (error) {
+      console.error("Erro ao verificar sessão:", error);
+    }
 
-  async function verificarUsuario() {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    setUsuario(session?.user ?? null);
     setVerificando(false);
   }
 
@@ -42,59 +40,95 @@ export default function HomePage() {
     event.preventDefault();
 
     setErro("");
+
+    const nomeInformado = nome.trim();
+
+    if (!nomeInformado) {
+      setErro("Informe o nome do administrador.");
+      return;
+    }
+
+    if (!senha) {
+      setErro("Informe a senha.");
+      return;
+    }
+
     setCarregando(true);
 
     try {
-      const resposta = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nome: nome.trim(),
-        }),
-      });
+      /*
+       * Procura o administrador na tabela profiles.
+       * Não precisamos de route.js nesta versão.
+       */
+      const { data: perfil, error: perfilError } = await supabase
+        .from("profiles")
+        .select("email, nome, ativo")
+        .eq("nome", nomeInformado)
+        .maybeSingle();
 
-      const resultado = await resposta.json();
+      if (perfilError) {
+        console.error("Erro ao consultar perfil:", perfilError);
 
-      if (!resposta.ok) {
-        setErro("Nome ou senha inválidos.");
+        setErro(
+          "Não foi possível localizar o administrador. Verifique as permissões da tabela profiles."
+        );
+
         setCarregando(false);
         return;
       }
 
+      if (!perfil) {
+        setErro("Administrador não encontrado.");
+        setCarregando(false);
+        return;
+      }
+
+      if (perfil.ativo === false) {
+        setErro("Este administrador está inativo.");
+        setCarregando(false);
+        return;
+      }
+
+      if (!perfil.email) {
+        setErro("O administrador não possui e-mail cadastrado.");
+        setCarregando(false);
+        return;
+      }
+
+      /*
+       * Login do Supabase Auth.
+       */
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: resultado.email,
+        email: perfil.email,
         password: senha,
       });
 
       if (error) {
+        console.error("Erro no login:", error);
+
         setErro("Nome ou senha inválidos.");
         setCarregando(false);
         return;
       }
 
-      setUsuario(data.user);
-      setNome("");
-      setSenha("");
-      setCarregando(false);
+      if (!data?.user) {
+        setErro("Não foi possível concluir o login.");
+        setCarregando(false);
+        return;
+      }
+
+      /*
+       * Login concluído.
+       * Vai para o dashboard existente.
+       */
+      router.replace("/dashboard");
+      router.refresh();
     } catch (error) {
-      console.error(error);
+      console.error("Erro inesperado no login:", error);
+
       setErro("Não foi possível realizar o login.");
       setCarregando(false);
     }
-  }
-
-  async function sair() {
-    await supabase.auth.signOut();
-
-    setUsuario(null);
-    setNome("");
-    setSenha("");
-  }
-
-  function acessarPagina(pagina) {
-    window.location.href = pagina;
   }
 
   if (verificando) {
@@ -104,440 +138,138 @@ export default function HomePage() {
           <div
             className="spinner-border text-primary mb-3"
             role="status"
-          />
+            aria-hidden="true"
+          ></div>
+
           <div className="text-muted">
-            Carregando...
+            Verificando acesso...
           </div>
         </div>
       </main>
     );
   }
-
-  /* =====================================================
-     LOGIN
-  ===================================================== */
-
-  if (!usuario) {
-    return (
-      <main className="min-vh-100 bg-light d-flex align-items-center justify-content-center py-5">
-
-        <div className="container">
-
-          <div className="row justify-content-center">
-
-            <div className="col-12 col-sm-10 col-md-7 col-lg-5 col-xl-4">
-
-              <div className="card border-0 shadow-sm rounded-4">
-
-                <div className="card-body p-4 p-md-5">
-
-                  <div className="text-center mb-4">
-
-                    <div
-                      className="bg-primary text-white rounded-4 d-inline-flex align-items-center justify-content-center mb-3"
-                      style={{
-                        width: "64px",
-                        height: "64px",
-                        fontSize: "28px",
-                        fontWeight: "700",
-                      }}
-                    >
-                      IG
-                    </div>
-
-                    <h1 className="h4 fw-bold mb-1">
-                      ImobGest
-                    </h1>
-
-                    <p className="text-muted mb-0">
-                      Acesso administrativo
-                    </p>
-
-                  </div>
-
-                  {erro && (
-                    <div
-                      className="alert alert-danger"
-                      role="alert"
-                    >
-                      {erro}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleLogin}>
-
-                    <div className="mb-3">
-
-                      <label
-                        htmlFor="nome"
-                        className="form-label fw-semibold"
-                      >
-                        Nome do administrador
-                      </label>
-
-                      <input
-                        id="nome"
-                        type="text"
-                        className="form-control form-control-lg"
-                        value={nome}
-                        onChange={(event) =>
-                          setNome(event.target.value)
-                        }
-                        placeholder="Digite seu nome"
-                        autoComplete="username"
-                        required
-                      />
-
-                    </div>
-
-                    <div className="mb-4">
-
-                      <label
-                        htmlFor="senha"
-                        className="form-label fw-semibold"
-                      >
-                        Senha
-                      </label>
-
-                      <input
-                        id="senha"
-                        type="password"
-                        className="form-control form-control-lg"
-                        value={senha}
-                        onChange={(event) =>
-                          setSenha(event.target.value)
-                        }
-                        placeholder="Digite sua senha"
-                        autoComplete="current-password"
-                        required
-                      />
-
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="btn btn-primary btn-lg w-100"
-                      disabled={carregando}
-                    >
-                      {carregando ? "Entrando..." : "Entrar"}
-                    </button>
-
-                  </form>
-
-                  <div className="text-center mt-4">
-
-                    <small className="text-muted">
-                      Acesso exclusivo para administradores
-                    </small>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </main>
-    );
-  }
-
-  /* =====================================================
-     DASHBOARD
-  ===================================================== */
 
   return (
-    <main className="container-fluid py-4">
+    <main className="min-vh-100 bg-light d-flex align-items-center justify-content-center py-4 px-3">
+      <div
+        className="card border-0 shadow"
+        style={{
+          width: "100%",
+          maxWidth: "430px",
+          borderRadius: "16px",
+        }}
+      >
+        <div className="card-body p-4 p-md-5">
+          <div className="text-center mb-4">
+            <div
+              className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+              style={{
+                width: "64px",
+                height: "64px",
+                fontSize: "28px",
+                fontWeight: "700",
+              }}
+            >
+              I
+            </div>
 
-      {/* CABEÇALHO */}
+            <h1 className="h3 fw-bold mb-1">
+              ImobGest
+            </h1>
 
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <p className="text-muted mb-0">
+              Gestão imobiliária
+            </p>
+          </div>
 
-        <div>
-          <h1 className="h3 fw-bold mb-1">
-            Dashboard
-          </h1>
+          <div className="mb-4">
+            <h2 className="h5 fw-bold mb-1">
+              Acesso ao sistema
+            </h2>
 
-          <p className="text-muted mb-0">
-            Visão geral do ImobGest
-          </p>
+            <p className="text-muted small mb-0">
+              Entre com seu nome de administrador e senha.
+            </p>
+          </div>
+
+          {erro && (
+            <div
+              className="alert alert-danger"
+              role="alert"
+            >
+              {erro}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin}>
+            <div className="mb-3">
+              <label
+                htmlFor="nome"
+                className="form-label fw-semibold"
+              >
+                Administrador
+              </label>
+
+              <input
+                id="nome"
+                type="text"
+                className="form-control form-control-lg"
+                placeholder="Digite seu nome"
+                value={nome}
+                onChange={(event) => setNome(event.target.value)}
+                autoComplete="username"
+                disabled={carregando}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="senha"
+                className="form-label fw-semibold"
+              >
+                Senha
+              </label>
+
+              <input
+                id="senha"
+                type="password"
+                className="form-control form-control-lg"
+                placeholder="Digite sua senha"
+                value={senha}
+                onChange={(event) => setSenha(event.target.value)}
+                autoComplete="current-password"
+                disabled={carregando}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-lg w-100"
+              disabled={carregando}
+            >
+              {carregando ? (
+                <>
+                  <span
+                    className="spinner-border spinner-border-sm me-2"
+                    role="status"
+                    aria-hidden="true"
+                  ></span>
+
+                  Entrando...
+                </>
+              ) : (
+                "Entrar"
+              )}
+            </button>
+          </form>
+
+          <div className="text-center mt-4">
+            <small className="text-muted">
+              ImobGest • Sistema de gestão imobiliária
+            </small>
+          </div>
         </div>
-
-        <button
-          type="button"
-          className="btn btn-outline-danger btn-sm px-3 py-2"
-          onClick={sair}
-        >
-          Sair
-        </button>
-
       </div>
-
-      {/* ACESSO RÁPIDO */}
-
-      <div className="card border-0 shadow-sm rounded-4 mb-4">
-
-        <div className="card-body">
-
-          <h2 className="h6 fw-bold mb-3">
-            Acesso rápido
-          </h2>
-
-          <div className="row g-2">
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                type="button"
-                className="btn btn-primary w-100"
-                onClick={() => acessarPagina("/")}
-              >
-                Dashboard
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100"
-                onClick={() => acessarPagina("/imoveis")}
-              >
-                Imóveis
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100"
-                onClick={() => acessarPagina("/clientes")}
-              >
-                Clientes
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100"
-                onClick={() => acessarPagina("/contratos")}
-              >
-                Contratos
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100"
-                onClick={() => acessarPagina("/recebimentos")}
-              >
-                Recebimentos
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100"
-                onClick={() => acessarPagina("/despesas")}
-              >
-                Despesas
-              </button>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100"
-                onClick={() => acessarPagina("/financeiro")}
-              >
-                Financeiro
-              </button>
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* RESUMO */}
-
-      <div className="row g-4 mb-4">
-
-        <div className="col-12 col-md-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-4 h-100">
-            <div className="card-body">
-              <div className="text-muted small mb-2">
-                Clientes
-              </div>
-              <div className="fs-3 fw-bold">
-                1
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-4 h-100">
-            <div className="card-body">
-              <div className="text-muted small mb-2">
-                Contratos ativos
-              </div>
-              <div className="fs-3 fw-bold">
-                0
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-4 h-100">
-            <div className="card-body">
-              <div className="text-muted small mb-2">
-                Recebimentos do mês
-              </div>
-              <div className="fs-3 fw-bold">
-                R$ 650,00
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-4 h-100">
-            <div className="card-body">
-              <div className="text-muted small mb-2">
-                Despesas
-              </div>
-              <div className="fs-3 fw-bold">
-                R$ 0,00
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* FINANCEIRO */}
-
-      <div className="row g-4 mb-4">
-
-        <div className="col-12 col-md-4">
-          <div className="card border-0 shadow-sm rounded-4 h-100">
-            <div className="card-body">
-              <div className="text-muted small mb-2">
-                Receitas
-              </div>
-              <div className="fs-3 fw-bold text-success">
-                R$ 650,00
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-4">
-          <div className="card border-0 shadow-sm rounded-4 h-100">
-            <div className="card-body">
-              <div className="text-muted small mb-2">
-                Saídas
-              </div>
-              <div className="fs-3 fw-bold text-danger">
-                R$ 0,00
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-md-4">
-          <div className="card border-0 shadow-sm rounded-4 h-100">
-            <div className="card-body">
-              <div className="text-muted small mb-2">
-                Saldo
-              </div>
-              <div className="fs-3 fw-bold text-primary">
-                R$ 650,00
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* IMÓVEIS */}
-
-      <div className="card border-0 shadow-sm rounded-4">
-
-        <div className="card-body">
-
-          <h2 className="h5 fw-bold mb-4">
-            Imóveis
-          </h2>
-
-          <div className="row g-4">
-
-            <div className="col-12 col-md-4">
-
-              <div className="border rounded-4 p-4 h-100">
-
-                <div className="text-muted small mb-2">
-                  Disponíveis
-                </div>
-
-                <div className="fs-3 fw-bold">
-                  1
-                </div>
-
-                <div className="text-muted small">
-                  100%
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="col-12 col-md-4">
-
-              <div className="border rounded-4 p-4 h-100">
-
-                <div className="text-muted small mb-2">
-                  Alugados
-                </div>
-
-                <div className="fs-3 fw-bold">
-                  0
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="col-12 col-md-4">
-
-              <div className="border rounded-4 p-4 h-100">
-
-                <div className="text-muted small mb-2">
-                  Manutenção
-                </div>
-
-                <div className="fs-3 fw-bold">
-                  0
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
     </main>
   );
 }
