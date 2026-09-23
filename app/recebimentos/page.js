@@ -1063,9 +1063,16 @@ export default function Recebimentos() {
                   </h3>
 
                 </div>
-
-                <div className="fs-2 text-primary">
-                  <i className="bi bi-cash-stack"></i>
+<div
+                  className="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                  }}
+                >
+                  <i className="bi bi-tools text-warning fs-4"></i>
+                </div>
+                
                 </div>
 
               </div>
