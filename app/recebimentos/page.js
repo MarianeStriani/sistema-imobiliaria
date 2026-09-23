@@ -5,28 +5,17 @@ import { supabase } from "../../lib/supabase"
 
 export default function Recebimentos() {
   const hoje = new Date()
-
-  // ========================================
-  // DADOS
-  // ========================================
+  const dataHoje = hoje.toISOString().split("T")[0]
 
   const [recebimentos, setRecebimentos] = useState([])
   const [clientes, setClientes] = useState([])
   const [contratos, setContratos] = useState([])
-
-  // ========================================
-  // CONTROLE
-  // ========================================
 
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
 
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
-
-  // ========================================
-  // PERÍODO
-  // ========================================
 
   const [mes, setMes] = useState(
     hoje.getMonth() + 1
@@ -36,60 +25,35 @@ export default function Recebimentos() {
     hoje.getFullYear()
   )
 
-  // ========================================
-  // BUSCA
-  // ========================================
-
   const [busca, setBusca] = useState("")
 
-  // ========================================
-  // MODAL - CONFIRMAR RECEBIMENTO
-  // ========================================
-
-  const [modalAberto, setModalAberto] =
+  const [novoAberto, setNovoAberto] =
     useState(false)
 
-  const [
-    recebimentoSelecionado,
-    setRecebimentoSelecionado,
-  ] = useState(null)
+  const [confirmacaoAberta, setConfirmacaoAberta] =
+    useState(false)
+
+  const [selecionado, setSelecionado] =
+    useState(null)
 
   const [formaPagamento, setFormaPagamento] =
     useState("")
 
   const [dataPagamento, setDataPagamento] =
-    useState(
-      hoje.toISOString().split("T")[0]
-    )
+    useState(dataHoje)
 
-  // ========================================
-  // MODAL - NOVO RECEBIMENTO
-  // ========================================
-
-  const [
-    novoRecebimentoAberto,
-    setNovoRecebimentoAberto,
-  ] = useState(false)
-
-  const [
-    novoRecebimento,
-    setNovoRecebimento,
-  ] = useState({
+  const [formulario, setFormulario] = useState({
     cliente_id: "",
     contrato_id: "",
-    tipo: "Aluguel mensal",
-    descricao: "",
+    tipo_recebimento: "Aluguel mensal",
     numero_contrato: "",
+    descricao: "",
     valor: "",
     data_vencimento: "",
     forma_pagamento: "Pix",
     status: "Pendente",
     observacoes: "",
   })
-
-  // ========================================
-  // CARREGAR DADOS
-  // ========================================
 
   async function carregarDados() {
     try {
@@ -148,13 +112,13 @@ export default function Recebimentos() {
       )
     } catch (error) {
       console.error(
-        "Erro ao carregar recebimentos:",
+        "Erro ao carregar dados:",
         error
       )
 
       setErro(
         error?.message ||
-          "Não foi possível carregar os recebimentos."
+          "Não foi possível carregar os dados."
       )
     } finally {
       setLoading(false)
@@ -165,37 +129,17 @@ export default function Recebimentos() {
     carregarDados()
   }, [])
 
-  // ========================================
-  // MENSAGENS
-  // ========================================
-
   function limparMensagens() {
     setErro("")
     setSucesso("")
   }
 
-  // ========================================
-  // NAVEGAÇÃO
-  // ========================================
-
   function acessarPagina(url) {
     window.location.href = url
   }
 
-  // ========================================
-  // FORMATAÇÃO
-  // ========================================
-
   function formatarMoeda(valor) {
-    if (
-      valor === null ||
-      valor === undefined ||
-      valor === ""
-    ) {
-      return "R$ 0,00"
-    }
-
-    return Number(valor).toLocaleString(
+    return Number(valor || 0).toLocaleString(
       "pt-BR",
       {
         style: "currency",
@@ -216,167 +160,157 @@ export default function Recebimentos() {
     return data
   }
 
-  // ========================================
-  // NOMES RELACIONADOS
-  // ========================================
-
-  function obterNomeCliente(clienteId) {
+  function nomeCliente(clienteId) {
     const cliente = clientes.find(
       (item) =>
-        String(item.id) === String(clienteId)
+        String(item.id) ===
+        String(clienteId)
     )
 
-    return cliente?.nome || "Cliente não encontrado"
+    return cliente?.nome || "-"
   }
 
-  function obterNumeroContrato(contratoId) {
+  function numeroContrato(contratoId) {
     const contrato = contratos.find(
       (item) =>
-        String(item.id) === String(contratoId)
+        String(item.id) ===
+        String(contratoId)
     )
 
     return contrato?.numero || "-"
   }
 
-  // ========================================
-  // FILTRO POR PERÍODO
-  // ========================================
+  function alterarFormulario(
+    campo,
+    valor
+  ) {
+    setFormulario((anterior) => ({
+      ...anterior,
+      [campo]: valor,
+    }))
+  }
 
-  const recebimentosDoPeriodo = useMemo(() => {
-    return recebimentos.filter((recebimento) => {
-      const data =
-        recebimento.data_vencimento
+  function formularioVazio() {
+    return {
+      cliente_id: "",
+      contrato_id: "",
+      tipo_recebimento: "Aluguel mensal",
+      numero_contrato: "",
+      descricao: "",
+      valor: "",
+      data_vencimento: "",
+      forma_pagamento: "Pix",
+      status: "Pendente",
+      observacoes: "",
+    }
+  }
 
-      if (!data) return false
+  const periodo = useMemo(() => {
+    return recebimentos.filter(
+      (item) => {
+        if (!item.data_vencimento) {
+          return false
+        }
 
-      const partes = String(data).split("-")
+        const partes =
+          String(
+            item.data_vencimento
+          ).split("-")
 
-      if (partes.length !== 3) {
-        return false
+        if (partes.length !== 3) {
+          return false
+        }
+
+        return (
+          Number(partes[0]) ===
+            Number(ano) &&
+          Number(partes[1]) ===
+            Number(mes)
+        )
       }
-
-      const anoRecebimento =
-        Number(partes[0])
-
-      const mesRecebimento =
-        Number(partes[1])
-
-      return (
-        anoRecebimento === Number(ano) &&
-        mesRecebimento === Number(mes)
-      )
-    })
+    )
   }, [recebimentos, mes, ano])
 
-  // ========================================
-  // BUSCA
-  // ========================================
-
-  const recebimentosFiltrados = useMemo(() => {
+  const filtrados = useMemo(() => {
     const termo =
       busca.trim().toLowerCase()
 
     if (!termo) {
-      return recebimentosDoPeriodo
+      return periodo
     }
 
-    return recebimentosDoPeriodo.filter(
-      (recebimento) => {
-        const nomeCliente =
-          obterNomeCliente(
-            recebimento.cliente_id
-          )
+    return periodo.filter((item) => {
+      const cliente =
+        nomeCliente(item.cliente_id)
 
-        const numeroContrato =
-          recebimento.numero_contrato ||
-          obterNumeroContrato(
-            recebimento.contrato_id
-          )
-
-        const tipo =
-          recebimento.tipo_recebimento ||
-          recebimento.tipo ||
-          ""
-
-        const descricao =
-          recebimento.descricao || ""
-
-        return (
-          String(nomeCliente)
-            .toLowerCase()
-            .includes(termo) ||
-
-          String(numeroContrato)
-            .toLowerCase()
-            .includes(termo) ||
-
-          String(tipo)
-            .toLowerCase()
-            .includes(termo) ||
-
-          String(descricao)
-            .toLowerCase()
-            .includes(termo)
+      const contrato =
+        item.numero_contrato ||
+        numeroContrato(
+          item.contrato_id
         )
-      }
-    )
+
+      const tipo =
+        item.tipo_recebimento || ""
+
+      const descricao =
+        item.descricao || ""
+
+      return (
+        String(cliente)
+          .toLowerCase()
+          .includes(termo) ||
+        String(contrato)
+          .toLowerCase()
+          .includes(termo) ||
+        String(tipo)
+          .toLowerCase()
+          .includes(termo) ||
+        String(descricao)
+          .toLowerCase()
+          .includes(termo)
+      )
+    })
   }, [
-    recebimentosDoPeriodo,
+    periodo,
     busca,
     clientes,
     contratos,
   ])
 
-  // ========================================
-  // RESUMOS
-  // ========================================
+  const recebidos = periodo.filter(
+    (item) =>
+      String(item.status || "")
+        .toLowerCase() ===
+      "recebido"
+  )
 
-  const totalRecebimentos =
-    recebimentosDoPeriodo.length
-
-  const recebidos =
-    recebimentosDoPeriodo.filter(
-      (recebimento) =>
-        String(
-          recebimento.status || ""
-        ).toLowerCase() === "recebido"
-    )
-
-  const pendentes =
-    recebimentosDoPeriodo.filter(
-      (recebimento) =>
-        String(
-          recebimento.status || ""
-        ).toLowerCase() === "pendente"
-    )
+  const pendentes = periodo.filter(
+    (item) =>
+      String(item.status || "")
+        .toLowerCase() ===
+      "pendente"
+  )
 
   const valorRecebido =
     recebidos.reduce(
-      (total, recebimento) =>
+      (total, item) =>
         total +
-        Number(
-          recebimento.valor || 0
-        ),
+        Number(item.valor || 0),
       0
     )
 
   const valorPendente =
     pendentes.reduce(
-      (total, recebimento) =>
+      (total, item) =>
         total +
-        Number(
-          recebimento.valor || 0
-        ),
+        Number(item.valor || 0),
       0
     )
 
-  // ========================================
-  // STATUS
-  // ========================================
-
   function classeStatus(status) {
     const valor =
-      String(status || "").toLowerCase()
+      String(status || "")
+        .toLowerCase()
 
     if (valor === "recebido") {
       return "bg-success"
@@ -393,133 +327,89 @@ export default function Recebimentos() {
     return "bg-secondary"
   }
 
-  function textoStatus(status) {
-    const valor =
-      String(status || "").toLowerCase()
-
-    if (valor === "recebido") {
-      return "Recebido"
-    }
-
-    if (valor === "pendente") {
-      return "Pendente"
-    }
-
-    if (valor === "cancelado") {
-      return "Cancelado"
-    }
-
-    return status || "-"
-  }
-
-  // ========================================
-  // NOVO RECEBIMENTO
-  // ========================================
-
-  function formularioInicial() {
-    return {
-      cliente_id: "",
-      contrato_id: "",
-      tipo: "Aluguel mensal",
-      descricao: "",
-      numero_contrato: "",
-      valor: "",
-      data_vencimento: "",
-      forma_pagamento: "Pix",
-      status: "Pendente",
-      observacoes: "",
-    }
-  }
-
-  function alterarNovoRecebimento(
-    campo,
-    valor
-  ) {
-    setNovoRecebimento(
-      (anterior) => ({
-        ...anterior,
-        [campo]: valor,
-      })
-    )
-  }
-
-  function abrirNovoRecebimento() {
+  function abrirNovo() {
     limparMensagens()
 
-    setNovoRecebimento(
-      formularioInicial()
+    setFormulario(
+      formularioVazio()
     )
 
-    setNovoRecebimentoAberto(true)
+    setNovoAberto(true)
   }
 
-  function fecharNovoRecebimento() {
+  function fecharNovo() {
     if (salvando) return
 
-    setNovoRecebimentoAberto(false)
-
-    setNovoRecebimento(
-      formularioInicial()
+    setNovoAberto(false)
+    setFormulario(
+      formularioVazio()
     )
   }
 
-  // ========================================
-  // SALVAR NOVO RECEBIMENTO
-  // ========================================
+  function abrirConfirmacao(item) {
+    limparMensagens()
 
-  async function salvarNovoRecebimento() {
+    setSelecionado(item)
+
+    setFormaPagamento(
+      item.forma_pagamento ||
+        "Pix"
+    )
+
+    setDataPagamento(
+      item.data_pagamento ||
+        dataHoje
+    )
+
+    setConfirmacaoAberta(true)
+  }
+
+  function fecharConfirmacao() {
+    if (salvando) return
+
+    setConfirmacaoAberta(false)
+    setSelecionado(null)
+    setFormaPagamento("")
+    setDataPagamento(dataHoje)
+  }
+  async function salvarRecebimento() {
     try {
       setSalvando(true)
       limparMensagens()
 
-      if (!novoRecebimento.cliente_id) {
+      if (!formulario.cliente_id) {
         setErro("Selecione um cliente.")
         return
       }
 
-      if (!novoRecebimento.valor) {
+      if (!formulario.valor) {
         setErro("Informe o valor do recebimento.")
         return
       }
 
-      if (!novoRecebimento.data_vencimento) {
+      if (!formulario.data_vencimento) {
         setErro("Informe a data de vencimento.")
         return
       }
 
       const dados = {
-        cliente_id:
-          novoRecebimento.cliente_id,
-
+        cliente_id: formulario.cliente_id,
         contrato_id:
-          novoRecebimento.contrato_id || null,
-
+          formulario.contrato_id || null,
         tipo_recebimento:
-          novoRecebimento.tipo,
-
-        descricao:
-          novoRecebimento.descricao || null,
-
+          formulario.tipo_recebimento,
         numero_contrato:
-          novoRecebimento.numero_contrato ||
-          null,
-
-        valor:
-          Number(novoRecebimento.valor),
-
+          formulario.numero_contrato || null,
+        descricao:
+          formulario.descricao || null,
+        valor: Number(formulario.valor),
         data_vencimento:
-          novoRecebimento.data_vencimento,
-
+          formulario.data_vencimento,
         forma_pagamento:
-          novoRecebimento.forma_pagamento ||
-          null,
-
-        status:
-          novoRecebimento.status,
-
+          formulario.forma_pagamento || null,
+        status: formulario.status,
         observacoes:
-          novoRecebimento.observacoes ||
-          null,
+          formulario.observacoes || null,
       }
 
       const { error } = await supabase
@@ -534,10 +424,10 @@ export default function Recebimentos() {
         "Recebimento cadastrado com sucesso."
       )
 
-      setNovoRecebimentoAberto(false)
+      setNovoAberto(false)
 
-      setNovoRecebimento(
-        formularioInicial()
+      setFormulario(
+        formularioVazio()
       )
 
       await carregarDados()
@@ -556,56 +446,8 @@ export default function Recebimentos() {
     }
   }
 
-  // ========================================
-  // ABRIR CONFIRMAÇÃO DE PAGAMENTO
-  // ========================================
-
-  function abrirConfirmarRecebimento(
-    recebimento
-  ) {
-    limparMensagens()
-
-    setRecebimentoSelecionado(
-      recebimento
-    )
-
-    setFormaPagamento(
-      recebimento.forma_pagamento ||
-        "Pix"
-    )
-
-    setDataPagamento(
-      recebimento.data_pagamento ||
-        hoje.toISOString().split("T")[0]
-    )
-
-    setModalAberto(true)
-  }
-
-  // ========================================
-  // FECHAR CONFIRMAÇÃO
-  // ========================================
-
-  function fecharConfirmacao() {
-    if (salvando) return
-
-    setModalAberto(false)
-
-    setRecebimentoSelecionado(null)
-
-    setFormaPagamento("")
-
-    setDataPagamento(
-      hoje.toISOString().split("T")[0]
-    )
-  }
-
-  // ========================================
-  // CONFIRMAR PAGAMENTO
-  // ========================================
-
   async function confirmarPagamento() {
-    if (!recebimentoSelecionado) {
+    if (!selecionado) {
       return
     }
 
@@ -636,10 +478,7 @@ export default function Recebimentos() {
           data_pagamento:
             dataPagamento,
         })
-        .eq(
-          "id",
-          recebimentoSelecionado.id
-        )
+        .eq("id", selecionado.id)
 
       if (error) {
         throw error
@@ -654,27 +493,24 @@ export default function Recebimentos() {
       await carregarDados()
     } catch (error) {
       console.error(
-        "Erro ao confirmar recebimento:",
+        "Erro ao confirmar pagamento:",
         error
       )
 
       setErro(
         error?.message ||
-          "Não foi possível confirmar o recebimento."
+          "Não foi possível confirmar o pagamento."
       )
     } finally {
       setSalvando(false)
     }
   }
 
-  // ========================================
-  // EXCLUIR RECEBIMENTO
-  // ========================================
-
   async function excluirRecebimento(id) {
-    const confirmar = window.confirm(
-      "Tem certeza que deseja excluir este recebimento?"
-    )
+    const confirmar =
+      window.confirm(
+        "Tem certeza que deseja excluir este recebimento?"
+      )
 
     if (!confirmar) {
       return
@@ -709,14 +545,12 @@ export default function Recebimentos() {
       )
     }
   }
-  // ========================================
-  // INTERFACE
-  // ========================================
 
   return (
     <main className="container-fluid py-4">
 
       {/* ACESSO RÁPIDO */}
+
       <div className="card border-0 shadow-sm rounded-4 mb-4">
 
         <div className="card-body">
@@ -815,9 +649,11 @@ export default function Recebimentos() {
       </div>
 
       {/* CABEÇALHO */}
+
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
 
         <div>
+
           <h1 className="h3 fw-bold mb-1">
             Recebimentos
           </h1>
@@ -825,20 +661,25 @@ export default function Recebimentos() {
           <p className="text-muted mb-0">
             Controle dos recebimentos do sistema
           </p>
+
         </div>
 
         <button
           type="button"
           className="btn btn-primary"
-          onClick={abrirNovoRecebimento}
+          onClick={abrirNovo}
         >
-          <span className="me-2">+</span>
+          <span className="me-2">
+            +
+          </span>
+
           Novo recebimento
         </button>
 
       </div>
 
       {/* MENSAGENS */}
+
       {erro && (
         <div
           className="alert alert-danger alert-dismissible fade show"
@@ -851,7 +692,9 @@ export default function Recebimentos() {
             type="button"
             className="btn-close"
             aria-label="Fechar"
-            onClick={() => setErro("")}
+            onClick={() =>
+              setErro("")
+            }
           />
         </div>
       )}
@@ -867,11 +710,12 @@ export default function Recebimentos() {
             type="button"
             className="btn-close"
             aria-label="Fechar"
-            onClick={() => setSucesso("")}
+            onClick={() =>
+              setSucesso("")
+            }
           />
         </div>
       )}
-
       {/* FILTROS */}
 
       <div className="card border-0 shadow-sm rounded-4 mb-4">
@@ -895,22 +739,60 @@ export default function Recebimentos() {
                 value={mes}
                 onChange={(event) =>
                   setMes(
-                    Number(event.target.value)
+                    Number(
+                      event.target.value
+                    )
                   )
                 }
               >
-                <option value={1}>Janeiro</option>
-                <option value={2}>Fevereiro</option>
-                <option value={3}>Março</option>
-                <option value={4}>Abril</option>
-                <option value={5}>Maio</option>
-                <option value={6}>Junho</option>
-                <option value={7}>Julho</option>
-                <option value={8}>Agosto</option>
-                <option value={9}>Setembro</option>
-                <option value={10}>Outubro</option>
-                <option value={11}>Novembro</option>
-                <option value={12}>Dezembro</option>
+                <option value="1">
+                  Janeiro
+                </option>
+
+                <option value="2">
+                  Fevereiro
+                </option>
+
+                <option value="3">
+                  Março
+                </option>
+
+                <option value="4">
+                  Abril
+                </option>
+
+                <option value="5">
+                  Maio
+                </option>
+
+                <option value="6">
+                  Junho
+                </option>
+
+                <option value="7">
+                  Julho
+                </option>
+
+                <option value="8">
+                  Agosto
+                </option>
+
+                <option value="9">
+                  Setembro
+                </option>
+
+                <option value="10">
+                  Outubro
+                </option>
+
+                <option value="11">
+                  Novembro
+                </option>
+
+                <option value="12">
+                  Dezembro
+                </option>
+
               </select>
 
             </div>
@@ -930,15 +812,33 @@ export default function Recebimentos() {
                 value={ano}
                 onChange={(event) =>
                   setAno(
-                    Number(event.target.value)
+                    Number(
+                      event.target.value
+                    )
                   )
                 }
               >
-                <option value={2024}>2024</option>
-                <option value={2025}>2025</option>
-                <option value={2026}>2026</option>
-                <option value={2027}>2027</option>
-                <option value={2028}>2028</option>
+
+                <option value="2024">
+                  2024
+                </option>
+
+                <option value="2025">
+                  2025
+                </option>
+
+                <option value="2026">
+                  2026
+                </option>
+
+                <option value="2027">
+                  2027
+                </option>
+
+                <option value="2028">
+                  2028
+                </option>
+
               </select>
 
             </div>
@@ -988,7 +888,7 @@ export default function Recebimentos() {
               </p>
 
               <h2 className="h4 fw-bold mb-0">
-                {totalRecebimentos}
+                {periodo.length}
               </h2>
 
             </div>
@@ -1051,7 +951,7 @@ export default function Recebimentos() {
 
       </div>
 
-      {/* LISTA */}
+      {/* LISTA DE RECEBIMENTOS */}
 
       <div className="card border-0 shadow-sm rounded-4 mb-4">
 
@@ -1072,7 +972,7 @@ export default function Recebimentos() {
             </div>
 
             <span className="badge text-bg-light border">
-              {recebimentosFiltrados.length} registro(s)
+              {filtrados.length} registro(s)
             </span>
 
           </div>
@@ -1096,7 +996,7 @@ export default function Recebimentos() {
 
             </div>
 
-          ) : recebimentosFiltrados.length === 0 ? (
+          ) : filtrados.length === 0 ? (
 
             <div className="text-center py-5">
 
@@ -1115,7 +1015,7 @@ export default function Recebimentos() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={abrirNovoRecebimento}
+                onClick={abrirNovo}
               >
                 Novo recebimento
               </button>
@@ -1131,77 +1031,99 @@ export default function Recebimentos() {
                 <thead className="table-light">
 
                   <tr>
-                    <th>Cliente</th>
-                    <th>Tipo</th>
-                    <th>Contrato</th>
-                    <th>Vencimento</th>
-                    <th>Valor</th>
-                    <th>Status</th>
+
+                    <th>
+                      Cliente
+                    </th>
+
+                    <th>
+                      Tipo
+                    </th>
+
+                    <th>
+                      Contrato
+                    </th>
+
+                    <th>
+                      Vencimento
+                    </th>
+
+                    <th>
+                      Valor
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+
                     <th className="text-end">
                       Ações
                     </th>
+
                   </tr>
 
                 </thead>
 
                 <tbody>
 
-                  {recebimentosFiltrados.map(
-                    (recebimento) => (
+                  {filtrados.map(
+                    (item) => (
 
                       <tr
-                        key={recebimento.id}
+                        key={item.id}
                       >
 
                         <td>
+
                           <div className="fw-semibold">
-                            {obterNomeCliente(
-                              recebimento.cliente_id
+                            {nomeCliente(
+                              item.cliente_id
                             )}
                           </div>
 
-                          {recebimento.descricao && (
+                          {item.descricao && (
                             <small className="text-muted">
-                              {recebimento.descricao}
+                              {item.descricao}
                             </small>
                           )}
+
                         </td>
 
                         <td>
-                          {recebimento.tipo_recebimento ||
-                            recebimento.tipo ||
+                          {item.tipo_recebimento ||
                             "-"}
                         </td>
 
                         <td>
-                          {recebimento.numero_contrato ||
-                            obterNumeroContrato(
-                              recebimento.contrato_id
+                          {item.numero_contrato ||
+                            numeroContrato(
+                              item.contrato_id
                             )}
                         </td>
 
                         <td>
                           {formatarData(
-                            recebimento.data_vencimento
+                            item.data_vencimento
                           )}
                         </td>
 
                         <td className="fw-semibold">
                           {formatarMoeda(
-                            recebimento.valor
+                            item.valor
                           )}
                         </td>
 
                         <td>
+
                           <span
                             className={`badge ${classeStatus(
-                              recebimento.status
+                              item.status
                             )}`}
                           >
-                            {textoStatus(
-                              recebimento.status
-                            )}
+                            {item.status ||
+                              "-"}
                           </span>
+
                         </td>
 
                         <td>
@@ -1209,7 +1131,7 @@ export default function Recebimentos() {
                           <div className="d-flex justify-content-end gap-2">
 
                             {String(
-                              recebimento.status || ""
+                              item.status || ""
                             ).toLowerCase() ===
                               "pendente" && (
 
@@ -1217,8 +1139,8 @@ export default function Recebimentos() {
                                 type="button"
                                 className="btn btn-sm btn-success"
                                 onClick={() =>
-                                  abrirConfirmarRecebimento(
-                                    recebimento
+                                  abrirConfirmacao(
+                                    item
                                   )
                                 }
                               >
@@ -1232,7 +1154,7 @@ export default function Recebimentos() {
                               className="btn btn-sm btn-outline-danger"
                               onClick={() =>
                                 excluirRecebimento(
-                                  recebimento.id
+                                  item.id
                                 )
                               }
                             >
@@ -1261,7 +1183,7 @@ export default function Recebimentos() {
       </div>
       {/* MODAL - NOVO RECEBIMENTO */}
 
-      {novoRecebimentoAberto && (
+      {novoAberto && (
         <div
           className="modal d-block"
           tabIndex="-1"
@@ -1294,9 +1216,7 @@ export default function Recebimentos() {
                   type="button"
                   className="btn-close"
                   aria-label="Fechar"
-                  onClick={
-                    fecharNovoRecebimento
-                  }
+                  onClick={fecharNovo}
                   disabled={salvando}
                 />
 
@@ -1306,30 +1226,27 @@ export default function Recebimentos() {
 
                 <div className="row g-3">
 
-                  {/* CLIENTE */}
-
                   <div className="col-12 col-md-6">
 
                     <label
-                      htmlFor="novo-cliente"
+                      htmlFor="cliente_id"
                       className="form-label fw-semibold"
                     >
                       Cliente
                     </label>
 
                     <select
-                      id="novo-cliente"
+                      id="cliente_id"
                       className="form-select"
                       value={
-                        novoRecebimento.cliente_id
+                        formulario.cliente_id
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
+                        alterarFormulario(
                           "cliente_id",
                           event.target.value
                         )
                       }
-                      required
                     >
 
                       <option value="">
@@ -1351,22 +1268,20 @@ export default function Recebimentos() {
 
                   </div>
 
-                  {/* CONTRATO */}
-
                   <div className="col-12 col-md-6">
 
                     <label
-                      htmlFor="novo-contrato"
+                      htmlFor="contrato_id"
                       className="form-label fw-semibold"
                     >
                       Contrato
                     </label>
 
                     <select
-                      id="novo-contrato"
+                      id="contrato_id"
                       className="form-select"
                       value={
-                        novoRecebimento.contrato_id
+                        formulario.contrato_id
                       }
                       onChange={(event) => {
 
@@ -1384,25 +1299,16 @@ export default function Recebimentos() {
                               )
                           )
 
-                        alterarNovoRecebimento(
-                          "contrato_id",
-                          contratoId
+                        setFormulario(
+                          (anterior) => ({
+                            ...anterior,
+                            contrato_id:
+                              contratoId,
+                            numero_contrato:
+                              contrato?.numero ||
+                              "",
+                          })
                         )
-
-                        if (
-                          contrato?.numero
-                        ) {
-                          setNovoRecebimento(
-                            (anterior) => ({
-                              ...anterior,
-                              contrato_id:
-                                contratoId,
-                              numero_contrato:
-                                contrato.numero,
-                            })
-                          )
-                        }
-
                       }}
                     >
 
@@ -1426,26 +1332,24 @@ export default function Recebimentos() {
 
                   </div>
 
-                  {/* TIPO */}
-
                   <div className="col-12 col-md-6">
 
                     <label
-                      htmlFor="novo-tipo"
+                      htmlFor="tipo_recebimento"
                       className="form-label fw-semibold"
                     >
                       Tipo de recebimento
                     </label>
 
                     <select
-                      id="novo-tipo"
+                      id="tipo_recebimento"
                       className="form-select"
                       value={
-                        novoRecebimento.tipo
+                        formulario.tipo_recebimento
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
-                          "tipo",
+                        alterarFormulario(
+                          "tipo_recebimento",
                           event.target.value
                         )
                       }
@@ -1471,26 +1375,24 @@ export default function Recebimentos() {
 
                   </div>
 
-                  {/* NÚMERO DO CONTRATO */}
-
                   <div className="col-12 col-md-6">
 
                     <label
-                      htmlFor="novo-numero-contrato"
+                      htmlFor="numero_contrato"
                       className="form-label fw-semibold"
                     >
                       Nº do contrato
                     </label>
 
                     <input
-                      id="novo-numero-contrato"
+                      id="numero_contrato"
                       type="text"
                       className="form-control"
                       value={
-                        novoRecebimento.numero_contrato
+                        formulario.numero_contrato
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
+                        alterarFormulario(
                           "numero_contrato",
                           event.target.value
                         )
@@ -1500,26 +1402,24 @@ export default function Recebimentos() {
 
                   </div>
 
-                  {/* DESCRIÇÃO */}
-
                   <div className="col-12">
 
                     <label
-                      htmlFor="novo-descricao"
+                      htmlFor="descricao"
                       className="form-label fw-semibold"
                     >
                       Descrição
                     </label>
 
                     <input
-                      id="novo-descricao"
+                      id="descricao"
                       type="text"
                       className="form-control"
                       value={
-                        novoRecebimento.descricao
+                        formulario.descricao
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
+                        alterarFormulario(
                           "descricao",
                           event.target.value
                         )
@@ -1529,86 +1429,78 @@ export default function Recebimentos() {
 
                   </div>
 
-                  {/* VALOR */}
-
                   <div className="col-12 col-md-6">
 
                     <label
-                      htmlFor="novo-valor"
+                      htmlFor="valor"
                       className="form-label fw-semibold"
                     >
                       Valor
                     </label>
 
                     <input
-                      id="novo-valor"
+                      id="valor"
                       type="number"
-                      step="0.01"
                       min="0"
+                      step="0.01"
                       className="form-control"
                       value={
-                        novoRecebimento.valor
+                        formulario.valor
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
+                        alterarFormulario(
                           "valor",
                           event.target.value
                         )
                       }
                       placeholder="0,00"
-                      required
                     />
 
                   </div>
 
-                  {/* DATA DE VENCIMENTO */}
-
                   <div className="col-12 col-md-6">
 
                     <label
-                      htmlFor="novo-vencimento"
+                      htmlFor="data_vencimento"
                       className="form-label fw-semibold"
                     >
                       Data de vencimento
                     </label>
 
                     <input
-                      id="novo-vencimento"
+                      id="data_vencimento"
                       type="date"
                       className="form-control"
                       value={
-                        novoRecebimento.data_vencimento
+                        formulario.data_vencimento
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
+                        alterarFormulario(
                           "data_vencimento",
                           event.target.value
                         )
                       }
-                      required
                     />
 
                   </div>
 
-                  {/* FORMA DE PAGAMENTO */}
-
                   <div className="col-12 col-md-6">
 
                     <label
-                      htmlFor="novo-forma"
+                      htmlFor="forma_pagamento"
                       className="form-label fw-semibold"
                     >
                       Forma de pagamento
                     </label>
 
                     <select
-                      id="novo-forma"
+                      id="forma_pagamento"
                       className="form-select"
                       value={
-                        novoRecebimento.forma_pagamento
+                        formulario.forma_pagamento
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
+                        alterarFormulario(
                           "forma_pagamento",
                           event.target.value
                         )
@@ -1635,25 +1527,23 @@ export default function Recebimentos() {
 
                   </div>
 
-                  {/* STATUS */}
-
                   <div className="col-12 col-md-6">
 
                     <label
-                      htmlFor="novo-status"
+                      htmlFor="status"
                       className="form-label fw-semibold"
                     >
                       Status
                     </label>
 
                     <select
-                      id="novo-status"
+                      id="status"
                       className="form-select"
                       value={
-                        novoRecebimento.status
+                        formulario.status
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
+                        alterarFormulario(
                           "status",
                           event.target.value
                         )
@@ -1672,31 +1562,29 @@ export default function Recebimentos() {
 
                   </div>
 
-                  {/* OBSERVAÇÕES */}
-
                   <div className="col-12">
 
                     <label
-                      htmlFor="novo-observacoes"
+                      htmlFor="observacoes"
                       className="form-label fw-semibold"
                     >
                       Observações
                     </label>
 
                     <textarea
-                      id="novo-observacoes"
+                      id="observacoes"
                       className="form-control"
                       rows="3"
                       value={
-                        novoRecebimento.observacoes
+                        formulario.observacoes
                       }
                       onChange={(event) =>
-                        alterarNovoRecebimento(
+                        alterarFormulario(
                           "observacoes",
                           event.target.value
                         )
                       }
-                      placeholder="Observações do recebimento"
+                      placeholder="Observações"
                     />
 
                   </div>
@@ -1710,9 +1598,7 @@ export default function Recebimentos() {
                 <button
                   type="button"
                   className="btn btn-outline-secondary"
-                  onClick={
-                    fecharNovoRecebimento
-                  }
+                  onClick={fecharNovo}
                   disabled={salvando}
                 >
                   Cancelar
@@ -1722,7 +1608,7 @@ export default function Recebimentos() {
                   type="button"
                   className="btn btn-primary"
                   onClick={
-                    salvarNovoRecebimento
+                    salvarRecebimento
                   }
                   disabled={salvando}
                 >
@@ -1742,8 +1628,8 @@ export default function Recebimentos() {
 
       {/* MODAL - CONFIRMAR PAGAMENTO */}
 
-      {modalAberto &&
-        recebimentoSelecionado && (
+      {confirmacaoAberta &&
+        selecionado && (
           <div
             className="modal d-block"
             tabIndex="-1"
@@ -1795,8 +1681,8 @@ export default function Recebimentos() {
                       </span>
 
                       <strong>
-                        {obterNomeCliente(
-                          recebimentoSelecionado.cliente_id
+                        {nomeCliente(
+                          selecionado.cliente_id
                         )}
                       </strong>
 
@@ -1810,7 +1696,7 @@ export default function Recebimentos() {
 
                       <strong className="text-success">
                         {formatarMoeda(
-                          recebimentoSelecionado.valor
+                          selecionado.valor
                         )}
                       </strong>
 
@@ -1821,16 +1707,18 @@ export default function Recebimentos() {
                   <div className="mb-3">
 
                     <label
-                      htmlFor="forma-pagamento-confirmacao"
+                      htmlFor="confirmar-forma"
                       className="form-label fw-semibold"
                     >
                       Forma de pagamento
                     </label>
 
                     <select
-                      id="forma-pagamento-confirmacao"
+                      id="confirmar-forma"
                       className="form-select"
-                      value={formaPagamento}
+                      value={
+                        formaPagamento
+                      }
                       onChange={(event) =>
                         setFormaPagamento(
                           event.target.value
@@ -1865,14 +1753,14 @@ export default function Recebimentos() {
                   <div className="mb-3">
 
                     <label
-                      htmlFor="data-pagamento"
+                      htmlFor="confirmar-data"
                       className="form-label fw-semibold"
                     >
                       Data do pagamento
                     </label>
 
                     <input
-                      id="data-pagamento"
+                      id="confirmar-data"
                       type="date"
                       className="form-control"
                       value={dataPagamento}
@@ -1921,7 +1809,6 @@ export default function Recebimentos() {
 
           </div>
         )}
-      {/* FIM DOS MODAIS */}
 
     </main>
   )
