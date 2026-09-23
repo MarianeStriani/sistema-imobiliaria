@@ -749,4 +749,463 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div classNa
+                          <div className="progress" style={{ height: "6px" }}>
+                <div
+                  className="progress-bar bg-danger"
+                  role="progressbar"
+                  style={{
+                    width:
+                      totalDespesas > 0
+                        ? "100%"
+                        : "0%",
+                  }}
+                ></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* SALDO */}
+        <div className="col-12 col-md-4">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex align-items-center mb-3">
+                <div
+                  className={`bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3 ${
+                    saldoMes >= 0
+                      ? "bg-primary"
+                      : "bg-warning"
+                  }`}
+                  style={{
+                    width: "45px",
+                    height: "45px",
+                  }}
+                >
+                  <i
+                    className={`fs-5 ${
+                      saldoMes >= 0
+                        ? "bi bi-graph-up-arrow text-primary"
+                        : "bi bi-exclamation-triangle text-warning"
+                    }`}
+                  ></i>
+                </div>
+
+                <div>
+                  <small className="text-muted">
+                    Saldo do mês
+                  </small>
+
+                  <h5 className="fw-bold mb-0">
+                    {formatarMoeda(saldoMes)}
+                  </h5>
+                </div>
+              </div>
+
+              <small
+                className={
+                  saldoMes >= 0
+                    ? "text-success"
+                    : "text-danger"
+                }
+              >
+                {saldoMes >= 0
+                  ? "Saldo positivo"
+                  : "Saldo negativo"}
+              </small>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* STATUS DOS IMÓVEIS */}
+      <div className="row g-3 mb-4">
+
+        <div className="col-12 col-lg-7">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                  <h5 className="fw-bold mb-1">
+                    Status dos imóveis
+                  </h5>
+                </div>
+
+                <button
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={() => acessarPagina("/imoveis")}
+                >
+                  Ver imóveis
+                </button>
+              </div>
+
+              <div className="row g-3">
+
+                <div className="col-12 col-md-4">
+                  <div className="border rounded-3 p-3 text-center h-100">
+
+                    <div className="mb-2">
+                      <i className="bi bi-house-check text-success fs-2"></i>
+                    </div>
+
+                    <h3 className="fw-bold mb-1">
+                      {imoveisAlugados}
+                    </h3>
+
+                    <p className="text-muted mb-2">
+                      Alugados
+                    </p>
+
+                    <div className="progress" style={{ height: "5px" }}>
+                      <div
+                        className="progress-bar bg-success"
+                        style={{
+                          width: `${percentualAlugados}%`,
+                        }}
+                      ></div>
+                    </div>
+
+                    <small className="text-muted">
+                      {percentualAlugados}%
+                    </small>
+
+                  </div>
+                </div>
+
+                <div className="col-12 col-md-4">
+                  <div className="border rounded-3 p-3 text-center h-100">
+
+                    <div className="mb-2">
+                      <i className="bi bi-house text-primary fs-2"></i>
+                    </div>
+
+                    <h3 className="fw-bold mb-1">
+                      {imoveisDisponiveis}
+                    </h3>
+
+                    <p className="text-muted mb-2">
+                      Disponíveis
+                    </p>
+
+                    <div className="progress" style={{ height: "5px" }}>
+                      <div
+                        className="progress-bar bg-primary"
+                        style={{
+                          width: `${percentualDisponiveis}%`,
+                        }}
+                      ></div>
+                    </div>
+
+                    <small className="text-muted">
+                      {percentualDisponiveis}%
+                    </small>
+
+                  </div>
+                </div>
+
+                <div className="col-12 col-md-4">
+                  <div className="border rounded-3 p-3 text-center h-100">
+
+                    <div className="mb-2">
+                      <i className="bi bi-tools text-warning fs-2"></i>
+                    </div>
+
+                    <h3 className="fw-bold mb-1">
+                      {imoveisManutencao}
+                    </h3>
+
+                    <p className="text-muted mb-2">
+                      Manutenção
+                    </p>
+
+                    <div className="progress" style={{ height: "5px" }}>
+                      <div
+                        className="progress-bar bg-warning"
+                        style={{
+                          width: `${percentualManutencao}%`,
+                        }}
+                      ></div>
+                    </div>
+
+                    <small className="text-muted">
+                      {percentualManutencao}%
+                    </small>
+
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* ALERTAS */}
+        <div className="col-12 col-lg-5">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h5 className="fw-bold mb-1">
+                    Alertas
+                  </h5>
+                </div>
+
+                <i className="bi bi-bell text-warning fs-4"></i>
+              </div>
+
+              <div className="list-group list-group-flush">
+
+                <button
+                  className="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0"
+                  onClick={() => acessarPagina("/recebimentos")}
+                >
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-cash-coin text-danger me-3"></i>
+
+                    <div>
+                      <div className="fw-semibold">
+                        Recebimentos pendentes
+                      </div>
+
+                      <small className="text-muted">
+                        Verificar pagamentos
+                      </small>
+                    </div>
+                  </div>
+
+                  <span className="badge bg-danger rounded-pill">
+                    {recebimentosPendentes}
+                  </span>
+                </button>
+
+                <button
+                  className="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0"
+                  onClick={() => acessarPagina("/contratos")}
+                >
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-calendar-event text-warning me-3"></i>
+
+                    <div>
+                      <div className="fw-semibold">
+                        Contratos vencendo
+                      </div>
+
+                      <small className="text-muted">
+                        Próximos 30 dias
+                      </small>
+                    </div>
+                  </div>
+
+                  <span className="badge bg-warning text-dark rounded-pill">
+                    {contratosVencendo}
+                  </span>
+                </button>
+
+                <button
+                  className="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0"
+                  onClick={() => acessarPagina("/manutencoes")}
+                >
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-tools text-primary me-3"></i>
+
+                    <div>
+                      <div className="fw-semibold">
+                        Imóveis em manutenção
+                      </div>
+
+                      <small className="text-muted">
+                        Acompanhar serviços
+                      </small>
+                    </div>
+                  </div>
+
+                  <span className="badge bg-primary rounded-pill">
+                    {imoveisManutencao}
+                  </span>
+                </button>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+      {/* ÚLTIMOS RECEBIMENTOS */}
+      <div className="card shadow-sm border-0 mb-4">
+        <div className="card-body">
+
+          <div className="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+              <h5 className="fw-bold mb-1">
+                Últimos recebimentos
+              </h5>
+
+
+            </div>
+
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => acessarPagina("/recebimentos")}
+            >
+              Ver todos
+              <i className="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+
+          {ultimosRecebimentos.length === 0 ? (
+            <div className="text-center py-5">
+
+              <i className="bi bi-cash-stack text-muted fs-1"></i>
+
+              <p className="text-muted mt-3 mb-0">
+                Nenhum recebimento encontrado.
+              </p>
+
+            </div>
+          ) : (
+            <div className="table-responsive">
+
+              <table className="table table-hover align-middle mb-0">
+
+                <thead>
+                  <tr>
+                    <th>
+                      Data
+                    </th>
+
+                    <th>
+                      Cliente
+                    </th>
+
+                    <th>
+                      Descrição
+                    </th>
+
+                    <th>
+                      Status
+                    </th>
+
+                    <th className="text-end">
+                      Valor
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+
+                  {ultimosRecebimentos.map((item, index) => {
+
+                    const status = String(
+                      item.status ||
+                        item.situacao ||
+                        "Recebido"
+                    )
+
+                    const statusLower =
+                      status.toLowerCase()
+
+                    const statusRecebido =
+                      statusLower.includes("receb") ||
+                      statusLower.includes("pago") ||
+                      statusLower.includes("quit")
+
+                    const cliente =
+                      item.cliente_nome ||
+                      item.nome_cliente ||
+                      item.cliente ||
+                      "-"
+
+                    const descricao =
+                      item.descricao ||
+                      item.tipo ||
+                      item.referencia ||
+                      "Recebimento"
+
+                    const valor =
+                      item.valor ||
+                      item.valor_recebido ||
+                      item.valor_pago ||
+                      item.total ||
+                      0
+
+                    const data =
+                      item.data_recebimento ||
+                      item.data_pagamento ||
+                      item.data_vencimento ||
+                      item.created_at
+
+                    return (
+                      <tr key={item.id || index}>
+
+                        <td>
+                          {formatarData(data)}
+                        </td>
+
+                        <td>
+                          <div className="fw-semibold">
+                            {cliente}
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className="text-muted">
+                            {descricao}
+                          </span>
+                        </td>
+
+                        <td>
+                          <span
+                            className={`badge ${
+                              statusRecebido
+                                ? "bg-success"
+                                : "bg-warning text-dark"
+                            }`}
+                          >
+                            {status}
+                          </span>
+                        </td>
+
+                        <td className="text-end fw-semibold">
+                          {formatarMoeda(valor)}
+                        </td>
+
+                      </tr>
+                    )
+                  })}
+
+                </tbody>
+
+              </table>
+
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* RODAPÉ */}
+      <div className="text-center text-muted py-3">
+
+        <small>
+          ImobGest
+        </small>
+
+        <br />
+
+        <small>
+          Dashboard atualizado em{" "}
+          {hoje.toLocaleDateString("pt-BR")}
+        </small>
+
+      </div>
+
+    </div>
+  )
+}
