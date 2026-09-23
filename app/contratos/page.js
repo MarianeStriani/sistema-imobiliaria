@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "../../lib/supabase"
+import LogoutButton from "../components/LogoutButton"
 
 export default function Contratos() {
   // ========================================
@@ -658,6 +659,7 @@ export default function Contratos() {
                 Acesso rápido
               </h5>
             </div>
+            <LogoutButton/>
           </div>
 
           <div className="row g-2">
