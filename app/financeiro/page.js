@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import LogoutButton from "../components/LogoutButton";
 
 export default function FinanceiroPage() {
   const [recebimentos, setRecebimentos] = useState([]);
@@ -365,12 +366,8 @@ export default function FinanceiroPage() {
               <h5 className="fw-bold mb-0">
                 Acesso rápido
               </h5>
-
-              <small className="text-muted">
-                Navegue rapidamente pelo sistema
-              </small>
             </div>
-
+            <LogoutButton/>
           </div>
 
           <div className="row g-2">
