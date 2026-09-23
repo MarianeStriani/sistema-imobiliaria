@@ -18,21 +18,33 @@ event.preventDefault();
 setErro("");
 setCarregando(true);
 
-const supabase = createClient();
+try {
+  const supabase = createClient();
 
-const { error } = await supabase.auth.signInWithPassword({
-  email: email.trim(),
-  password,
-});
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  });
 
-if (error) {
-  setErro("E-mail ou senha inválidos.");
+  if (error) {
+    setErro(error.message || "E-mail ou senha inválidos.");
+    setCarregando(false);
+    return;
+  }
+
+  if (!data?.session) {
+    setErro("Login realizado, mas a sessão não foi criada.");
+    setCarregando(false);
+    return;
+  }
+
+  router.replace("/dashboard");
+} catch (error) {
+  console.error("Erro no login:", error);
+
+  setErro("Não foi possível realizar o login.");
   setCarregando(false);
-  return;
 }
-
-router.push("/dashboard");
-router.refresh();
 
 }
 
