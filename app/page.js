@@ -389,9 +389,7 @@ export default function Dashboard() {
   return (
     <div className="container-fluid py-4">
 
-      
-
-      {/* ACESSO RÁPIDO */}
+           {/* ACESSO RÁPIDO */}
       <div className="card shadow-sm border-0 mb-4">
         <div className="card-body">
 
@@ -427,7 +425,7 @@ export default function Dashboard() {
 
             <div className="col-6 col-md-3 col-lg-2">
               <button
-                className="btn btn-outline-primary w-100 py-2"
+                className="btn btn-primary w-100 py-2"
                 onClick={() => acessarPagina("/clientes")}
               >
                 <i className="bi bi-people d-block fs-5 mb-1"></i>
@@ -472,6 +470,16 @@ export default function Dashboard() {
               >
                 <i className="bi bi-wallet2 d-block fs-5 mb-1"></i>
                 Despesas
+              </button>
+            </div>
+
+            <div className="col-6 col-md-3 col-lg-2">
+              <button
+                className="btn btn-outline-primary w-100 py-2"
+                onClick={() => acessarPagina("/financeiro")}
+              >
+                <i className="bi bi-bar-chart-line d-block fs-5 mb-1"></i>
+                Financeiro
               </button>
             </div>
 
