@@ -559,9 +559,9 @@ export default function Recebimentos() {
           <h2 className="h6 fw-bold mb-3">
             Acesso rápido
           </h2>
-        </div>
+       
          <LogoutButton/>
-        </div>
+        
           <div className="row g-2">
 
             <div className="col-6 col-md-3 col-lg-2">
