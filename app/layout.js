@@ -2,7 +2,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import LogoutButton from "./components/LogoutButton";
 
 export const metadata = {
-  title: "Sistema Imobiliária",
+  title: "ImobGest",
   description: "Sistema de administração de imóveis",
 };
 
