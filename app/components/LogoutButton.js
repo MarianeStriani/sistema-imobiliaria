@@ -18,7 +18,7 @@ export default function LogoutButton() {
   return (
     <button
       type="button"
-      className="btn btn-outline-danger"
+      className="btn btn-outline-danger btn-sm px-3 py-2 ms-3"
       onClick={sair}
     >
       Sair
