@@ -556,11 +556,11 @@ export default function Recebimentos() {
 
         <div className="card-body">
 
-          <h2 className="h6 fw-bold mb-3">
+          <h5 className="h6 fw-bold mb-3">
             Acesso rápido
-          </h2>
+          </h5>
        
-         <LogoutButton/>
+         
         
           <div className="row g-2">
 
@@ -646,7 +646,7 @@ export default function Recebimentos() {
             </div>
 
           </div>
-
+<LogoutButton/>
         </div>
 
       </div>
