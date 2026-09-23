@@ -1237,6 +1237,7 @@ export default function Contratos() {
                               }
                             >
                               <i className="bi bi-pencil"></i>
+                                Editar
                             </button>
 
                             <button
@@ -1250,6 +1251,7 @@ export default function Contratos() {
                               }
                             >
                               <i className="bi bi-trash"></i>
+                                Excluir
                             </button>
                           </div>
                         </td>
