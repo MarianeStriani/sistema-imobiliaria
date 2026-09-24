@@ -264,17 +264,25 @@ sistema-imobiliaria/
 │   ├── financeiro/
 │   │   └── page.js
 │   │
-│   ├── manutencao/
+│   ├── dashboard/
 │   │   └── page.js
 │   │
-│   └── page.js
+│   ├── components/
+│   │   └── LogoutButton.js
+│   │
+│   ├── layout.js
+│   └── page.js          (login)
 │
 ├── lib/
-│   └── supabase.js
+│   ├── supabase.js
+│   └── supabase/
+│       ├── client.js
+│       └── server.js
 │
-├── public/
-│
+├── middleware.js        (proteção das rotas)
+├── .env.example
 ├── package.json
+├── vercel.json
 │
 └── README.md
 
@@ -308,11 +316,15 @@ http://localhost:3000
 
 Crie um projeto no Supabase e configure as variáveis de ambiente.
 
-Crie o arquivo:
+Copie o modelo para criar o arquivo local:
 
-.env.local
+cp .env.example .env.local
 
-Adicione:
+No Windows (PowerShell):
+
+Copy-Item .env.example .env.local
+
+Preencha:
 
 NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
