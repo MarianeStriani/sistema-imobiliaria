@@ -696,10 +696,6 @@ export default function FinanceiroPage() {
                 Resumo financeiro
               </h5>
 
-              <small className="text-muted">
-                Resultado do período selecionado
-              </small>
-
             </div>
 
           </div>
@@ -761,7 +757,7 @@ export default function FinanceiroPage() {
                 <div className="d-flex align-items-center justify-content-between">
 
                   <span className="text-muted">
-                    Resultado
+                    Saldo
                   </span>
 
                   <i
