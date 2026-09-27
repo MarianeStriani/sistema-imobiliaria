@@ -1412,33 +1412,6 @@ export default function Recebimentos() {
 
                   </div>
 
-                  <div className="col-12 col-md-6">
-
-                    <label
-                      htmlFor="numero_contrato"
-                      className="form-label fw-semibold"
-                    >
-                      Nº do contrato
-                    </label>
-
-                    <input
-                      id="numero_contrato"
-                      type="text"
-                      className="form-control"
-                      value={
-                        formulario.numero_contrato
-                      }
-                      onChange={(event) =>
-                        alterarFormulario(
-                          "numero_contrato",
-                          event.target.value
-                        )
-                      }
-                      placeholder="Ex.: CT-001"
-                    />
-
-                  </div>
-
                   <div className="col-12">
 
                     <label
