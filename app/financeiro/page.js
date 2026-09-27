@@ -574,7 +574,21 @@ export default function FinanceiroPage() {
       <div className="card shadow-sm border-0 mb-4">
 
           <div className="row g-3">
+<div className="card-body">
 
+          <div className="d-flex align-items-center mb-3">
+
+            <div
+              className="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+              style={{
+                width: "48px",
+                height: "48px",
+              }}
+            >
+              <i className="bi bi-funnel text-primary fs-4"></i>
+            </div>
+
+          </div>
             <div className="col-12 col-md-6">
 
               <label
