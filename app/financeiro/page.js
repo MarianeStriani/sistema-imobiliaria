@@ -571,6 +571,8 @@ export default function FinanceiroPage() {
       
 
       {/* FILTROS */}
+      
+
       <div className="card shadow-sm border-0 mb-4">
 
           <div className="d-flex align-items-center mb-3">
@@ -644,7 +646,6 @@ export default function FinanceiroPage() {
 
         </div>
 
-      </div>
 
       {/* RESUMO DO PERÍODO */}
       <div className="card shadow-sm border-0 mb-4">
