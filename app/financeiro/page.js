@@ -587,18 +587,6 @@ export default function FinanceiroPage() {
               <i className="bi bi-funnel text-primary fs-4"></i>
             </div>
 
-            <div>
-
-              <h5 className="mb-1 fw-bold">
-                Filtros
-              </h5>
-
-              <small className="text-muted">
-                Selecione o período para consultar as movimentações
-              </small>
-
-            </div>
-
           </div>
 
           <div className="row g-3">
