@@ -755,7 +755,7 @@ export default function Recebimentos() {
       )}
       {/* FILTROS */}
 
-      <div className="card border-0 shadow-sm rounded-4 mb-4">
+      <div className="card bg-ligth border-0 shadow-sm rounded-4 mb-4">
 
         <div className="card-body">
 
