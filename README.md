@@ -1,4 +1,4 @@
-🏠 Sistema de Gestão Imobiliária
+ImobGest
 
 Sistema web para gestão e administração de imóveis, desenvolvido para centralizar informações de imóveis, clientes, contratos e movimentações financeiras em uma única plataforma.
 
@@ -39,9 +39,9 @@ Apresenta informações como:
 - Despesas
 - Saldo financeiro
 
-Também possui gráficos para facilitar a visualização das informações.
+Também possui cards para facilitar a visualização das informações.
 
-🏠 Gestão de imóveis
+Página Imóveis 
 
 Permite cadastrar e administrar os imóveis da imobiliária.
 
@@ -62,9 +62,7 @@ Status disponíveis:
 - 🔵 Alugado
 - 🟠 Em manutenção
 
----
-
-👥 Gestão de clientes
+Página Clientes
 
 Cadastro e gerenciamento dos clientes relacionados aos imóveis.
 
@@ -78,9 +76,7 @@ Permite armazenar informações como:
 - Tipo de cliente
 - Observações
 
----
-
-📄 Gestão de contratos
+Página Contratos
 
 Controle dos contratos de locação.
 
@@ -96,9 +92,7 @@ Possibilita acompanhar:
 
 O sistema também pode identificar contratos próximos do vencimento.
 
----
-
-💰 Recebimentos
+Página Recebimentos
 
 Controle dos valores recebidos pela imobiliária.
 
@@ -119,9 +113,7 @@ Status de pagamento:
 - Pago
 - Atrasado
 
----
-
-💸 Despesas
+Página Despesas
 
 Controle das despesas relacionadas à administração dos imóveis.
 
@@ -135,9 +127,7 @@ Permite registrar:
 - Status
 - Observações
 
----
-
-📈 Financeiro
+Página Financeiro
 
 Área destinada ao acompanhamento financeiro do sistema.
 
@@ -153,9 +143,7 @@ Apresenta:
 
 É possível realizar filtros por mês e ano.
 
----
-
-🔧 Manutenção
+Página Manutenção
 
 Controle das manutenções realizadas nos imóveis.
 
@@ -169,42 +157,6 @@ Permite acompanhar:
 - Responsável
 - Observações
 
----
-
-📱 Comunicação com clientes
-
-O sistema possui uma área de comunicação com mensagens previamente configuradas.
-
-Exemplos:
-
-- Lembrete de vencimento
-- Aviso de contrato próximo do vencimento
-- Aviso de visita de manutenção
-- Confirmação de visita
-- Aviso de pagamento
-- Outras mensagens administrativas
-
-As mensagens podem ser preparadas para envio pelo WhatsApp, utilizando os dados cadastrados no sistema.
-
----
-
-🔔 Acusação de recebimento
-
-O sistema também pode registrar o acompanhamento das comunicações enviadas aos clientes.
-
-Exemplo:
-
-Mensagem enviada
-       ↓
-Cliente recebeu
-       ↓
-Cliente confirmou recebimento
-       ↓
-Registro no sistema
-
-Essa funcionalidade é voltada para o controle administrativo e não depende de integração bancária.
-
----
 
 🗄️ Banco de dados
 
@@ -222,9 +174,7 @@ Entre os dados administrados pelo sistema estão:
 - Manutenções
 - Comunicações
 
----
-
-🔐 Segurança
+Segurança
 
 O projeto utiliza recursos do Supabase para comunicação com o banco de dados.
 
@@ -237,9 +187,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 
 O arquivo ".env.local" deve permanecer fora do repositório.
 
----
-
-📁 Estrutura do projeto
+Estrutura do projeto
 
 Uma estrutura simplificada do projeto:
 
@@ -286,7 +234,7 @@ sistema-imobiliaria/
 │
 └── README.md
 
----
+
 
 ⚙️ Instalação
 
@@ -310,9 +258,7 @@ Depois, acesse:
 
 http://localhost:3000
 
----
-
-🔑 Configuração do Supabase
+Configuração do Supabase
 
 Crie um projeto no Supabase e configure as variáveis de ambiente.
 
@@ -333,9 +279,7 @@ Depois reinicie o servidor:
 
 npm run dev
 
----
-
-☁️ Deploy
+Deploy
 
 O projeto pode ser publicado utilizando a Vercel.
 
@@ -351,36 +295,29 @@ Supabase
 
 As variáveis de ambiente do Supabase devem ser configuradas também no ambiente de produção.
 
----
-
-🎯 Objetivo do projeto
+Objetivo do projeto
 
 O objetivo do Sistema de Gestão Imobiliária é proporcionar uma solução web para organização, controle e acompanhamento das atividades administrativas de uma imobiliária.
 
 A plataforma busca reduzir a necessidade de controles manuais e facilitar o acesso às informações de imóveis, clientes, contratos e movimentações financeiras.
 
----
+Status do projeto
 
-📌 Status do projeto
-
-🚧 Em desenvolvimento
+Em desenvolvimento
 
 Novas funcionalidades e melhorias de interface estão sendo implementadas continuamente.
 
----
 
-👩‍💻 Desenvolvimento
+Desenvolvimento
 
-Projeto desenvolvido por Mariane Isabela Striani Silva.
+Projeto desenvolvido por Mariane Isabela Striani Silva, Gustavo Mugnatto, Hiago.
 
 Formação relacionada
 
 Gestão da Tecnologia da Informação — UNIVESP
 
----
-
-📄 Licença
+ Licença
 
 Este projeto foi desenvolvido para fins acadêmicos e de desenvolvimento de portfólio.
 
-© 2026 Mariane Isabela Striani Silva
+©PJI II 240- grupo 5 2026 
